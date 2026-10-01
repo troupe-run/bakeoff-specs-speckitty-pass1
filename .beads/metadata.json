@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "bakeoff_specs_speckitty",
+  "project_id": "85a76aad-db9c-43d9-86bc-6a111192456c"
+}

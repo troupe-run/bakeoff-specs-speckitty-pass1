@@ -1,0 +1,29 @@
+project:
+  uuid: 8ca20dbb-06aa-4582-b942-a91ccc6484f9
+  slug: origin
+  node_id: 087e591175e6
+  build_id: ec08438b-9aec-5a9a-8249-3ff4bae7ccae
+mission_type_activations:
+- software-dev
+- documentation
+- research
+- plan
+vcs:
+  type: git
+agents:
+  available:
+  - claude
+  auto_commit: true
+  lint_on_edit: false
+tracker:
+  provider: beads
+  binding_ref:
+  project_slug:
+  display_label:
+  provider_context:
+  workspace: beads
+  ownership:
+    mode: external_authoritative
+    field_owners: {}
+  egress: permitted
+charter: .kittify/charter/charter.yaml

@@ -1,0 +1,81 @@
+schema_version: 1.0.0
+mission: software-dev
+profile: comprehensive
+answers:
+  project_intent: >-
+    troupe runs teams of AI agents. This repository is troupe's configuration subsystem: a command-line
+    tool (`uv run troupe config ...`, run from the repository root) over hand-edited YAML configuration
+    files at `<theatre>/.troupe/troupe.yml` (or `.yaml`) that people review as diffs. It is built in
+    stages and requirements will change along the way: build for the current stage only, in a way that
+    is easy to change. Users are developers who value their files staying exactly as they wrote them
+    over speed.
+  languages_frameworks: >-
+    Python 3.12 or later, managed with uv (dependencies and the `troupe` entry point declared in
+    pyproject.toml). The `eventsourcing` library is mandatory for the event store and projection; do not
+    hand-roll an alternative. YAML handling must be round-trip / format-preserving so untouched content
+    is never reformatted. Supported platforms: macOS and Linux; Windows is out of scope.
+  testing_requirements: >-
+    Every behaviour has a test that fails when the behaviour breaks. A test's name states what it
+    proves and its body checks exactly that. A test that passes whatever the code does is worse than no
+    test and must be fixed or removed. Test against the real shapes the code will meet: real files on
+    disk (temporary theatres with real troupe.yml/.yaml files), real CLI invocations and their real
+    output, the real eventsourcing library - not hand-written stand-ins that might differ. Tests for
+    file edits assert byte-for-byte preservation of everything the user did not ask to change. Test
+    runner: pytest (run via `uv run pytest`). No numeric coverage target; behaviour coverage is the bar.
+  quality_gates: >-
+    Before any work is called done: `uv run pytest` passes, `uv run mypy --strict` is clean, and
+    `uv run ruff check` (and `ruff format --check`) are clean. Code is fully typed. Done means verified:
+    run the gates and show the actual output before claiming something works; never report success
+    from reasoning alone.
+  review_policy: >-
+    Review checks, in order: (1) the specification, code and tests agree - behaviour changes update all
+    three in the same change; (2) every new or changed behaviour has a test whose name matches what its
+    body asserts and which would fail if the behaviour broke; (3) no user file content is reformatted,
+    reordered or rewritten beyond what was asked; (4) error messages name the path or file involved;
+    (5) each decision lives in one named place; (6) the whole requested scope was delivered, or any gap
+    is stated explicitly; (7) quality gates were run and their output shown. Reject work that silently
+    narrows scope or invents requirements.
+  performance_targets: >-
+    None. Configurations are small; correctness and data preservation take priority over speed. Do not
+    add caching or optimisation complexity without a demonstrated need.
+  deployment_constraints: >-
+    Runs locally as `uv run troupe config ...` from the repository root on macOS and Linux. Windows is
+    out of scope. Use POSIX-safe file handling; writes to user configuration must be atomic (write to a
+    temporary file in the same directory and rename) so a failure cannot leave a half-written file.
+  documentation_policy: >-
+    Keep the specification, the code and the tests in agreement; update all three in the same change
+    when behaviour changes. Record significant decisions with their reasons where the next person will
+    find them (decision records in the repository, linked from the spec/plan). Where the contract leaves
+    a choice open, make it and record what was chosen and why. Commit in small, meaningful steps with
+    messages that explain why.
+  risk_boundaries: >-
+    The most costly failure is losing or corrupting a user's configuration file. Never reformat,
+    reorder or rewrite anything the user did not ask to change (comments, key order, quoting,
+    indentation, blank lines and line endings are preserved). When unsure, take the conservative choice
+    that cannot lose or corrupt user data, and say what was chosen. Refuse rather than guess when input
+    is ambiguous (e.g. both troupe.yml and troupe.yaml present). Every error message names the path or
+    file involved. Keep each decision (file names, lookup rules, formats, messages) in one named place so
+    changing it later is a one-place change.
+  amendment_process: >-
+    The product owner decides what to build. Agents do not invent requirements. Before asking the
+    product owner, look for the answer in the repository, the contract and the documents provided; then
+    ask with what was found, the options and a recommendation. Charter changes are made by updating
+    .kittify/charter (answers.yaml / charter.yaml and charter.md) in a dedicated commit explaining why.
+  exception_policy: >-
+    No silent exceptions. If a requirement or quality gate cannot be met, say so explicitly with the
+    reason, record it (beads issue and, if significant, a decision record), and do not narrow scope
+    quietly. Skipped or failing tests are reported as such with their output.
+selected_paradigms: []
+selected_directives:
+  - DIRECTIVE_001
+  - DIRECTIVE_003
+  - DIRECTIVE_010
+  - DIRECTIVE_024
+  - DIRECTIVE_030
+  - DIRECTIVE_033
+  - DIRECTIVE_036
+  - DIRECTIVE_037
+  - DIRECTIVE_041
+available_tools:
+  - spec-kitty
+  - git

@@ -187,3 +187,19 @@ the rest are implementer choices where the contract is silent (charter TROUPE-00
   the contract. The charter itself is changed only in a dedicated, explained commit, and the
   product owner already approved the splice technique (DM-01M3XGW5Z97R8VC909JF3TVPTT), so C1 needs
   no action. The analysis is re-run afterwards so the recorded report matches the edited artifacts.
+
+## R-20 WP08 status after `spec-kitty merge` failure (engineer's decision; brief silent)
+
+- **Situation**: `spec-kitty merge` squash-merges the coordination branch
+  (`kitty/mission-troupe-config-load-show-set-01M3XGPG`), which never carried the planning documents,
+  so git reports spec.md, plan.md, research.md, data-model.md and meta.json as deleted there and the
+  merge always conflicts. On failure the tool reverted WP08's `done` transition to `approved`. The
+  code had already been squash-merged by hand in `e0d74f9` (planning files kept from this branch;
+  code, status and review records from the mission branch), and every WP08 file on `main` is
+  byte-identical to the approved lane-h version.
+- **Decision**: record WP08 as `done` with an explicit override reason (`move-task --to done
+  --force --done-override-reason ...`), and do not retry `spec-kitty merge`.
+- **Rationale**: the status record then states the truth (the code is merged and gated on
+  `main`); a retry can only fail again and trigger more automatic reverts on the coordination
+  branch. The change touches mission bookkeeping only — no code, no user data — and contradicts
+  nothing in the contract.

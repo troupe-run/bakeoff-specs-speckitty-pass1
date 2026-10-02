@@ -138,12 +138,17 @@ the rest are implementer choices where the contract is silent (charter TROUPE-00
 - **Contract**: "For a text include, the target file's content becomes `VALUE` exactly, except that if
   the target file used CRLF line endings, the new content uses CRLF line endings too (`VALUE` must
   then be a string, else exit 3)."
-- **Decision**: CRLF target + non-string VALUE → exit 3 (as written). LF target + non-string
-  **scalar** VALUE → content is the scalar's canonical YAML text (`5`, `true`, `null`, `0.2`), which
-  is what "becomes VALUE exactly" yields for a text file; a mapping/list VALUE → exit 3 (a text file
-  cannot hold a collection value). "Uses CRLF" = the target text contains `\r\n`.
-- **Rationale**: follows the contract literally where it speaks; refuses (TROUPE-002) only where a
-  value cannot be represented as text.
+- **Decision** (revised 2026-10-02 after product-owner review): the only refusal is the one the
+  contract states — CRLF target + non-string VALUE → exit 3. With an LF (or line-break-free) target
+  there is no type restriction: a string VALUE becomes the content as parsed (so
+  `"line one\nline two\n"` writes real line breaks); any **non-string** VALUE — scalar, mapping or
+  list — becomes the content as the VALUE argument's text exactly as typed (`5`, `true`, `0.20`,
+  `{a: 1}`, `[a, b]`). "Uses CRLF" = the target text contains `\r\n`.
+- **Rationale**: "the target file's content becomes VALUE exactly"; for a non-string VALUE the only
+  exact text is the argument itself. The earlier draft refused mappings/lists; the product owner
+  ruled that the contract gives no such refusal, so it was removed.
+- **Consequence**: after such a `set`, the text include's leaf is the written text (a string), and
+  history records `new` as that string.
 
 ## R-17 Verify before write
 
@@ -154,3 +159,19 @@ the rest are implementer choices where the contract is silent (charter TROUPE-00
   PATH already equals VALUE, nothing is written and no event is emitted.
 - **Rationale**: the costliest failure is corrupting a user's file (charter); this turns any
   renderer bug into a refusal instead of a corruption.
+
+## R-18 Implementation handoff (engineer's decision; brief silent)
+
+- **Question**: should implementation proceed via `/spec-kitty.analyze` and then implement + review
+  of every WP to completion?
+- **Decision**: yes. Run `/spec-kitty.analyze`; implement every WP in dependency order and review
+  each independently (rejecting any WP whose gates — `uv run pytest`, `uv run mypy --strict`,
+  `uv run ruff check`, `uv run ruff format --check` — fail, or whose `set` tests do not assert whole
+  file bytes); merge lanes into `feat/troupe-config-load-show-set`, then merge that branch into
+  `main` locally. Never push; never open a pull request.
+- **Rationale**: the delivery requirement is a commit on `main`; nothing in this path publishes
+  externally; independent review plus verify-before-write (R-17) is the option least likely to
+  corrupt a user's file or contradict the contract.
+- **Note**: recorded here because `spec-kitty agent decision open` returns `MISSION_NOT_FOUND`
+  after `finalize-tasks` (it resolves the mission in the coordination worktree, which holds only
+  status files).

@@ -133,14 +133,14 @@ Rules (contract "Where the change is written"):
 ### Subtask T037 – `apply_set`: replacing existing values (`src/troupe/writeback/apply.py`)
 
 ```python
-def apply_set(root: Node, segments: list[str], dotted: str, value: Value) -> dict[SourceFile, str]
+def apply_set(root: Node, segments: list[str], dotted: str, value: Value, raw_value: str) -> dict[SourceFile, str]
 ```
 - `ReplaceScalar`:
   - `value` is a non-multi-line `str` or a non-string scalar → `scalars.render_scalar(value, preferred=<current style>, context)` replacing exactly the node span; the line is rebuilt with `comments.replace_in_line` (comment column rule). Current style `literal`/`folded` → see block case.
   - Multi-line `str` replacing a plain/quoted scalar → block context: literal block (WP06) — header replaces the scalar span (comment column rule on that line) and body lines are inserted after the line; flow context: double-quoted.
   - Existing `literal`/`folded` node → `blocks.parse_block` + `replace_literal` / `replace_folded` (folded refusals propagate as exit 3).
   - Collection value replacing a scalar → `collections.replace_value_edits`.
-- `ReplaceText` (R-16): `new = value` if `str`; non-string scalar → `render_nonstring(value)`; collection → `WriteRefused`. If `fileio.uses_crlf(target.text)`: non-string → `WriteRefused`; else `new = fileio.to_crlf(new)`. The whole target text becomes `new`.
+- `ReplaceText` (R-16, revised): if `fileio.uses_crlf(target.text)`: non-string `value` → `WriteRefused` (exit 3), string → `new = fileio.to_crlf(value)`. Otherwise (LF or no line breaks): `new = value` if it is a `str`, else `new = raw_value` — the VALUE argument exactly as typed, for **any** non-string (scalar, mapping or list; never refuse). The whole target text becomes `new`. `apply_set` therefore also takes `raw_value: str`.
 - `ReplaceCollection` → `collections.replace_value_edits` (collection→collection or collection→scalar).
 - Parent indentation and step: `collections.detect_indent(file.text)` once per file.
 
@@ -149,8 +149,8 @@ def apply_set(root: Node, segments: list[str], dotted: str, value: Value) -> dic
 - `AddKeys` → block mapping: `collections.new_key_edits`; flow mapping: `collections.flow_append_edits` (with nested flow mappings for intermediate keys).
 - `AppendItem` → block: `collections.new_item_edits`; flow: `flow_append_edits`.
 - Group `TextEdit`s per `SourceFile`, `apply_edits` → new texts.
-- **Verify before write (R-17)**: `new_root = loader.load(config_file, overrides={f.path: t for f, t in new_texts.items()})`; check `same_value(lookup(new_root, segments), value)` (deep, type-aware; text include compares its text) and that `flatten(new_root)` equals `flatten(old_root)` for every path not equal to/under `dotted`. On mismatch → `WriteRefused(f"{dotted}: cannot write this change byte-surgically; no file changed")`. Never write when verification fails.
-- **No-op**: if the current value at PATH already equals `value` (deep, type-aware), return `{}` before rendering.
+- **Verify before write (R-17)**: `new_root = loader.load(config_file, overrides={f.path: t for f, t in new_texts.items()})`; check `same_value(lookup(new_root, segments), value)` (deep, type-aware; for a text include compare its new text with the content actually written — `value` or `raw_value` per R-16) and that `flatten(new_root)` equals `flatten(old_root)` for every path not equal to/under `dotted`. On mismatch → `WriteRefused(f"{dotted}: cannot write this change byte-surgically; no file changed")`. Never write when verification fails.
+- **No-op**: if the current value at PATH already equals `value` (deep, type-aware), return `{}` before rendering. For a text include, compare the current text with the content that would be written (R-16).
 
 ### Subtask T039 – `set PATH VALUE` (`src/troupe/commands/set_value.py`)
 
@@ -159,7 +159,7 @@ def run(theatre: Theatre, args: argparse.Namespace) -> str:
     segments = parse_path(args.path)
     value = parse_value(args.value)                      # exit 2 on bad VALUE (before loading? — after parse_path, before session)
     with open_session(theatre) as s:                     # loads + imports if first command
-        new_texts = apply_set(s.tree, segments, args.path, value)
+        new_texts = apply_set(s.tree, segments, args.path, value, args.value)
         if not new_texts:
             return ""
         new_root = load(theatre.config_file, overrides=…)   # or reuse the verified tree from apply_set
@@ -179,7 +179,7 @@ Use `make_theatre`, `run_cli`, `snapshot`; assert `snapshot(after) == expected_s
 - `name: "Ada"` → `Grace` keeps double quotes; `'Ada'` → `it's` → `'it''s'`; plain `abc` → `a: b` → `'a: b'`; plain → string `true` (VALUE `'"true"'`) → `'true'`; int → string; string → int (plain).
 - double-quoted escaping: VALUE with tab → `"a\tb"`; `é` literal.
 - value in YAML include: only the included file changes; include target nested in subdir.
-- text include LF: content becomes VALUE exactly; CRLF target: `"a\nb\n"` → `a\r\nb\r\n`; CRLF + `5` → exit 3, nothing changed; LF + `5` → content `5` (R-16).
+- text include LF: content becomes VALUE exactly; CRLF target: `"a\nb\n"` → `a\r\nb\r\n`; CRLF + `5` → exit 3, nothing changed; CRLF + `{a: 1}` → exit 3; LF + `5` → content `5`; LF + `0.20` → content `0.20`; LF + `{a: 1}` → content `{a: 1}`; LF + `[a, b]` → content `[a, b]`; `show` then prints that text and history records it as a string (R-16).
 - refusals: `set agents.coder x` when `agents.coder` is `file:agents/coder.yaml` → exit 3, stdout empty, stderr names path, all bytes unchanged, no history events beyond import.
 - path errors: `tools.5` on a 2-item list → exit 5; path through scalar → exit 5; missing root file → exit 4; bad VALUE (`a: 1`) → exit 2.
 - CRLF YAML file: changed scalar keeps CRLF elsewhere.

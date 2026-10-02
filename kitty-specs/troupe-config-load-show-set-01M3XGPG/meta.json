@@ -1,0 +1,15 @@
+{
+  "coordination_branch": "kitty/mission-troupe-config-load-show-set-01M3XGPG",
+  "created_at": "2026-10-02T05:16:53.789610+00:00",
+  "flattened": false,
+  "friendly_name": "troupe configuration: load, show, set",
+  "mission_id": "01M3XGPG3A3N2MVWSYSTTX1SC9",
+  "mission_number": null,
+  "mission_slug": "troupe-config-load-show-set-01M3XGPG",
+  "mission_type": "software-dev",
+  "purpose_context": "troupe projects keep configuration in hand-edited, reviewed YAML files split across includes. This mission delivers the configuration subsystem: loading with includes, an event-sourced record of every change persisted in the theatre, and show/set/history commands whose write-backs change only the bytes of the value being changed.",
+  "purpose_tldr": "Let theatre owners load, inspect, change and audit troupe configuration without disturbing their hand-edited files.",
+  "slug": "troupe-config-load-show-set-01M3XGPG",
+  "target_branch": "feat/troupe-config-load-show-set",
+  "topology": "coord"
+}

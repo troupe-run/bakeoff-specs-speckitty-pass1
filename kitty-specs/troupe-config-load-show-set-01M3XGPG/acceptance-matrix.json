@@ -1,0 +1,249 @@
+{
+  "mission_slug": "troupe-config-load-show-set-01M3XGPG",
+  "mission_number": "",
+  "mission_type": "software-dev",
+  "overall_verdict": "pass",
+  "criteria": [
+    {
+      "criterion_id": "FR-001",
+      "description": "Invocation: As an owner, I run `troupe config <subcommand> --theatre <dir> [arguments]`; `--theatre` defaults to the current directory; malformed invocations exit 2.",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_cli_basics.py (18 passed, 0 failed) \u2014 full suite 1185 passed on kitty/mission-troupe-config-load-show-set-01M3XGPG-lane-h (all WP01-WP08 code), plus uv run mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-02T08:11:21+00:00",
+      "notes": "Automated black-box/unit tests mapped from WP requirement_refs; each WP independently reviewed and approved."
+    },
+    {
+      "criterion_id": "FR-002",
+      "description": "Root file discovery: As an owner, my config is `<dir>/.troupe/troupe.yml` or `.troupe/troupe.yaml`; neither or both exits 4 naming the file(s).",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_cli_basics.py (18 passed, 0 failed) \u2014 full suite 1185 passed on kitty/mission-troupe-config-load-show-set-01M3XGPG-lane-h (all WP01-WP08 code), plus uv run mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-02T08:11:21+00:00",
+      "notes": "Automated black-box/unit tests mapped from WP requirement_refs; each WP independently reviewed and approved."
+    },
+    {
+      "criterion_id": "FR-003",
+      "description": "Path addressing: As an owner, I address nodes with `.`-separated keys where a digit-only segment indexes a list (0-based).",
+      "proof_type": "automated_test",
+      "evidence": "tests/unit/test_paths.py (24 passed, 0 failed); tests/integration/test_show.py (28 passed, 0 failed) \u2014 full suite 1185 passed on kitty/mission-troupe-config-load-show-set-01M3XGPG-lane-h (all WP01-WP08 code), plus uv run mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-02T08:11:21+00:00",
+      "notes": "Automated black-box/unit tests mapped from WP requirement_refs; each WP independently reviewed and approved."
+    },
+    {
+      "criterion_id": "FR-004",
+      "description": "VALUE parsing: As an owner, `VALUE` is parsed as one YAML 1.2 core-schema flow node (`0.2` float, `true` bool, `null`, `abc`/`\"0.2\"` strings, `{a: 1}` mapping, `[a, b]` list, escaped multi-line strings); a VALUE that cannot be parsed, or is a block-style node (e.g. `a: 1`), exits 2.",
+      "proof_type": "automated_test",
+      "evidence": "tests/unit/test_values.py (60 passed, 0 failed); tests/integration/test_set_existing.py (47 passed, 0 failed) \u2014 full suite 1185 passed on kitty/mission-troupe-config-load-show-set-01M3XGPG-lane-h (all WP01-WP08 code), plus uv run mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-02T08:11:21+00:00",
+      "notes": "Automated black-box/unit tests mapped from WP requirement_refs; each WP independently reviewed and approved."
+    },
+    {
+      "criterion_id": "FR-005",
+      "description": "Scalar printing: As an owner, a scalar prints as: strings exactly plus `\\n` unless already ending in `\\n`; `true`/`false`; `null`; integers in decimal; floats as Python `repr()`.",
+      "proof_type": "automated_test",
+      "evidence": "tests/unit/test_values.py (60 passed, 0 failed); tests/integration/test_show.py (28 passed, 0 failed) \u2014 full suite 1185 passed on kitty/mission-troupe-config-load-show-set-01M3XGPG-lane-h (all WP01-WP08 code), plus uv run mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-02T08:11:21+00:00",
+      "notes": "Automated black-box/unit tests mapped from WP requirement_refs; each WP independently reviewed and approved."
+    },
+    {
+      "criterion_id": "FR-006",
+      "description": "Exit codes and errors: As an owner, outcomes use exit 0/2/3/4/5 as contracted; on any non-zero exit stdout is empty and stderr names the offending path or file.",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_cli_basics.py (18 passed, 0 failed); tests/integration/test_show.py (28 passed, 0 failed); tests/integration/test_set_existing.py (47 passed, 0 failed) \u2014 full suite 1185 passed on kitty/mission-troupe-config-load-show-set-01M3XGPG-lane-h (all WP01-WP08 code), plus uv run mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-02T08:11:21+00:00",
+      "notes": "Automated black-box/unit tests mapped from WP requirement_refs; each WP independently reviewed and approved."
+    },
+    {
+      "criterion_id": "FR-007",
+      "description": "Includes: As an owner, a string starting `file:` includes the path after it, relative to the containing file's directory: `.yml`/`.yaml` targets embed their content in place; other targets yield the file's exact text; includes resolve recursively; a missing target or cycle exits 4.",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_loading.py (34 passed, 0 failed); tests/integration/test_show.py (28 passed, 0 failed) \u2014 full suite 1185 passed on kitty/mission-troupe-config-load-show-set-01M3XGPG-lane-h (all WP01-WP08 code), plus uv run mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-02T08:11:21+00:00",
+      "notes": "Automated black-box/unit tests mapped from WP requirement_refs; each WP independently reviewed and approved."
+    },
+    {
+      "criterion_id": "FR-008",
+      "description": "Files are source of truth: As an owner, `show` and `set` always read the current files on disk; hand edits are visible to `show`, produce no history event, and a later `set` records the on-disk value as `old`.",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_show.py (28 passed, 0 failed); tests/integration/test_history.py (12 passed, 0 failed); tests/integration/test_set_history.py (11 passed, 0 failed) \u2014 full suite 1185 passed on kitty/mission-troupe-config-load-show-set-01M3XGPG-lane-h (all WP01-WP08 code), plus uv run mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-02T08:11:21+00:00",
+      "notes": "Automated black-box/unit tests mapped from WP requirement_refs; each WP independently reviewed and approved."
+    },
+    {
+      "criterion_id": "FR-009",
+      "description": "show: As an owner, `show PATH` prints the scalar at PATH (a text include is a string); a mapping or list, or a missing path, exits 5.",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_show.py (28 passed, 0 failed) \u2014 full suite 1185 passed on kitty/mission-troupe-config-load-show-set-01M3XGPG-lane-h (all WP01-WP08 code), plus uv run mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-02T08:11:21+00:00",
+      "notes": "Automated black-box/unit tests mapped from WP requirement_refs; each WP independently reviewed and approved."
+    },
+    {
+      "criterion_id": "FR-010",
+      "description": "set: owning file: As an owner, `set` changes an existing value in the file that contains it; for a text include the target file's content becomes VALUE exactly, converted to CRLF if the target used CRLF (VALUE must then be a string, else exit 3); with an LF target any VALUE is accepted \u2014 a string is written as parsed, a non-string (scalar, mapping or list) as the VALUE argument exactly as typed.",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_set_existing.py (47 passed, 0 failed) \u2014 full suite 1185 passed on kitty/mission-troupe-config-load-show-set-01M3XGPG-lane-h (all WP01-WP08 code), plus uv run mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-02T08:11:21+00:00",
+      "notes": "Automated black-box/unit tests mapped from WP requirement_refs; each WP independently reviewed and approved."
+    },
+    {
+      "criterion_id": "FR-011",
+      "description": "set: new keys: As an owner, a new key is written into the file containing the deepest existing ancestor mapping of PATH, creating missing intermediate mappings there.",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_set_new_entries.py (27 passed, 0 failed); tests/unit/test_collections.py (173 passed, 0 failed) \u2014 full suite 1185 passed on kitty/mission-troupe-config-load-show-set-01M3XGPG-lane-h (all WP01-WP08 code), plus uv run mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-02T08:11:21+00:00",
+      "notes": "Automated black-box/unit tests mapped from WP requirement_refs; each WP independently reviewed and approved."
+    },
+    {
+      "criterion_id": "FR-012",
+      "description": "set: list append: As an owner, a PATH whose final index equals the list's length appends; a larger index exits 5.",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_set_new_entries.py (27 passed, 0 failed); tests/unit/test_collections.py (173 passed, 0 failed) \u2014 full suite 1185 passed on kitty/mission-troupe-config-load-show-set-01M3XGPG-lane-h (all WP01-WP08 code), plus uv run mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-02T08:11:21+00:00",
+      "notes": "Automated black-box/unit tests mapped from WP requirement_refs; each WP independently reviewed and approved."
+    },
+    {
+      "criterion_id": "FR-013",
+      "description": "set: include replacement refused: As an owner, replacing a value whose whole value comes from a YAML include (a `file:` target ending `.yml`/`.yaml`) exits 3 and changes no file; text includes are rewritten per FR-010.",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_set_existing.py (47 passed, 0 failed) \u2014 full suite 1185 passed on kitty/mission-troupe-config-load-show-set-01M3XGPG-lane-h (all WP01-WP08 code), plus uv run mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-02T08:11:21+00:00",
+      "notes": "Automated black-box/unit tests mapped from WP requirement_refs; each WP independently reviewed and approved."
+    },
+    {
+      "criterion_id": "FR-014",
+      "description": "Byte-surgical write-back: As an owner, after a successful `set` the only bytes that differ in any file are those FR-015\u2013FR-021 require.",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_set_existing.py (47 passed, 0 failed); tests/integration/test_set_new_entries.py (27 passed, 0 failed); tests/integration/test_set_blocks.py (18 passed, 0 failed) \u2014 full suite 1185 passed on kitty/mission-troupe-config-load-show-set-01M3XGPG-lane-h (all WP01-WP08 code), plus uv run mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-02T08:11:21+00:00",
+      "notes": "Automated black-box/unit tests mapped from WP requirement_refs; each WP independently reviewed and approved."
+    },
+    {
+      "criterion_id": "FR-015",
+      "description": "Scalar quoting: As an owner, a changed scalar keeps its quoting style if it can represent the new value, else plain, else single-quoted, else double-quoted; new keys and new string values copy the preceding sibling's quoting style, else plain or minimal quoting; double-quoted output escapes only `\\\\`, `\\\"` and control characters (as `\\t`, `\\n`, \u2026).",
+      "proof_type": "automated_test",
+      "evidence": "tests/unit/test_scalars.py (390 passed, 0 failed); tests/integration/test_set_existing.py (47 passed, 0 failed) \u2014 full suite 1185 passed on kitty/mission-troupe-config-load-show-set-01M3XGPG-lane-h (all WP01-WP08 code), plus uv run mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-02T08:11:21+00:00",
+      "notes": "Automated black-box/unit tests mapped from WP requirement_refs; each WP independently reviewed and approved."
+    },
+    {
+      "criterion_id": "FR-016",
+      "description": "New collections: As an owner, a new collection value is written in block style at the file's indentation (default 2), or in flow style if its parent is a flow collection; replacing a scalar by a block collection keeps the key's line bytes through its end-of-line comment.",
+      "proof_type": "automated_test",
+      "evidence": "tests/unit/test_collections.py (173 passed, 0 failed); tests/integration/test_set_new_entries.py (27 passed, 0 failed) \u2014 full suite 1185 passed on kitty/mission-troupe-config-load-show-set-01M3XGPG-lane-h (all WP01-WP08 code), plus uv run mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-02T08:11:21+00:00",
+      "notes": "Automated black-box/unit tests mapped from WP requirement_refs; each WP independently reviewed and approved."
+    },
+    {
+      "criterion_id": "FR-017",
+      "description": "Multi-line strings: As an owner, a multi-line string replacing a plain/quoted scalar, or as a new key's value, is written as a literal block (`",
+      "proof_type": "automated_test",
+      "evidence": "tests/unit/test_blocks.py (196 passed, 0 failed); tests/integration/test_set_blocks.py (18 passed, 0 failed) \u2014 full suite 1185 passed on kitty/mission-troupe-config-load-show-set-01M3XGPG-lane-h (all WP01-WP08 code), plus uv run mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-02T08:11:21+00:00",
+      "notes": "Automated black-box/unit tests mapped from WP requirement_refs; each WP independently reviewed and approved."
+    },
+    {
+      "criterion_id": "FR-018",
+      "description": "Folded values: As an owner, in a `>` value unchanged paragraphs keep their bytes; a changed paragraph is re-wrapped greedily by word at its previous longest content-line width (an over-long word takes its own line); a new paragraph wraps at the value's longest old content-line width; a change that would introduce a more-indented line exits 3.",
+      "proof_type": "automated_test",
+      "evidence": "tests/unit/test_blocks.py (196 passed, 0 failed); tests/integration/test_set_blocks.py (18 passed, 0 failed) \u2014 full suite 1185 passed on kitty/mission-troupe-config-load-show-set-01M3XGPG-lane-h (all WP01-WP08 code), plus uv run mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-02T08:11:21+00:00",
+      "notes": "Automated black-box/unit tests mapped from WP requirement_refs; each WP independently reviewed and approved."
+    },
+    {
+      "criterion_id": "FR-019",
+      "description": "Placement of new entries: As an owner, a new block list item or mapping key goes after the collection's last entry and below any comment lines following it, before the next less-indented line; a comment line indented less than the entries ends the collection. In a flow collection, the new entry is appended after the last entry on that entry's line.",
+      "proof_type": "automated_test",
+      "evidence": "tests/unit/test_collections.py (173 passed, 0 failed); tests/integration/test_set_new_entries.py (27 passed, 0 failed) \u2014 full suite 1185 passed on kitty/mission-troupe-config-load-show-set-01M3XGPG-lane-h (all WP01-WP08 code), plus uv run mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-02T08:11:21+00:00",
+      "notes": "Automated black-box/unit tests mapped from WP requirement_refs; each WP independently reviewed and approved."
+    },
+    {
+      "criterion_id": "FR-020",
+      "description": "End-of-line comments: As an owner, when a changed value's length changes, its line's comment returns to its previous column (Unicode code points); if the value reaches that column, exactly one space separates value and comment; no other line changes.",
+      "proof_type": "automated_test",
+      "evidence": "tests/unit/test_comments.py (20 passed, 0 failed); tests/integration/test_set_existing.py (47 passed, 0 failed) \u2014 full suite 1185 passed on kitty/mission-troupe-config-load-show-set-01M3XGPG-lane-h (all WP01-WP08 code), plus uv run mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-02T08:11:21+00:00",
+      "notes": "Automated black-box/unit tests mapped from WP requirement_refs; each WP independently reviewed and approved."
+    },
+    {
+      "criterion_id": "FR-021",
+      "description": "Persistent event-sourced history: As an owner, configuration changes are held as an event-sourced projection persisted under `<dir>/.troupe/` so it survives between commands.",
+      "proof_type": "automated_test",
+      "evidence": "tests/unit/test_history_store.py (8 passed, 0 failed); tests/integration/test_history.py (12 passed, 0 failed) \u2014 full suite 1185 passed on kitty/mission-troupe-config-load-show-set-01M3XGPG-lane-h (all WP01-WP08 code), plus uv run mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-02T08:11:21+00:00",
+      "notes": "Automated black-box/unit tests mapped from WP requirement_refs; each WP independently reviewed and approved."
+    },
+    {
+      "criterion_id": "FR-022",
+      "description": "Import: As an owner, the first command against a theatre (including `history`) imports it: one `import` event per leaf with `old` null; importing never reconciles later hand edits.",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_history.py (12 passed, 0 failed) \u2014 full suite 1185 passed on kitty/mission-troupe-config-load-show-set-01M3XGPG-lane-h (all WP01-WP08 code), plus uv run mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-02T08:11:21+00:00",
+      "notes": "Automated black-box/unit tests mapped from WP requirement_refs; each WP independently reviewed and approved."
+    },
+    {
+      "criterion_id": "FR-023",
+      "description": "set events: As an owner, a `set` emits one `set` event per leaf it changes or creates and one `remove` event (`new` null) per leaf that no longer exists; a no-op `set` emits nothing; a refused or failed `set` emits nothing.",
+      "proof_type": "automated_test",
+      "evidence": "tests/unit/test_leaves.py (26 passed, 0 failed); tests/integration/test_set_history.py (11 passed, 0 failed) \u2014 full suite 1185 passed on kitty/mission-troupe-config-load-show-set-01M3XGPG-lane-h (all WP01-WP08 code), plus uv run mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-02T08:11:21+00:00",
+      "notes": "Automated black-box/unit tests mapped from WP requirement_refs; each WP independently reviewed and approved."
+    },
+    {
+      "criterion_id": "FR-024",
+      "description": "history output: As an owner, `history [PATH]` prints events as JSON Lines, oldest first, each with at least `seq` (from 1), `op`, `path`, `old`, `new`; with PATH, only events whose path equals PATH or starts with `PATH.`; a PATH matching no event prints nothing and exits 0; a syntactically invalid PATH (empty segment) exits 2.",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_history.py (12 passed, 0 failed) \u2014 full suite 1185 passed on kitty/mission-troupe-config-load-show-set-01M3XGPG-lane-h (all WP01-WP08 code), plus uv run mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-02T08:11:21+00:00",
+      "notes": "Automated black-box/unit tests mapped from WP requirement_refs; each WP independently reviewed and approved."
+    }
+  ],
+  "negative_invariants": []
+}

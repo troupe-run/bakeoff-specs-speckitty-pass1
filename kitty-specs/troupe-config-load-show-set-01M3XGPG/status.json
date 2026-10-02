@@ -1,0 +1,285 @@
+{
+  "event_count": 74,
+  "last_event_id": "01M3XTSVY7Y3EXA4CHW5DKM2JP",
+  "materialized_at": "2026-10-02T08:13:29.927607+00:00",
+  "mission_number": "",
+  "mission_slug": "troupe-config-load-show-set-01M3XGPG",
+  "mission_type": "",
+  "summary": {
+    "approved": 0,
+    "blocked": 0,
+    "canceled": 0,
+    "claimed": 0,
+    "done": 8,
+    "for_review": 0,
+    "in_progress": 0,
+    "in_review": 0,
+    "planned": 0
+  },
+  "work_packages": {
+    "WP01": {
+      "actor": "merge",
+      "agent": "claude",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 0,
+      "lane": "done",
+      "last_event_id": "01M3XTSSHCJNY8BEWBS8M23J7W",
+      "last_transition_at": "2026-10-02T08:13:27.468609+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "Ready for review: uv project (eventsourcing, ruamel.yaml; console script troupe), errors.py as the single home of exit codes, theatre.locate (exit 4 naming file(s), creates nothing), argparse CLI with lazy troupe.commands.<module> dispatch and stdout-only-after-success, subprocess test harness. Gates: pytest 18 passed; mypy --strict no issues in 8 files; ruff check passed; ruff format --check 11 files formatted. Deviation: ruff extend-exclude kitty-specs/.kittify (ruff 0.16 formats Markdown code blocks in planning docs). Follow-up: .gitignore lacks __pycache__/ (not WP01-owned).",
+        "Review passed (reviewer-renata): all WP01 criteria met; pytest 18 passed, mypy --strict, ruff check, ruff format clean. Minor: --theatre pointing at a file says 'directory does not exist' (exit 4, names path); no .gitignore for __pycache__ (follow-up)."
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review_result": {
+        "feedback_path": "/work/bakeoff-specs-speckitty/kitty-specs/troupe-config-load-show-set-01M3XGPG/tasks/WP01-project-skeleton-cli/review-cycle-1.md",
+        "reference": "review-cycle://troupe-config-load-show-set-01M3XGPG/WP01-project-skeleton-cli/review-cycle-1.md",
+        "reviewer": "user",
+        "verdict": "approved"
+      },
+      "role": "reviewer",
+      "shell_pid": 2330,
+      "shell_pid_created_at": "1790922204.69",
+      "subtasks": {
+        "T001": "done",
+        "T002": "done",
+        "T003": "done",
+        "T004": "done",
+        "T005": "done"
+      }
+    },
+    "WP02": {
+      "actor": "merge",
+      "agent": "claude",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 0,
+      "lane": "done",
+      "last_event_id": "01M3XTSSW9K11JH9F1J4SW6266",
+      "last_transition_at": "2026-10-02T08:13:27.817443+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "Ready for review: loader/includes/paths/yamlcore; pytest 138 passed, mypy strict, ruff clean",
+        "Review passed (reviewer-renata): ~40 YAML 1.2 core edge cases correct; BOM/CRLF spans byte-exact; includes, cycles, overrides, paths per prompt; pytest 138, mypy strict, ruff clean. Minor: PermissionError on unreadable include dir surfaces as traceback (bd follow-up)."
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review_result": {
+        "feedback_path": "/work/bakeoff-specs-speckitty/kitty-specs/troupe-config-load-show-set-01M3XGPG/tasks/WP02-loader-includes-paths/review-cycle-1.md",
+        "reference": "review-cycle://troupe-config-load-show-set-01M3XGPG/WP02-loader-includes-paths/review-cycle-1.md",
+        "reviewer": "user",
+        "verdict": "approved"
+      },
+      "role": "reviewer",
+      "shell_pid": 5634,
+      "shell_pid_created_at": "1790922867.06",
+      "subtasks": {
+        "T006": "done",
+        "T007": "done",
+        "T008": "done",
+        "T009": "done",
+        "T010": "done"
+      }
+    },
+    "WP03": {
+      "actor": "merge",
+      "agent": "claude",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 0,
+      "lane": "done",
+      "last_event_id": "01M3XTST7NHGGC3W0J95HFKCDF",
+      "last_transition_at": "2026-10-02T08:13:28.181426+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "Ready for review: history store, import, history command; pytest 184, mypy strict, ruff clean",
+        "Review passed (reviewer-renata): history contract verified incl. filter, import-once, type preservation through SQLite, state confinement, construct_env override sound; pytest 184, mypy strict, ruff clean."
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review_result": {
+        "feedback_path": "/work/bakeoff-specs-speckitty/kitty-specs/troupe-config-load-show-set-01M3XGPG/tasks/WP03-event-sourced-history/review-cycle-1.md",
+        "reference": "review-cycle://troupe-config-load-show-set-01M3XGPG/WP03-event-sourced-history/review-cycle-1.md",
+        "reviewer": "user",
+        "verdict": "approved"
+      },
+      "role": "reviewer",
+      "shell_pid": 8838,
+      "shell_pid_created_at": "1790923353.35",
+      "subtasks": {
+        "T011": "done",
+        "T012": "done",
+        "T013": "done",
+        "T014": "done",
+        "T015": "done"
+      }
+    },
+    "WP04": {
+      "actor": "merge",
+      "agent": "claude",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 0,
+      "lane": "done",
+      "last_event_id": "01M3XTSTXM2E1X8M98BTZRFK0N",
+      "last_transition_at": "2026-10-02T08:13:28.884214+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "Ready for review: values + show; pytest 272, mypy strict, ruff clean",
+        "Review passed (reviewer-renata): show output byte-exact incl. CRLF text include, floats repr, exit 2/4/5 paths, first show imports; parse_value rejects block forms with exit 2; pytest 272, mypy strict, ruff clean."
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review_result": {
+        "feedback_path": "/work/bakeoff-specs-speckitty/kitty-specs/troupe-config-load-show-set-01M3XGPG/tasks/WP04-values-and-show/review-cycle-1.md",
+        "reference": "review-cycle://troupe-config-load-show-set-01M3XGPG/WP04-values-and-show/review-cycle-1.md",
+        "reviewer": "user",
+        "verdict": "approved"
+      },
+      "role": "reviewer",
+      "shell_pid": 13570,
+      "shell_pid_created_at": "1790923707.28",
+      "subtasks": {
+        "T016": "done",
+        "T017": "done",
+        "T018": "done",
+        "T019": "done"
+      }
+    },
+    "WP05": {
+      "actor": "merge",
+      "agent": "claude",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 2,
+      "lane": "done",
+      "last_event_id": "01M3XTSTJRYT0VV7G4JTVQHN3W",
+      "last_transition_at": "2026-10-02T08:13:28.536637+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "Ready for review: fileio, scalars, comments, TextEdit; pytest 474, mypy strict, ruff clean",
+        "Cycle 1 fixes: YAML printable check (B1), leading -?: plain via round-trip (B2); pytest 579",
+        "Re-review passed (cycle 1 fixed): YAML printable check, leading -?: plain via round-trip; 41,501 adversarial strings round-trip with 0 failures; pytest 579, mypy strict, ruff clean."
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review": null,
+      "review_result": {
+        "feedback_path": "/work/bakeoff-specs-speckitty/kitty-specs/troupe-config-load-show-set-01M3XGPG/tasks/WP05-writeback-primitives/review-cycle-2.md",
+        "reference": "review-cycle://troupe-config-load-show-set-01M3XGPG/WP05-writeback-primitives/review-cycle-2.md",
+        "reviewer": "user",
+        "verdict": "approved"
+      },
+      "role": "reviewer",
+      "shell_pid": 14649,
+      "shell_pid_created_at": "1790923782.71",
+      "subtasks": {
+        "T020": "done",
+        "T021": "done",
+        "T022": "done",
+        "T023": "done",
+        "T024": "done"
+      }
+    },
+    "WP06": {
+      "actor": "merge",
+      "agent": "claude",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 1,
+      "lane": "done",
+      "last_event_id": "01M3XTSV8A9XS9J94SNEAT4FXA",
+      "last_transition_at": "2026-10-02T08:13:29.226291+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "Ready for review: blocks.py; pytest 768, mypy strict, ruff clean",
+        "Cycle 1 fixes: B1 refuse folded edits with old more-indented lines; N1 reordered unchanged paragraphs keep bytes; pytest 775",
+        "Re-review passed (cycle 1 fixed): folded edits with old more-indented lines refused (PO ruling); reordered unchanged paragraphs keep bytes; no regressions; pytest 775, mypy strict, ruff clean. Follow-up: whitespace-only folded content edge case."
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review": null,
+      "review_result": {
+        "feedback_path": "/work/bakeoff-specs-speckitty/kitty-specs/troupe-config-load-show-set-01M3XGPG/tasks/WP06-block-scalars/review-cycle-2.md",
+        "reference": "review-cycle://troupe-config-load-show-set-01M3XGPG/WP06-block-scalars/review-cycle-2.md",
+        "reviewer": "user",
+        "verdict": "approved"
+      },
+      "role": "reviewer",
+      "shell_pid": 2057,
+      "shell_pid_created_at": "1790925573.08",
+      "subtasks": {
+        "T025": "done",
+        "T026": "done",
+        "T027": "done",
+        "T028": "done",
+        "T029": "done"
+      }
+    },
+    "WP07": {
+      "actor": "merge",
+      "agent": "claude",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 1,
+      "lane": "done",
+      "last_event_id": "01M3XTSVK5YEYM2R2PMPJCT70M",
+      "last_transition_at": "2026-10-02T08:13:29.573652+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "Ready for review: collections.py; pytest 936, mypy strict, ruff clean",
+        "Cycle 1 fixes: D1 refuse EOF append that would join a block scalar; D2 structural flow ':' check; pytest 948",
+        "Re-review passed (cycle 1 fixed): EOF block-scalar append refused; structural flow ':' check; 148 adversarial cases no mismatches; pytest 948, mypy strict, ruff clean."
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review": null,
+      "review_result": {
+        "feedback_path": "/work/bakeoff-specs-speckitty/kitty-specs/troupe-config-load-show-set-01M3XGPG/tasks/WP07-collections-and-new-entries/review-cycle-2.md",
+        "reference": "review-cycle://troupe-config-load-show-set-01M3XGPG/WP07-collections-and-new-entries/review-cycle-2.md",
+        "reviewer": "user",
+        "verdict": "approved"
+      },
+      "role": "reviewer",
+      "shell_pid": 2297,
+      "shell_pid_created_at": "1790926992.65",
+      "subtasks": {
+        "T030": "done",
+        "T031": "done",
+        "T032": "done",
+        "T033": "done",
+        "T034": "done",
+        "T035": "done"
+      }
+    },
+    "WP08": {
+      "actor": "merge",
+      "agent": "claude",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 0,
+      "lane": "done",
+      "last_event_id": "01M3XTSVY7Y3EXA4CHW5DKM2JP",
+      "last_transition_at": "2026-10-02T08:13:29.927607+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "Ready for review: placement, apply_set with verify-before-write, set command + events; pytest 1185, mypy strict, ruff clean; quickstart matches",
+        "Review passed (reviewer-renata): ~80 end-to-end CLI sets across 7 theatres byte-diffed, no contract/ruling violation or corruption; refusals change nothing; history correct; pytest 1185, mypy strict, ruff clean; quickstart matches."
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review_result": {
+        "feedback_path": "/work/bakeoff-specs-speckitty/kitty-specs/troupe-config-load-show-set-01M3XGPG/tasks/WP08-set-command-integration/review-cycle-1.md",
+        "reference": "review-cycle://troupe-config-load-show-set-01M3XGPG/WP08-set-command-integration/review-cycle-1.md",
+        "reviewer": "user",
+        "verdict": "approved"
+      },
+      "role": "reviewer",
+      "shell_pid": 1176,
+      "shell_pid_created_at": "1790928136.57",
+      "subtasks": {
+        "T036": "done",
+        "T037": "done",
+        "T038": "done",
+        "T039": "done",
+        "T040": "done",
+        "T041": "done",
+        "T042": "done"
+      }
+    }
+  }
+}

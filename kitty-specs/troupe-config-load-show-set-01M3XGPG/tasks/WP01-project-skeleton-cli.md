@@ -14,6 +14,9 @@ requirement_refs:
 planning_base_branch: feat/troupe-config-load-show-set
 merge_target_branch: feat/troupe-config-load-show-set
 branch_strategy: Planning artifacts for this mission were generated on feat/troupe-config-load-show-set. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/troupe-config-load-show-set unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-troupe-config-load-show-set-01M3XGPG
+base_commit: 460f34eff5796f7eacb5cc131cffdb715237b9a7
+created_at: '2026-10-02T06:18:33.847983+00:00'
 subtasks:
 - T001
 - T002
@@ -21,11 +24,12 @@ subtasks:
 - T004
 - T005
 phase: Phase 1 - Foundation
+agent: claude
 history:
 - at: '2026-10-02T06:01:37Z'
   actor: system
   action: Prompt generated via /spec-kitty.tasks
-agent_profile: "python-pedro"
+agent_profile: python-pedro
 authoritative_surface: src/troupe/cli.py
 create_intent:
 - pyproject.toml
@@ -53,8 +57,7 @@ owned_files:
 - src/troupe/commands/__init__.py
 - tests/conftest.py
 - tests/integration/test_cli_basics.py
-role: "implementer"
-agent: "claude"
+role: implementer
 tags: []
 task_type: implement
 tracker_refs: []

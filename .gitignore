@@ -42,3 +42,11 @@ kitty-ops/ops-index.jsonl
 .beads-credential-key
 .beads/proxieddb/
 *.gate.lock*
+
+# Python build artefacts (troupe)
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/

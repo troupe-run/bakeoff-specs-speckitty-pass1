@@ -24,7 +24,7 @@ history:
 - at: '2026-10-02T06:01:37Z'
   actor: system
   action: Prompt generated via /spec-kitty.tasks
-agent_profile: ''
+agent_profile: "python-pedro"
 authoritative_surface: src/troupe/writeback/collections.py
 create_intent:
 - src/troupe/writeback/collections.py
@@ -34,7 +34,8 @@ model: ''
 owned_files:
 - src/troupe/writeback/collections.py
 - tests/unit/test_collections.py
-role: ''
+role: "implementer"
+agent: "claude"
 tags: []
 task_type: implement
 tracker_refs: []

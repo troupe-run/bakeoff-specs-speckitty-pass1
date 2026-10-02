@@ -105,3 +105,52 @@ the rest are implementer choices where the contract is silent (charter TROUPE-00
 - **Decision**: compute every new file text first; then for each changed file write a sibling temp
   file in the same directory, `fsync`, and `os.replace`. Only the files that actually change are
   touched; file mode is copied from the original. A `set` in step 1 changes exactly one file.
+
+## R-13 ruamel's 1.2 resolver is not the YAML 1.2 core schema (found during /spec-kitty.tasks)
+
+- **Finding**: `YAML(typ="safe", pure=True)` (default version 1.2) resolves `2001-12-14` to a
+  `date`, `1_000` to `1000`, and treats `=`/`<<` specially — none of which the YAML 1.2 core schema
+  does.
+- **Decision**: use ruamel only to **compose** (nodes, marks, styles, already-unescaped scalar text).
+  Resolve plain scalars with our own core-schema rules in one place, `src/troupe/yamlcore.py`:
+  null `null|Null|NULL|~|<empty>`; bool `true|True|TRUE|false|False|FALSE`; int `[-+]?[0-9]+`,
+  `0o[0-7]+`, `0x[0-9a-fA-F]+`; float `[-+]?(\.[0-9]+|[0-9]+(\.[0-9]*)?)([eE][-+]?[0-9]+)?`,
+  `[-+]?\.(inf|Inf|INF)`, `\.(nan|NaN|NAN)`; everything else a string. Quoted and block scalars are
+  always strings. `yamlcore.py` is the only module importing ruamel (mypy/typing boundary).
+
+## R-14 Byte-order mark
+
+- **Finding**: ruamel mark indices count a leading U+FEFF as one character.
+- **Decision**: decode files with plain `utf-8` (not `utf-8-sig`), so the BOM stays in the text as a
+  character; indices align with the text and writing `text.encode("utf-8")` preserves the BOM.
+  Supersedes the BOM note in R-05.
+
+## R-15 eventsourcing application lifetime
+
+- **Finding**: an `Application` whose last reference is dropped closes its SQLite connection pool
+  (`ConnectionPoolClosedError` on a temporary). Versions start at 1 with the creation event; WAL
+  mode creates `history.sqlite-wal`/`-shm` beside the database (inside `.troupe/`).
+- **Decision**: one `HistoryStore` instance per command held by the session context manager and
+  closed explicitly; `seq = originator_version - 1`.
+
+## R-16 Text include with a non-string VALUE (contract leaves a choice open)
+
+- **Contract**: "For a text include, the target file's content becomes `VALUE` exactly, except that if
+  the target file used CRLF line endings, the new content uses CRLF line endings too (`VALUE` must
+  then be a string, else exit 3)."
+- **Decision**: CRLF target + non-string VALUE → exit 3 (as written). LF target + non-string
+  **scalar** VALUE → content is the scalar's canonical YAML text (`5`, `true`, `null`, `0.2`), which
+  is what "becomes VALUE exactly" yields for a text file; a mapping/list VALUE → exit 3 (a text file
+  cannot hold a collection value). "Uses CRLF" = the target text contains `\r\n`.
+- **Rationale**: follows the contract literally where it speaks; refuses (TROUPE-002) only where a
+  value cannot be represented as text.
+
+## R-17 Verify before write
+
+- **Decision**: `set` builds all new file texts, re-loads the configuration **in memory** from them
+  (`loader.load(..., overrides=...)`), and checks that (a) the value at PATH equals the new value
+  (type-aware) and (b) every other leaf is unchanged except those under PATH. If not, the command
+  refuses with exit 3 ("cannot write PATH byte-surgically") and no file changes. If the value at
+  PATH already equals VALUE, nothing is written and no event is emitted.
+- **Rationale**: the costliest failure is corrupting a user's file (charter); this turns any
+  renderer bug into a refusal instead of a corruption.

@@ -22,7 +22,7 @@ history:
 - at: '2026-10-02T06:01:37Z'
   actor: system
   action: Prompt generated via /spec-kitty.tasks
-agent_profile: ''
+agent_profile: "python-pedro"
 authoritative_surface: src/troupe/loader.py
 create_intent:
 - src/troupe/tree.py
@@ -42,7 +42,8 @@ owned_files:
 - tests/integration/test_loading.py
 - tests/unit/test_yamlcore.py
 - tests/unit/test_paths.py
-role: ''
+role: "implementer"
+agent: "claude"
 tags: []
 task_type: implement
 tracker_refs: []

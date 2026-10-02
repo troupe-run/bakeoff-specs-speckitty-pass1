@@ -93,23 +93,32 @@ pyproject.toml           # project metadata, [project.scripts] troupe, ruff/mypy
 uv.lock
 src/troupe/
 ├── __init__.py
-├── cli.py               # argparse; dispatch; TroupeError → exit code + stderr; stdout only on success
+├── __main__.py          # python -m troupe
+├── cli.py               # argparse; lazy dispatch to troupe.commands.<name>; TroupeError → exit code + stderr
 ├── errors.py            # TroupeError hierarchy: UsageError(2) WriteRefused(3) LoadError(4) PathError(5)
 ├── theatre.py           # locate .troupe dir and the single root file
-├── paths.py             # parse "a.b.0" into segments
-├── values.py            # parse VALUE (YAML 1.2 core flow node); format scalars for show
-├── loader.py            # read files, compose with marks, resolve includes → SourceTree
-├── tree.py              # SourceTree node types (Mapping/Sequence/Scalar/TextInclude) with origin spans
+├── yamlcore.py          # ONLY ruamel importer: compose with marks/styles; YAML 1.2 core scalar resolution (research R-13)
+├── tree.py              # SourceTree node types (Mapping/Sequence/Scalar/YamlInclude/TextInclude) with origin spans
+├── loader.py            # read files, build SourceTree, resolve includes
+├── paths.py             # parse "a.b.0"; walk/lookup through includes
+├── values.py            # parse VALUE (single YAML 1.2 core flow node); format scalars for show
 ├── leaves.py            # flatten a tree to {dotted path: scalar}; diff → set/remove changes
-├── history.py           # eventsourcing Aggregate + Application; import / record / list
+├── history.py           # eventsourcing Aggregate + Application (HistoryStore)
+├── session.py           # load + import-on-first-command; owns HistoryStore lifetime
+├── commands/
+│   ├── __init__.py
+│   ├── show.py          # show PATH
+│   ├── set_value.py     # set PATH VALUE
+│   └── history.py       # history [PATH]
 └── writeback/
-    ├── __init__.py      # apply_set(tree, path, value) → {file: new_text} or WriteRefused/PathError
+    ├── __init__.py
+    ├── apply.py         # apply_set(tree, path, value) → {SourceFile: new_text} or WriteRefused/PathError
     ├── placement.py     # FR-010..FR-013: which file, existing vs new key vs append vs refuse
     ├── scalars.py       # quoting style selection and rendering, double-quote escaping
     ├── blocks.py        # literal/folded block scalars, chomping, folded re-wrap
     ├── collections.py   # block/flow rendering of new mappings/lists; entry insertion point
     ├── comments.py      # end-of-line comment column preservation (code-point columns)
-    └── fileio.py        # newline/encoding detection, atomic temp+rename write
+    └── fileio.py        # newline detection, atomic temp+rename write
 tests/
 ├── conftest.py          # theatre fixture builder, run_cli helper, byte snapshot helper
 ├── integration/         # black-box CLI tests per contract section
@@ -139,7 +148,7 @@ No charter violations to justify.
 
 - **Purpose**: build the SourceTree (every node knows its file and span) from the root file and recursive includes; resolve paths; parse VALUE; print scalars.
 - **Relevant requirements**: FR-003, FR-004, FR-005, FR-007, FR-008, FR-009
-- **Affected surfaces**: `loader.py`, `tree.py`, `paths.py`, `values.py`, `cli.py` (show)
+- **Affected surfaces**: `yamlcore.py`, `loader.py`, `tree.py`, `paths.py`, `values.py`, `commands/show.py`
 - **Sequencing/depends-on**: IC-01
 - **Risks**: YAML 1.2 core resolution (`yes` is a string); include cycle detection by resolved real path; text-include exact bytes (no newline translation on read).
 
@@ -147,7 +156,7 @@ No charter violations to justify.
 
 - **Purpose**: one aggregate per theatre in `.troupe/history.sqlite`; import on first command; append set/remove events; list as JSON Lines with optional prefix filter.
 - **Relevant requirements**: FR-021, FR-022, FR-023 (event recording), FR-024, NFR-003, C-002
-- **Affected surfaces**: `history.py`, `leaves.py`, `cli.py` (history, import hook)
+- **Affected surfaces**: `history.py`, `leaves.py`, `session.py`, `commands/history.py`
 - **Sequencing/depends-on**: IC-02
 - **Risks**: deterministic aggregate id per theatre; JSON encoding of floats/None; SQLite side files must stay in `.troupe/`.
 
@@ -155,7 +164,7 @@ No charter violations to justify.
 
 - **Purpose**: decide where a change goes and replace existing scalars (including text includes and CRLF) with quoting rules; splice and write atomically; wire `set` with event diff.
 - **Relevant requirements**: FR-010, FR-011, FR-012, FR-013, FR-014, FR-015, FR-023, NFR-001, NFR-002
-- **Affected surfaces**: `writeback/__init__.py`, `placement.py`, `scalars.py`, `fileio.py`, `cli.py` (set)
+- **Affected surfaces**: `writeback/apply.py`, `placement.py`, `scalars.py`, `fileio.py`, `commands/set_value.py`
 - **Sequencing/depends-on**: IC-02, IC-03
 - **Risks**: quoting-style representability rules; mark indices are code-point offsets into decoded text.
 

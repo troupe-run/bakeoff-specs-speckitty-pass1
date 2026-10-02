@@ -1,5 +1,4 @@
 {
-  "accept_commit": "34ec14ad8fdd34f644fce37d30d70645f0506476",
   "acceptance_history": [
     {
       "accept_commit": "34ec14ad8fdd34f644fce37d30d70645f0506476",
@@ -7,12 +6,18 @@
       "accepted_at": "2026-10-02T08:11:33.104036+00:00",
       "accepted_by": "claude",
       "accepted_from_commit": "7c1b2262ab768db4f8d849c46fbae998661b56e2"
+    },
+    {
+      "acceptance_mode": "pr",
+      "accepted_at": "2026-10-02T08:20:16.289103+00:00",
+      "accepted_by": "system",
+      "accepted_from_commit": "772a741f7db8dd0af87c7914a90a9b1039b350f5"
     }
   ],
   "acceptance_mode": "pr",
-  "accepted_at": "2026-10-02T08:11:33.104036+00:00",
-  "accepted_by": "claude",
-  "accepted_from_commit": "7c1b2262ab768db4f8d849c46fbae998661b56e2",
+  "accepted_at": "2026-10-02T08:20:16.289103+00:00",
+  "accepted_by": "system",
+  "accepted_from_commit": "772a741f7db8dd0af87c7914a90a9b1039b350f5",
   "coordination_branch": "kitty/mission-troupe-config-load-show-set-01M3XGPG",
   "created_at": "2026-10-02T05:16:53.789610+00:00",
   "flattened": false,

@@ -7,6 +7,9 @@ requirement_refs:
 - FR-015
 - FR-020
 - NFR-002
+planning_base_branch: feat/troupe-config-load-show-set
+merge_target_branch: feat/troupe-config-load-show-set
+branch_strategy: Planning artifacts for this mission were generated on feat/troupe-config-load-show-set. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/troupe-config-load-show-set unless the human explicitly redirects the landing branch.
 subtasks:
 - T020
 - T021

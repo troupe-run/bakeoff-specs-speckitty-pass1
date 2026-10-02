@@ -1,0 +1,201 @@
+{
+  "version": 1,
+  "mission_slug": "troupe-config-load-show-set-01M3XGPG",
+  "mission_id": "01M3XGPG3A3N2MVWSYSTTX1SC9",
+  "mission_branch": "kitty/mission-troupe-config-load-show-set-01M3XGPG",
+  "target_branch": "feat/troupe-config-load-show-set",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        ".python-version",
+        "pyproject.toml",
+        "src/troupe/__init__.py",
+        "src/troupe/__main__.py",
+        "src/troupe/cli.py",
+        "src/troupe/commands/__init__.py",
+        "src/troupe/errors.py",
+        "src/troupe/theatre.py",
+        "tests/conftest.py",
+        "tests/integration/test_cli_basics.py",
+        "uv.lock"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "app-shell",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "src/troupe/loader.py",
+        "src/troupe/paths.py",
+        "src/troupe/tree.py",
+        "src/troupe/yamlcore.py",
+        "tests/integration/test_loading.py",
+        "tests/unit/test_paths.py",
+        "tests/unit/test_yamlcore.py"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-c",
+      "wp_ids": [
+        "WP03"
+      ],
+      "write_scope": [
+        "src/troupe/commands/history.py",
+        "src/troupe/history.py",
+        "src/troupe/leaves.py",
+        "src/troupe/session.py",
+        "tests/integration/test_history.py",
+        "tests/unit/test_history_store.py",
+        "tests/unit/test_leaves.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-b"
+      ],
+      "parallel_group": 2
+    },
+    {
+      "lane_id": "lane-e",
+      "wp_ids": [
+        "WP05"
+      ],
+      "write_scope": [
+        "src/troupe/writeback/__init__.py",
+        "src/troupe/writeback/comments.py",
+        "src/troupe/writeback/fileio.py",
+        "src/troupe/writeback/scalars.py",
+        "tests/unit/test_comments.py",
+        "tests/unit/test_fileio.py",
+        "tests/unit/test_scalars.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [
+        "lane-b"
+      ],
+      "parallel_group": 2
+    },
+    {
+      "lane_id": "lane-d",
+      "wp_ids": [
+        "WP04"
+      ],
+      "write_scope": [
+        "src/troupe/commands/show.py",
+        "src/troupe/values.py",
+        "tests/integration/test_show.py",
+        "tests/unit/test_values.py"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [
+        "lane-b",
+        "lane-c"
+      ],
+      "parallel_group": 3
+    },
+    {
+      "lane_id": "lane-f",
+      "wp_ids": [
+        "WP06"
+      ],
+      "write_scope": [
+        "src/troupe/writeback/blocks.py",
+        "tests/unit/test_blocks.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-e"
+      ],
+      "parallel_group": 3
+    },
+    {
+      "lane_id": "lane-g",
+      "wp_ids": [
+        "WP07"
+      ],
+      "write_scope": [
+        "src/troupe/writeback/collections.py",
+        "tests/unit/test_collections.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-e",
+        "lane-f"
+      ],
+      "parallel_group": 4
+    },
+    {
+      "lane_id": "lane-h",
+      "wp_ids": [
+        "WP08"
+      ],
+      "write_scope": [
+        "src/troupe/commands/set_value.py",
+        "src/troupe/writeback/apply.py",
+        "src/troupe/writeback/placement.py",
+        "tests/integration/test_set_blocks.py",
+        "tests/integration/test_set_existing.py",
+        "tests/integration/test_set_history.py",
+        "tests/integration/test_set_new_entries.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "app-shell",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "tests"
+      ],
+      "depends_on_lanes": [
+        "lane-b",
+        "lane-c",
+        "lane-d",
+        "lane-e",
+        "lane-f",
+        "lane-g"
+      ],
+      "parallel_group": 5
+    }
+  ],
+  "computed_at": "2026-10-02T06:12:01.298450+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [],
+  "planning_commit_sha": "4f345c49122906951a167a58be1b489fad1d899f"
+}

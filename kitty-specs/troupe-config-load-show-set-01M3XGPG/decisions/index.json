@@ -23,6 +23,54 @@
       "status": "resolved",
       "step_id": null,
       "summary_json": null
+    },
+    {
+      "created_at": "2026-10-02T05:19:59.977158Z",
+      "decision_id": "01M3XGW5Z97R8VC909JF3TVPTT",
+      "final_answer": "A: locate node spans with a parser and splice only the replacement text into the original file text; never re-serialize; atomic temp+rename write. Any technique is acceptable if it guarantees byte-surgical write-back; round-trip dumps are rejected.",
+      "input_key": "writeback_strategy",
+      "mission_id": "01M3XGPG3A3N2MVWSYSTTX1SC9",
+      "mission_slug": "troupe-config-load-show-set-01M3XGPG",
+      "opened_by": "cli",
+      "options": [
+        "A: span-locating parse + text splice (recommended)",
+        "B: ruamel.yaml round-trip dump",
+        "Other"
+      ],
+      "origin_flow": "plan",
+      "other_answer": false,
+      "question": "How should set write changes back: (A) parse to locate node byte/character spans, then splice only the new text into the original file text (never re-serialize the document), or (B) ruamel.yaml round-trip load/modify/dump?",
+      "rationale": null,
+      "resolved_at": "2026-10-02T05:20:32.889877Z",
+      "resolved_by": null,
+      "slot_key": "plan.architecture.writeback-strategy",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
+    },
+    {
+      "created_at": "2026-10-02T05:20:35.941905Z",
+      "decision_id": "01M3XGX935C4759B9DMK0BXXKT",
+      "final_answer": "A: eventsourcing built-in SQLite persistence at <theatre>/.troupe/history.sqlite, one aggregate per theatre; all temp files (-journal/-wal) stay under .troupe/; seq = position in the event log.",
+      "input_key": "event_store_backend",
+      "mission_id": "01M3XGPG3A3N2MVWSYSTTX1SC9",
+      "mission_slug": "troupe-config-load-show-set-01M3XGPG",
+      "opened_by": "cli",
+      "options": [
+        "A: built-in SQLite at .troupe/history.sqlite (recommended)",
+        "B: custom JSON-file recorder",
+        "Other"
+      ],
+      "origin_flow": "plan",
+      "other_answer": false,
+      "question": "How should the eventsourcing history be persisted under .troupe/: (A) eventsourcing's built-in SQLite persistence module, one database file .troupe/history.sqlite, one aggregate per theatre; (B) eventsourcing POPO/in-memory recorder serialized to a JSON file; (C) other?",
+      "rationale": null,
+      "resolved_at": "2026-10-02T05:21:09.542801Z",
+      "resolved_by": null,
+      "slot_key": "plan.persistence.event-store",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
     }
   ],
   "mission_id": "01M3XGPG3A3N2MVWSYSTTX1SC9",

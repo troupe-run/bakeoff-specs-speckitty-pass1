@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "troupe config history record (one JSON object per line)",
+  "type": "object",
+  "required": ["seq", "op", "path", "old", "new"],
+  "properties": {
+    "seq": {"type": "integer", "minimum": 1, "description": "1-based, strictly increasing in output order"},
+    "op": {"enum": ["import", "set", "remove"]},
+    "path": {"type": "string", "description": "dotted path in the merged configuration; list items as list.0, list.1"},
+    "old": {"type": ["string", "number", "boolean", "null"], "description": "null for import"},
+    "new": {"type": ["string", "number", "boolean", "null"], "description": "null for remove"}
+  },
+  "allOf": [
+    {"if": {"properties": {"op": {"const": "import"}}}, "then": {"properties": {"old": {"const": null}}}},
+    {"if": {"properties": {"op": {"const": "remove"}}}, "then": {"properties": {"new": {"const": null}}}}
+  ]
+}

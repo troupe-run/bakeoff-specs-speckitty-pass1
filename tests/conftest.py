@@ -4,6 +4,7 @@ Plain helpers (``run_cli``, ``snapshot``, ``all_files``) are importable with
 ``from conftest import ...``; ``make_theatre`` is a fixture because it needs ``tmp_path``.
 """
 
+import os
 import subprocess
 import sys
 from collections.abc import Callable
@@ -26,13 +27,18 @@ class CliResult:
     err: str
 
 
-def run_cli(*args: str, cwd: Path | None = None) -> CliResult:
-    """Run ``python -m troupe *args`` and capture output without newline translation."""
+def run_cli(*args: str, cwd: Path | None = None, env: dict[str, str] | None = None) -> CliResult:
+    """Run ``python -m troupe *args`` and capture output without newline translation.
+
+    ``TROUPE_THEATRE`` is removed from the inherited environment; ``env`` entries are added on top.
+    """
+    child_env = {k: v for k, v in os.environ.items() if k != "TROUPE_THEATRE"} | (env or {})
     completed = subprocess.run(
         [sys.executable, "-m", "troupe", *args],
         capture_output=True,
         text=False,
         cwd=cwd,
+        env=child_env,
         check=False,
     )
     return CliResult(

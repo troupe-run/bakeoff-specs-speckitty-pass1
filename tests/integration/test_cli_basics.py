@@ -98,6 +98,24 @@ def test_theatre_defaults_to_current_directory(tmp_path: Path) -> None:
     assert str(tmp_path.resolve() / ".troupe" / "troupe.yml") in result.err
 
 
+def test_theatre_env_var_is_default_and_option_wins(tmp_path: Path) -> None:
+    from_env = tmp_path / "from-env"
+    from_option = tmp_path / "from-option"
+    from_env.mkdir()
+    from_option.mkdir()
+    env = {"TROUPE_THEATRE": str(from_env)}
+
+    by_env = run_cli("config", "show", "a.b", cwd=tmp_path, env=env)
+    by_option = run_cli(
+        "config", "show", "a.b", "--theatre", str(from_option), cwd=tmp_path, env=env
+    )
+    by_empty = run_cli("config", "show", "a.b", cwd=tmp_path, env={"TROUPE_THEATRE": ""})
+
+    assert str(from_env.resolve() / ".troupe" / "troupe.yml") in by_env.err
+    assert str(from_option.resolve() / ".troupe" / "troupe.yml") in by_option.err
+    assert str(tmp_path.resolve() / ".troupe" / "troupe.yml") in by_empty.err
+
+
 @pytest.mark.parametrize(
     "argv_before_theatre, argv_after_theatre",
     [

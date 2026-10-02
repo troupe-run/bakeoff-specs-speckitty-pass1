@@ -7,6 +7,7 @@ stderr and the exit code its ``TroupeError`` subclass declares. It holds no comm
 
 import argparse
 import importlib
+import os
 import sys
 from collections.abc import Sequence
 from pathlib import Path
@@ -16,6 +17,7 @@ from troupe.errors import TroupeError, UsageError
 from troupe.theatre import Theatre, locate
 
 COMMAND_MODULES: Final = {"show": "show", "set": "set_value", "history": "history"}
+THEATRE_ENV_VAR: Final = "TROUPE_THEATRE"
 
 
 class Command(Protocol):
@@ -33,12 +35,12 @@ class _Parser(argparse.ArgumentParser):
 
 def _add_theatre_option(parser: argparse.ArgumentParser) -> None:
     # SUPPRESS keeps a later (sub)parser from overwriting a value given earlier; the
-    # fallback to the current directory is applied once, in ``main``.
+    # fallback to $TROUPE_THEATRE, then the current directory, is applied once, in ``main``.
     parser.add_argument(
         "--theatre",
         metavar="DIR",
         default=argparse.SUPPRESS,
-        help="theatre directory (default: current directory)",
+        help="theatre directory (default: $TROUPE_THEATRE, else current directory)",
     )
 
 
@@ -68,7 +70,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     """Run the CLI and return the process exit code."""
     try:
         args = build_parser().parse_args(argv)
-        theatre_dir = Path.cwd() if args.theatre is None else Path(args.theatre)
+        theatre_arg = args.theatre if args.theatre is not None else os.environ.get(THEATRE_ENV_VAR)
+        theatre_dir = Path(theatre_arg) if theatre_arg else Path.cwd()
         theatre = locate(theatre_dir)  # exit 4 before any command module is imported
         module = importlib.import_module(f"troupe.commands.{COMMAND_MODULES[args.command]}")
         output = cast(Command, module).run(theatre, args)

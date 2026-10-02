@@ -39,7 +39,7 @@ flowchart LR
 ## Technical Context
 
 **Language/Version**: Python 3.12+ (developed on 3.12.14), managed with uv (0.12.x); package `troupe`, console script `troupe = troupe.cli:main`
-**Primary Dependencies**: `eventsourcing` 9.5.x (event store/aggregate, SQLite persistence module); `ruamel.yaml` 0.19.x used **only** to compose node graphs with start/end marks and scalar/collection styles, and to parse `VALUE` as YAML 1.2 core — never to dump user files
+**Primary Dependencies**: `eventsourcing` 9.5.x (event store/aggregate, SQLite persistence module); `ruamel.yaml` 0.19.x used **only** (inside `yamlcore.py`) to compose node graphs with start/end marks and scalar/collection styles, for files and for `VALUE`; plain scalars are resolved by our own YAML 1.2 core rules (research R-13) — never used to dump user files
 **Storage**: user YAML/text files (edited in place via splice + temp-file-and-rename); `<theatre>/.troupe/history.sqlite` (eventsourcing `SQLiteFactory`, `PERSISTENCE_MODULE=eventsourcing.sqlite`, `SQLITE_DBNAME` set to that path; journal files stay in `.troupe/`)
 **Testing**: pytest; black-box tests invoke the CLI (`subprocess` running `troupe` from the uv environment, plus an in-process `main(argv)` entry for speed) against temporary theatres; every `set` test asserts complete expected bytes for every file in the theatre; unit tests for pure renderers (quoting, folding, comment columns); `mypy --strict`; `ruff check`; `ruff format --check`
 **Target Platform**: macOS and Linux CLI

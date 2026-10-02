@@ -92,7 +92,7 @@ A theatre owner lists the configuration's history, optionally filtered to a subt
 - `show` on a mapping or list → exit 5; path through a scalar or out-of-range index → exit 5.
 - `set` at list index equal to length appends; any larger index → exit 5.
 - `set` replacing a value whose whole value is an include → exit 3 with no file changed.
-- `set` on a text include with a non-string `VALUE` and a CRLF target → exit 3.
+- `set` on a text include with a non-string `VALUE` and a CRLF target → exit 3; with an LF target, `set prompt 5` or `set prompt '{a: 1}'` writes `5` / `{a: 1}` as the file's content.
 - A change that would put a more-indented line into a folded scalar → exit 3.
 - Changed value grows past its end-of-line comment's column → exactly one space before the comment.
 - Comment line indented less than a collection's entries ends that collection (new entries go above it).
@@ -110,16 +110,16 @@ A theatre owner lists the configuration's history, optionally filtered to a subt
 | FR-001 | Invocation | As an owner, I run `troupe config <subcommand> --theatre <dir> [arguments]`; `--theatre` defaults to the current directory; malformed invocations exit 2. | High | Open |
 | FR-002 | Root file discovery | As an owner, my config is `<dir>/.troupe/troupe.yml` or `.troupe/troupe.yaml`; neither or both exits 4 naming the file(s). | High | Open |
 | FR-003 | Path addressing | As an owner, I address nodes with `.`-separated keys where a digit-only segment indexes a list (0-based). | High | Open |
-| FR-004 | VALUE parsing | As an owner, `VALUE` is parsed as one YAML 1.2 core-schema flow node (`0.2` float, `true` bool, `null`, `abc`/`"0.2"` strings, `{a: 1}` mapping, `[a, b]` list, escaped multi-line strings). | High | Open |
+| FR-004 | VALUE parsing | As an owner, `VALUE` is parsed as one YAML 1.2 core-schema flow node (`0.2` float, `true` bool, `null`, `abc`/`"0.2"` strings, `{a: 1}` mapping, `[a, b]` list, escaped multi-line strings); a VALUE that cannot be parsed, or is a block-style node (e.g. `a: 1`), exits 2. | High | Open |
 | FR-005 | Scalar printing | As an owner, a scalar prints as: strings exactly plus `\n` unless already ending in `\n`; `true`/`false`; `null`; integers in decimal; floats as Python `repr()`. | High | Open |
 | FR-006 | Exit codes and errors | As an owner, outcomes use exit 0/2/3/4/5 as contracted; on any non-zero exit stdout is empty and stderr names the offending path or file. | High | Open |
 | FR-007 | Includes | As an owner, a string starting `file:` includes the path after it, relative to the containing file's directory: `.yml`/`.yaml` targets embed their content in place; other targets yield the file's exact text; includes resolve recursively; a missing target or cycle exits 4. | High | Open |
 | FR-008 | Files are source of truth | As an owner, `show` and `set` always read the current files on disk; hand edits are visible to `show`, produce no history event, and a later `set` records the on-disk value as `old`. | High | Open |
 | FR-009 | show | As an owner, `show PATH` prints the scalar at PATH (a text include is a string); a mapping or list, or a missing path, exits 5. | High | Open |
-| FR-010 | set: owning file | As an owner, `set` changes an existing value in the file that contains it; for a text include the target file's content becomes VALUE exactly, converted to CRLF if the target used CRLF (VALUE must then be a string, else exit 3). | High | Open |
+| FR-010 | set: owning file | As an owner, `set` changes an existing value in the file that contains it; for a text include the target file's content becomes VALUE exactly, converted to CRLF if the target used CRLF (VALUE must then be a string, else exit 3); with an LF target any VALUE is accepted — a string is written as parsed, a non-string (scalar, mapping or list) as the VALUE argument exactly as typed. | High | Open |
 | FR-011 | set: new keys | As an owner, a new key is written into the file containing the deepest existing ancestor mapping of PATH, creating missing intermediate mappings there. | High | Open |
 | FR-012 | set: list append | As an owner, a PATH whose final index equals the list's length appends; a larger index exits 5. | High | Open |
-| FR-013 | set: include replacement refused | As an owner, replacing a value whose whole value comes from an include exits 3 and changes no file. | High | Open |
+| FR-013 | set: include replacement refused | As an owner, replacing a value whose whole value comes from a YAML include (a `file:` target ending `.yml`/`.yaml`) exits 3 and changes no file; text includes are rewritten per FR-010. | High | Open |
 | FR-014 | Byte-surgical write-back | As an owner, after a successful `set` the only bytes that differ in any file are those FR-015–FR-021 require. | High | Open |
 | FR-015 | Scalar quoting | As an owner, a changed scalar keeps its quoting style if it can represent the new value, else plain, else single-quoted, else double-quoted; new keys and new string values copy the preceding sibling's quoting style, else plain or minimal quoting; double-quoted output escapes only `\\`, `\"` and control characters (as `\t`, `\n`, …). | High | Open |
 | FR-016 | New collections | As an owner, a new collection value is written in block style at the file's indentation (default 2), or in flow style if its parent is a flow collection; replacing a scalar by a block collection keeps the key's line bytes through its end-of-line comment. | High | Open |
@@ -130,7 +130,7 @@ A theatre owner lists the configuration's history, optionally filtered to a subt
 | FR-021 | Persistent event-sourced history | As an owner, configuration changes are held as an event-sourced projection persisted under `<dir>/.troupe/` so it survives between commands. | High | Open |
 | FR-022 | Import | As an owner, the first command against a theatre (including `history`) imports it: one `import` event per leaf with `old` null; importing never reconciles later hand edits. | High | Open |
 | FR-023 | set events | As an owner, a `set` emits one `set` event per leaf it changes or creates and one `remove` event (`new` null) per leaf that no longer exists; a no-op `set` emits nothing; a refused or failed `set` emits nothing. | High | Open |
-| FR-024 | history output | As an owner, `history [PATH]` prints events as JSON Lines, oldest first, each with at least `seq` (from 1), `op`, `path`, `old`, `new`; with PATH, only events whose path equals PATH or starts with `PATH.`. | High | Open |
+| FR-024 | history output | As an owner, `history [PATH]` prints events as JSON Lines, oldest first, each with at least `seq` (from 1), `op`, `path`, `old`, `new`; with PATH, only events whose path equals PATH or starts with `PATH.`; a PATH matching no event prints nothing and exits 0; a syntactically invalid PATH (empty segment) exits 2. | High | Open |
 
 ### Non-Functional Requirements
 

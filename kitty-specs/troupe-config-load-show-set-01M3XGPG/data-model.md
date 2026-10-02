@@ -4,13 +4,13 @@
 
 | Entity | Fields | Notes |
 |---|---|---|
-| `SourceFile` | `path` (absolute), `text` (decoded, original newlines), `newline` (`"\n"`/`"\r\n"`), `indent` (int, default 2), `bom` (bool) | One per file read |
+| `SourceFile` | `path` (absolute, resolved), `text` (decoded UTF-8, original newlines, BOM kept as U+FEFF — R-14) | One per file read; newline (`fileio.detect_newline`) and indent step (`collections.detect_indent`) are derived from `text` when needed |
 | `Origin` | `file: SourceFile`, `start: int`, `end: int` (code-point indices), `style` | Where a node's bytes live |
 | `MappingNode` | `origin`, `flow: bool`, `entries: list[(key: str, key_origin, value: Node)]` | Ordered; keys are strings in contract |
 | `SequenceNode` | `origin`, `flow: bool`, `items: list[Node]` | |
 | `ScalarNode` | `origin`, `value: str|int|float|bool|None`, `style: plain|single|double|literal|folded` | |
-| `YamlInclude` | `origin` (the `file:` string), `target: SourceFile`, `root: Node` | Whole-value include → `set` on it refused (exit 3) |
-| `TextInclude` | `origin` (the `file:` string), `target: SourceFile` | Value = target text exactly; a leaf |
+| `YamlInclude` | `origin` (the `file:` string), `target: SourceFile`, `root: Node` | Whole-value YAML include → `set` on it refused (exit 3) |
+| `TextInclude` | `origin` (the `file:` string), `target: SourceFile` | Value = target text exactly; a leaf; `set` rewrites the target (R-16) |
 
 Invariants:
 - Every node knows the single file that contains its bytes; a node reached through a YAML include

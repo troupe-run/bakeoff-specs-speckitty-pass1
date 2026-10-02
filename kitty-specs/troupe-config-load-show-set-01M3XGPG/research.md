@@ -175,3 +175,15 @@ the rest are implementer choices where the contract is silent (charter TROUPE-00
 - **Note**: recorded here because `spec-kitty agent decision open` returns `MISSION_NOT_FOUND`
   after `finalize-tasks` (it resolves the mission in the coordination worktree, which holds only
   status files).
+
+## R-19 Analysis findings remediation (engineer's decision; brief silent)
+
+- **Question**: should the `/spec-kitty.analyze` findings be fixed before implementation?
+- **Decision**: fix I1, I2, I3, I4, U1, U2 now by aligning `spec.md` (FR-004, FR-010, FR-013,
+  FR-024, edge cases), `plan.md` (Technical Context) and `data-model.md` with decisions already
+  made (R-13, R-14, R-16, WP03/WP04 behaviour). Leave C1 (charter wording) unchanged.
+- **Rationale**: aligned spec, plan and tests are what the charter requires (TROUPE-009) and make
+  WP08's acceptance tests unambiguous; the edits add no new behaviour, so they cannot contradict
+  the contract. The charter itself is changed only in a dedicated, explained commit, and the
+  product owner already approved the splice technique (DM-01M3XGW5Z97R8VC909JF3TVPTT), so C1 needs
+  no action. The analysis is re-run afterwards so the recorded report matches the edited artifacts.

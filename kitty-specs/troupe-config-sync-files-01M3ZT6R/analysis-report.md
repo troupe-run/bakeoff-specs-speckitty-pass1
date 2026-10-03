@@ -4,7 +4,7 @@ artifact_type: spec-kitty.analysis-report
 command: /spec-kitty.analyze
 mission_slug: troupe-config-sync-files-01M3ZT6R
 mission_id: 01M3ZT6RJENXK1D5FZYETB4V72
-generated_at: '2026-10-03T02:57:31.007624+00:00'
+generated_at: '2026-10-03T03:07:35.724182+00:00'
 analyzer_agent: unknown
 input_artifacts:
   spec.md:
@@ -21,8 +21,8 @@ input_artifacts:
     sha256: a48e59b0f9fb45472e8fd41c29f431bdb475a6b0598bd083c88c6017f4b0ab03
 verdict: ready
 issue_counts:
-  medium: 2
   low: 5
+  medium: 2
   high: 0
   critical: 0
   info: 0
@@ -69,7 +69,7 @@ Mission `troupe-config-sync-files-01M3ZT6R`. Artifacts analysed: spec.md, plan.m
 | A1 | Ambiguity | LOW | spec.md:208 (SC-001) | "settled" is unbounded. | Read as "2 s after the last change" (NFR-001). |
 | C1 | Coverage | LOW | requirement_refs | NFR-006 / C-004 mapped only to WP04. | No action needed; every WP's DoD runs all four gates. |
 | O1 | Ownership | LOW | WP04 T021 | Possible out-of-map fixes. | Keep fixes minimal, with a failing test first; expect manual lane merge if one happens. |
-| T1 | Test quality | LOW | WP03 T017 #13 | Rapid-save test leaves intermediate events open. | Acceptable: the contract only requires the end state and no duplicates. |
+| T1 | Test quality | LOW | WP03 T017 test 13 | Rapid-save test leaves intermediate events open. | Acceptable: the contract only requires the end state and no duplicates. |
 
 **Coverage Summary Table:**
 

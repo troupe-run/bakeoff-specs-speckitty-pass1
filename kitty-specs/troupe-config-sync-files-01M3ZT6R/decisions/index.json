@@ -23,6 +23,30 @@
       "status": "resolved",
       "step_id": null,
       "summary_json": null
+    },
+    {
+      "created_at": "2026-10-03T02:45:58.609043Z",
+      "decision_id": "01M3ZTEW6H2NYB4NYVW9RB3PJ3",
+      "final_answer": "(A) Theatre lock + compare. Every reconcile and every set holds an exclusive flock on <theatre>/.troupe/lock across load, compare, write and record; reconcile records only leaves differing from the recorded configuration. (B) rejected by product owner: it would lose or suppress hand edits.",
+      "input_key": "write_back_suppression",
+      "mission_id": "01M3ZT6RJENXK1D5FZYETB4V72",
+      "mission_slug": "troupe-config-sync-files-01M3ZT6R",
+      "opened_by": "cli",
+      "options": [
+        "Theatre lock + compare: every reconcile and every set holds an exclusive lock on .troupe/lock across load, compare, write and record; watch only records what differs from the recorded configuration, so an already-recorded write-back produces nothing",
+        "Fingerprint ignore list: set writes the hashes of files it wrote to a side file; watch skips changes whose bytes match",
+        "Other"
+      ],
+      "origin_flow": "plan",
+      "other_answer": false,
+      "question": "How is a set's write-back kept from being recorded again by watch, and each hand edit recorded exactly once when watch and a command reconcile at about the same time?",
+      "rationale": null,
+      "resolved_at": "2026-10-03T02:46:56.837901Z",
+      "resolved_by": null,
+      "slot_key": "plan.architecture.write-back-suppression",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
     }
   ],
   "mission_id": "01M3ZT6RJENXK1D5FZYETB4V72",

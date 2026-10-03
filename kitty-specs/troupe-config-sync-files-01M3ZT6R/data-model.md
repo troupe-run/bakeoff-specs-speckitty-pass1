@@ -71,10 +71,14 @@ each `watch` reconcile, never while `watch` sleeps.
 
 ## Session (`troupe/session.py`, changed signature)
 
-`open_session(theatre_dir: Path, *, reconcile: bool) -> Iterator[Session]`
+`open_session(theatre: Theatre, *, reconcile: bool) -> Iterator[Session]` (keyword required)
 
-Order: lock → locate → load → open store → import if never imported, otherwise reconcile if
-`reconcile` → yield → close store → unlock.
+Order: lock `theatre.state_dir` → re-locate `theatre.directory` (the root file may have been
+renamed) → load → open store → import if never imported, otherwise reconcile if `reconcile` →
+yield → close store → unlock.
+
+Replay tolerance: step-1 histories may hold a `LeafRemoved` for a path never recorded (a step-1
+`set` diffed against the files, not the history), so `leaf_removed` uses `leaves.pop(path, None)`.
 
 `Session` is unchanged apart from being produced under the lock: `tree` is the configuration the
 reconcile compared against, so a command's own work starts from the reconciled state.

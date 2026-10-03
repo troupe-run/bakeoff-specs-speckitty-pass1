@@ -11,5 +11,7 @@
   "purpose_tldr": "Split reading configuration into 'get' for single values and 'show' for whole sections as YAML, with optional per-value source files.",
   "slug": "troupe-config-get-show-01M411XB",
   "target_branch": "feat/troupe-config-get-show",
-  "topology": "coord"
+  "topology": "coord",
+  "vcs": "git",
+  "source_description": "Step 3 brief: get for values, show for anything (contract section 'get and show' replaces 'show PATH (step 1 and 2)')"
 }

@@ -13,6 +13,9 @@ requirement_refs:
 planning_base_branch: feat/troupe-config-get-show
 merge_target_branch: feat/troupe-config-get-show
 branch_strategy: Planning artifacts for this mission were generated on feat/troupe-config-get-show. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/troupe-config-get-show unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-troupe-config-get-show-01M411XB
+base_commit: 200050117c9f845df1161ca6aed1ee76dbc3ab71
+created_at: '2026-10-03T14:28:08.503682+00:00'
 subtasks:
 - T001
 - T002

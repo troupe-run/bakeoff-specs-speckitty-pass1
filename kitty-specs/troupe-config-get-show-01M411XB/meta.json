@@ -13,6 +13,7 @@
   "accepted_at": "2026-10-03T15:37:35.062758+00:00",
   "accepted_by": "system",
   "accepted_from_commit": "126d09df6a1c041c4cbe99f645cd67ef3397627c",
+  "baseline_merge_commit": "fb209652287d02aaec5f42e33af16d93193a2ce5",
   "coordination_branch": "kitty/mission-troupe-config-get-show-01M411XB",
   "created_at": "2026-10-03T14:15:27.803736+00:00",
   "flattened": false,
@@ -25,6 +26,7 @@
   "purpose_tldr": "Split reading configuration into 'get' for single values and 'show' for whole sections as YAML, with optional per-value source files.",
   "slug": "troupe-config-get-show-01M411XB",
   "source_description": "Step 3 brief: get for values, show for anything (contract section 'get and show' replaces 'show PATH (step 1 and 2)')",
+  "status_phase": "1",
   "target_branch": "feat/troupe-config-get-show",
   "topology": "coord",
   "vcs": "git"

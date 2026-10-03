@@ -1,0 +1,101 @@
+{
+  "version": 1,
+  "mission_slug": "troupe-config-sync-files-01M3ZT6R",
+  "mission_id": "01M3ZT6RJENXK1D5FZYETB4V72",
+  "mission_branch": "kitty/mission-troupe-config-sync-files-01M3ZT6R",
+  "target_branch": "feat/troupe-config-sync-files",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "src/troupe/history.py",
+        "src/troupe/lock.py",
+        "tests/unit/test_history_store.py",
+        "tests/unit/test_lock.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "src/troupe/commands/history.py",
+        "src/troupe/commands/set_value.py",
+        "src/troupe/commands/show.py",
+        "src/troupe/reconcile.py",
+        "src/troupe/session.py",
+        "tests/integration/test_history.py",
+        "tests/integration/test_reconcile_first.py",
+        "tests/integration/test_set_history.py",
+        "tests/unit/test_reconcile.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup",
+        "tests",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-c",
+      "wp_ids": [
+        "WP03"
+      ],
+      "write_scope": [
+        "src/troupe/cli.py",
+        "src/troupe/commands/__init__.py",
+        "src/troupe/commands/watch.py",
+        "tests/conftest.py",
+        "tests/integration/test_watch.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [
+        "lane-b"
+      ],
+      "parallel_group": 2
+    },
+    {
+      "lane_id": "lane-d",
+      "wp_ids": [
+        "WP04"
+      ],
+      "write_scope": [
+        "tests/integration/test_watch_includes.py",
+        "tests/integration/test_watch_set.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [
+        "lane-c"
+      ],
+      "parallel_group": 3
+    }
+  ],
+  "computed_at": "2026-10-03T02:55:59.450406+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [],
+  "planning_commit_sha": "df42267f94682e18ba17837e4e83182bb701cbf8"
+}

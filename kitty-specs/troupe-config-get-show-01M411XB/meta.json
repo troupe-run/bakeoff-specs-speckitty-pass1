@@ -1,0 +1,15 @@
+{
+  "coordination_branch": "kitty/mission-troupe-config-get-show-01M411XB",
+  "created_at": "2026-10-03T14:15:27.803736+00:00",
+  "flattened": false,
+  "friendly_name": "troupe configuration: get for values, show for anything",
+  "mission_id": "01M411XBPYCFHFT2CTA5MR35YA",
+  "mission_number": null,
+  "mission_slug": "troupe-config-get-show-01M411XB",
+  "mission_type": "software-dev",
+  "purpose_context": "Today 'troupe config show PATH' only prints a single value. This mission moves that behaviour to 'troupe config get PATH' and turns 'show [PATH]' into a reader for any part of the configuration, printed as YAML with includes resolved, and with --sources annotating each value with the theatre file it comes from.",
+  "purpose_tldr": "Split reading configuration into 'get' for single values and 'show' for whole sections as YAML, with optional per-value source files.",
+  "slug": "troupe-config-get-show-01M411XB",
+  "target_branch": "feat/troupe-config-get-show",
+  "topology": "coord"
+}

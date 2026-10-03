@@ -9,6 +9,9 @@ requirement_refs:
 planning_base_branch: feat/troupe-config-sync-files
 merge_target_branch: feat/troupe-config-sync-files
 branch_strategy: Planning artifacts for this mission were generated on feat/troupe-config-sync-files. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/troupe-config-sync-files unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-troupe-config-sync-files-01M3ZT6R
+base_commit: 7ef2861e0d0bd96bba1ce7e39e78df22960ed319
+created_at: '2026-10-03T02:57:59.747846+00:00'
 subtasks:
 - T001
 - T002

@@ -11,5 +11,7 @@
   "purpose_tldr": "Keep troupe's recorded configuration in step with hand edits to the theatre's files, live and between runs.",
   "slug": "troupe-config-sync-files-01M3ZT6R",
   "target_branch": "feat/troupe-config-sync-files",
-  "topology": "coord"
+  "topology": "coord",
+  "vcs": "git",
+  "vcs_locked_at": "2026-10-03T02:57:55.836477+00:00"
 }

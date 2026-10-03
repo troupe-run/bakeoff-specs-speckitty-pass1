@@ -24,6 +24,7 @@
   "purpose_context": "People edit .troupe/ files in their editor while troupe runs. This mission adds 'troupe config watch', which reconciles hand edits into the configuration history as they happen, makes every command except history reconcile first so offline edits are picked up, and ensures troupe's own write-backs are never re-detected as new changes.",
   "purpose_tldr": "Keep troupe's recorded configuration in step with hand edits to the theatre's files, live and between runs.",
   "slug": "troupe-config-sync-files-01M3ZT6R",
+  "status_phase": "1",
   "target_branch": "feat/troupe-config-sync-files",
   "topology": "coord",
   "vcs": "git",

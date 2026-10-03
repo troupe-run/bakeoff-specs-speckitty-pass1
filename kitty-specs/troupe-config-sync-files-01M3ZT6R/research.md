@@ -86,3 +86,10 @@ of truth) and R-04 (import timing), which this step extends as described in R-01
   - `tests/integration/test_set_history.py::test_set_after_hand_edit_records_the_hand_edited_value_as_old` is rewritten to expect the reconcile event, then the `set` event.
   - `tests/integration/test_history.py::test_hand_edit_after_import_produces_no_event` still holds for `history` alone (it never reconciles). It is renamed to state exactly that, and is extended so that a following `show` records the edit.
 - **Rationale**: TROUPE-008/009 require spec, code and tests to change together, and a superseded behaviour's test must not silently disappear.
+
+## R-11 `spec-kitty merge` squash failure and manual squash (engineer's decision; brief silent)
+
+- **Situation**: as in step 1 (R-20 there), `spec-kitty merge` merged lanes a–d into the coordination branch (`kitty/mission-troupe-config-sync-files-01M3ZT6R`). The final squash into `feat/troupe-config-sync-files` then conflicted, because the coordination branch never carried the planning documents, so git sees spec.md, plan.md, meta.json and the rest as deleted there. The tool rolled the squash back but left all four WPs recorded as `done` (it could not revert its coordination `done` commits).
+- **Decision**: bring `src/`, `tests/` and `acceptance-matrix.json` from the coordination branch onto `feat/troupe-config-sync-files` in one commit (`8e63090`), keeping every planning file from this branch. Do not retry `spec-kitty merge`.
+- **Evidence**: before the copy, `git diff` between the coordination branch and the reviewed lane-d branch over `src tests pyproject.toml uv.lock` was empty. On the resulting tree: 1275 passed, `mypy --strict` clean, `ruff check` and `ruff format --check` clean.
+- **Rationale**: the WP `done` status is now true (the reviewed code is merged and gated). A retry can only fail the same way. Only mission bookkeeping is affected, and nothing in the contract is contradicted.

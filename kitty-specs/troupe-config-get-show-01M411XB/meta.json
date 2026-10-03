@@ -14,9 +14,8 @@
   "accepted_by": "system",
   "accepted_from_commit": "126d09df6a1c041c4cbe99f645cd67ef3397627c",
   "baseline_merge_commit": "fb209652287d02aaec5f42e33af16d93193a2ce5",
-  "coordination_branch": "kitty/mission-troupe-config-get-show-01M411XB",
   "created_at": "2026-10-03T14:15:27.803736+00:00",
-  "flattened": false,
+  "flattened": true,
   "friendly_name": "troupe configuration: get for values, show for anything",
   "mission_id": "01M411XBPYCFHFT2CTA5MR35YA",
   "mission_number": null,
@@ -28,6 +27,5 @@
   "source_description": "Step 3 brief: get for values, show for anything (contract section 'get and show' replaces 'show PATH (step 1 and 2)')",
   "status_phase": "1",
   "target_branch": "feat/troupe-config-get-show",
-  "topology": "coord",
   "vcs": "git"
 }

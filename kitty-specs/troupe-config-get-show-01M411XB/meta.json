@@ -1,0 +1,31 @@
+{
+  "accept_commit": "6a39050cdf757f7b3d9ee2744b7cdad38a01ed28",
+  "acceptance_history": [
+    {
+      "accept_commit": "6a39050cdf757f7b3d9ee2744b7cdad38a01ed28",
+      "acceptance_mode": "pr",
+      "accepted_at": "2026-10-03T15:37:35.062758+00:00",
+      "accepted_by": "system",
+      "accepted_from_commit": "126d09df6a1c041c4cbe99f645cd67ef3397627c"
+    }
+  ],
+  "acceptance_mode": "pr",
+  "accepted_at": "2026-10-03T15:37:35.062758+00:00",
+  "accepted_by": "system",
+  "accepted_from_commit": "126d09df6a1c041c4cbe99f645cd67ef3397627c",
+  "baseline_merge_commit": "fb209652287d02aaec5f42e33af16d93193a2ce5",
+  "created_at": "2026-10-03T14:15:27.803736+00:00",
+  "flattened": true,
+  "friendly_name": "troupe configuration: get for values, show for anything",
+  "mission_id": "01M411XBPYCFHFT2CTA5MR35YA",
+  "mission_number": null,
+  "mission_slug": "troupe-config-get-show-01M411XB",
+  "mission_type": "software-dev",
+  "purpose_context": "Today 'troupe config show PATH' only prints a single value. This mission moves that behaviour to 'troupe config get PATH' and turns 'show [PATH]' into a reader for any part of the configuration, printed as YAML with includes resolved, and with --sources annotating each value with the theatre file it comes from.",
+  "purpose_tldr": "Split reading configuration into 'get' for single values and 'show' for whole sections as YAML, with optional per-value source files.",
+  "slug": "troupe-config-get-show-01M411XB",
+  "source_description": "Step 3 brief: get for values, show for anything (contract section 'get and show' replaces 'show PATH (step 1 and 2)')",
+  "status_phase": "1",
+  "target_branch": "feat/troupe-config-get-show",
+  "vcs": "git"
+}

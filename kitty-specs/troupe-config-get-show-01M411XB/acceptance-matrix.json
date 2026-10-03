@@ -1,0 +1,159 @@
+{
+  "mission_slug": "troupe-config-get-show-01M411XB",
+  "mission_number": "",
+  "mission_type": "software-dev",
+  "overall_verdict": "pass",
+  "criteria": [
+    {
+      "criterion_id": "FR-001",
+      "description": "Verify FR-001 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_get.py (all 27 step-1 show scalar cases ported, e.g. test_get_float_prints_repr, test_get_text_include_prints_exact_file_text) \u2014 full suite 1528 passed on lane-c (all WP01-WP03 code, commit 93c58bd) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-03T15:36:34.006298+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-002",
+      "description": "Verify FR-002 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_get.py::test_get_mapping_exits_5_naming_path_and_pointing_to_config_show, test_get_list_exits_5_..., test_get_whole_yaml_include_exits_5_as_mapping_... \u2014 full suite 1528 passed on lane-c (all WP01-WP03 code, commit 93c58bd) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-03T15:36:37.305078+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-003",
+      "description": "Verify FR-003 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_get.py::test_get_missing_path_exits_5, test_get_through_scalar_exits_5; tests/integration/test_show.py::test_show_missing_path_exits_5_naming_path, test_show_path_through_scalar_exits_5 \u2014 full suite 1528 passed on lane-c (all WP01-WP03 code, commit 93c58bd) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-03T15:36:40.708680+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-004",
+      "description": "Verify FR-004 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_show.py::test_show_scalar_prints_exactly_what_get_prints (compares real get run), test_show_scalar_keeps_get_float_spellings \u2014 full suite 1528 passed on lane-c (all WP01-WP03 code, commit 93c58bd) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-03T15:36:43.994087+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-005",
+      "description": "Verify FR-005 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_show.py::test_show_mapping_prints_block_yaml, test_show_section_parses_back_to_resolved_section; tests/unit/test_yamlout.py layout tests \u2014 full suite 1528 passed on lane-c (all WP01-WP03 code, commit 93c58bd) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-03T15:36:49.072814+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-006",
+      "description": "Verify FR-006 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_show.py::test_show_whole_configuration_exact_layout, test_show_without_path_parses_back_to_resolved_configuration, test_show_empty_root_prints_empty_mapping \u2014 full suite 1528 passed on lane-c (all WP01-WP03 code, commit 93c58bd) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-03T15:36:52.381088+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-007",
+      "description": "Verify FR-007 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/unit/test_yamlout.py::test_render_text_include_as_literal_block_with_exact_chomping, test_render_multiline_string_in_file_as_literal_block, test_render_crlf_text_include_is_double_quoted \u2014 full suite 1528 passed on lane-c (all WP01-WP03 code, commit 93c58bd) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-03T15:36:55.677877+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-008",
+      "description": "Verify FR-008 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/unit/test_yamlout.py layout/quoting tests incl. D-10 (test_render_value_other_yaml_readers_misread_is_single_quoted, test_render_exponent_float_has_dot_and_reads_back_without_warning) \u2014 full suite 1528 passed on lane-c (all WP01-WP03 code, commit 93c58bd) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-03T15:36:59.832792+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-009",
+      "description": "Verify FR-009 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_show_sources.py::test_sources_example_from_contract (byte-exact), test_sources_collection_lines_have_no_comment \u2014 full suite 1528 passed on lane-c (all WP01-WP03 code, commit 93c58bd) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-03T15:37:03.139693+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-010",
+      "description": "Verify FR-010 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_show_sources.py::test_sources_paths_are_relative_to_theatre_with_slashes, test_sources_include_outside_theatre_uses_dotdot, test_sources_theatre_given_as_relative_path_still_labels_relative_to_theatre \u2014 full suite 1528 passed on lane-c (all WP01-WP03 code, commit 93c58bd) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-03T15:37:06.460342+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-011",
+      "description": "Verify FR-011 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_show_sources.py::test_sources_text_include_comment_on_block_header_only; tests/unit/test_yamlout.py::test_sources_never_comment_block_body_lines \u2014 full suite 1528 passed on lane-c (all WP01-WP03 code, commit 93c58bd) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-03T15:37:09.739226+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-012",
+      "description": "Verify FR-012 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_show_sources.py::test_sources_scalar_path_prints_yaml_scalar_with_comment, test_sources_scalar_path_parses_back_to_the_scalar \u2014 full suite 1528 passed on lane-c (all WP01-WP03 code, commit 93c58bd) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-03T15:37:13.034847+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-013",
+      "description": "Verify FR-013 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_show.py::test_show_reads_hand_edits_and_records_them_first; tests/integration/test_get.py::test_get_reads_hand_edits_after_import; test_reconcile_first.py parametrized get/show/set \u2014 full suite 1528 passed on lane-c (all WP01-WP03 code, commit 93c58bd) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-03T15:37:16.346325+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-014",
+      "description": "Verify FR-014 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_show.py::test_show_changes_no_configuration_file (snapshot for show, show PATH, show --sources); test_get.py::test_get_changes_no_configuration_file \u2014 full suite 1528 passed on lane-c (all WP01-WP03 code, commit 93c58bd) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-03T15:37:19.620045+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-015",
+      "description": "Verify FR-015 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_show.py::test_help_lists_show_with_sources_option; tests/integration/test_cli_basics.py help test lists get \u2014 full suite 1528 passed on lane-c (all WP01-WP03 code, commit 93c58bd) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-03T15:37:22.924401+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    }
+  ],
+  "negative_invariants": []
+}

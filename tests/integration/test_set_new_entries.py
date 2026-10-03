@@ -5,7 +5,7 @@ FR-015 (new keys/values copy the preceding sibling's quoting), FR-016 (new colle
 the file's indentation, flow under a flow parent; scalar to block collection keeps the key line),
 FR-019 (placement below trailing comments, above a less-indented line; flow append on the last
 entry's line). Every test compares the complete bytes of every theatre file; after a successful
-``set``, ``show`` reads the new leaf back.
+``set``, ``get`` reads the new leaf back.
 """
 
 import json
@@ -21,8 +21,8 @@ def _set(theatre: Path, path: str, value: str) -> CliResult:
     return run_cli("config", "set", path, value, "--theatre", str(theatre))
 
 
-def _show(theatre: Path, path: str) -> str:
-    result = run_cli("config", "show", path, "--theatre", str(theatre))
+def _get(theatre: Path, path: str) -> str:
+    result = run_cli("config", "get", path, "--theatre", str(theatre))
     assert (result.code, result.err) == (0, ""), result.err
     return result.out
 
@@ -48,13 +48,13 @@ def _check(
     expected: Files,
     shown: dict[str, str],
 ) -> Path:
-    """Build ``files``, run ``set``, assert every file's bytes and ``show`` of each leaf."""
+    """Build ``files``, run ``set``, assert every file's bytes and ``get`` of each leaf."""
     theatre = make_theatre(files)
     result = _set(theatre, path, value)
     assert (result.code, result.out, result.err) == (0, "", "")
     assert snapshot(theatre) == _bytes({**files, **expected})
     for leaf, printed in shown.items():
-        assert _show(theatre, leaf) == printed
+        assert _get(theatre, leaf) == printed
     return theatre
 
 

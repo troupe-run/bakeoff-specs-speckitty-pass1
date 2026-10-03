@@ -98,7 +98,7 @@ def test_history_does_not_reconcile_a_hand_edit(make_theatre: MakeTheatre) -> No
     assert _history(theatre) == imported
     assert [r["path"] for r in imported] == ["a", "b"]
 
-    shown = run_cli("config", "show", "a", "--theatre", str(theatre))
+    shown = run_cli("config", "get", "a", "--theatre", str(theatre))
 
     assert (shown.code, shown.out, shown.err) == (0, "100\n", "")
     assert _history(theatre) == [

@@ -1,38 +1,44 @@
-"""``troupe config show PATH``: print the scalar at PATH (FR-009).
+"""``troupe config show [PATH] [--sources]``: print PATH, or everything, as YAML.
 
-``show`` reconciles first (FR-004): hand edits are recorded before the value is printed, so the
-printed value is the current file value.
+Spec FR-004 to FR-006, FR-009 to FR-014; contracts/cli.md "get and show".
 
-A text include is a string (the target file's exact text). A mapping, a list (including a whole
-YAML include) or a missing path is a ``PathError`` (exit 5).
+- A scalar at PATH without ``--sources`` prints exactly what ``get PATH`` prints
+  (``values.format_scalar``, FR-004). It never goes through the YAML renderer, whose float
+  spellings (``1.0e+20``, ``.inf``) differ from ``get``'s on purpose (research D-3, D-10).
+- A mapping or list at PATH, or the whole configuration when PATH is omitted, prints as
+  block-style YAML through ``troupe.yamlout`` (FR-005, FR-006).
+- With ``--sources`` the same YAML gets ``# from <file>`` on every line holding a scalar, the file
+  relative to the resolved theatre directory (FR-009 to FR-011). A scalar PATH with ``--sources``
+  prints that scalar as YAML with its comment (FR-012, decision DM 01M411YHFR2PMJEJWMHX4KN9C4).
+
+``show`` reconciles first (FR-013), so it prints what the files say now. It never writes a
+configuration or include file (FR-014); only the history store may change.
 """
 
 import argparse
 
-from troupe.errors import PathError
-from troupe.paths import lookup, parse_path, unwrap
+from troupe import yamlout
+from troupe.paths import lookup, parse_path
 from troupe.session import open_session
 from troupe.theatre import Theatre
-from troupe.tree import MappingNode, ScalarNode, TextInclude
-from troupe.values import format_scalar
+from troupe.values import format_scalar, scalar_of
 
 
 def run(theatre: Theatre, args: argparse.Namespace) -> str:
-    """Return the printed scalar at ``args.path``.
+    """Return the printed node at ``args.path`` (the whole configuration when it is ``None``).
 
     Raises:
         UsageError: If PATH has an empty segment (checked before anything is loaded).
         LoadError: If the configuration cannot be loaded.
-        PathError: If PATH does not exist or names a mapping or list.
+        PathError: If PATH does not exist.
     """
-    path: str = args.path
-    segments = parse_path(path)
+    path: str | None = args.path
+    sources: bool = args.sources
+    segments = None if path is None else parse_path(path)
     with open_session(theatre, reconcile=True) as session:
-        node = unwrap(lookup(session.tree, segments, path))
-    if isinstance(node, ScalarNode):
-        return format_scalar(node.value)
-    if isinstance(node, TextInclude):
-        return format_scalar(node.target.text)
-    # ``unwrap`` never returns a YamlInclude, so what is left is a mapping or a list.
-    kind = "mapping" if isinstance(node, MappingNode) else "list"
-    raise PathError(f"{path} is a {kind}, not a scalar")
+        node = session.tree if segments is None else lookup(session.tree, segments, str(path))
+        sources_root = session.theatre.directory if sources else None
+    scalar = scalar_of(node)
+    if scalar is not None and not sources:
+        return format_scalar(scalar.value)
+    return yamlout.to_text(yamlout.render(node), sources_root)

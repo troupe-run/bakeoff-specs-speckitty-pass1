@@ -1,0 +1,13 @@
+{
+  "wp_id": "WP01",
+  "captured_at": "2026-10-03T14:32:27Z",
+  "base_branch": "feat/troupe-config-get-show",
+  "base_commit": "60da5c55e16c6442f036dc1791e03bd14f9198a7",
+  "test_runner": "pytest",
+  "total": 0,
+  "passed": 0,
+  "failed": 0,
+  "skipped": 0,
+  "failures": [],
+  "source_identity": "GateCoverageScopeSource/junit_xml"
+}

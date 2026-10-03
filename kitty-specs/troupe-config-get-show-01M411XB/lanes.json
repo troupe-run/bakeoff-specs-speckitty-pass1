@@ -1,0 +1,76 @@
+{
+  "version": 1,
+  "mission_slug": "troupe-config-get-show-01M411XB",
+  "mission_id": "01M411XBPYCFHFT2CTA5MR35YA",
+  "mission_branch": "kitty/mission-troupe-config-get-show-01M411XB",
+  "target_branch": "feat/troupe-config-get-show",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "src/troupe/yamlout.py",
+        "tests/unit/test_yamlout.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "app-shell",
+        "artifact-rendering"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "src/troupe/cli.py",
+        "src/troupe/commands/get.py",
+        "src/troupe/values.py",
+        "tests/integration/test_cli_basics.py",
+        "tests/integration/test_get.py",
+        "tests/integration/test_history.py",
+        "tests/integration/test_reconcile_first.py",
+        "tests/integration/test_set_blocks.py",
+        "tests/integration/test_set_existing.py",
+        "tests/integration/test_set_new_entries.py",
+        "tests/integration/test_watch_includes.py",
+        "tests/integration/test_watch_set.py",
+        "tests/unit/test_values.py"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-c",
+      "wp_ids": [
+        "WP03"
+      ],
+      "write_scope": [
+        "src/troupe/commands/show.py",
+        "tests/integration/test_show.py",
+        "tests/integration/test_show_sources.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering"
+      ],
+      "depends_on_lanes": [
+        "lane-a",
+        "lane-b"
+      ],
+      "parallel_group": 1
+    }
+  ],
+  "computed_at": "2026-10-03T14:26:14.039932+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [],
+  "planning_commit_sha": "2da8c1834b308b1e16bda43e905a5b46bb7bd48f"
+}

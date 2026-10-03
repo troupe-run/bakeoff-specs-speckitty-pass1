@@ -3,7 +3,7 @@
 Every test compares the complete bytes of every file of the theatre (history store excluded)
 after the command: the changed file against its whole expected text, every other file against its
 original bytes (NFR-001). Refusals and errors must leave every byte unchanged (NFR-002) and print
-nothing on stdout. After a successful ``set``, ``show PATH`` prints the new value.
+nothing on stdout. After a successful ``set``, ``get PATH`` prints the new value.
 """
 
 import json
@@ -19,8 +19,8 @@ def _set(theatre: Path, path: str, value: str) -> CliResult:
     return run_cli("config", "set", path, value, "--theatre", str(theatre))
 
 
-def _show(theatre: Path, path: str) -> str:
-    result = run_cli("config", "show", path, "--theatre", str(theatre))
+def _get(theatre: Path, path: str) -> str:
+    result = run_cli("config", "get", path, "--theatre", str(theatre))
     assert (result.code, result.err) == (0, ""), result.err
     return result.out
 
@@ -39,11 +39,11 @@ def _bytes(files: Files) -> dict[str, bytes]:
 
 
 def _set_ok(theatre: Path, path: str, value: str, expected: Files, shown: str) -> None:
-    """Run ``set``; assert success, the whole theatre's bytes, and ``show PATH``."""
+    """Run ``set``; assert success, the whole theatre's bytes, and ``get PATH``."""
     result = _set(theatre, path, value)
     assert (result.code, result.out, result.err) == (0, "", "")
     assert snapshot(theatre) == _bytes(expected)
-    assert _show(theatre, path) == shown
+    assert _get(theatre, path) == shown
 
 
 def _set_fails(theatre: Path, path: str, value: str, code: int, names: str) -> CliResult:

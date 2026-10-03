@@ -1,15 +1,20 @@
-"""VALUE arguments and scalar printing: the one place both conversions are decided (FR-004/005).
+"""VALUE arguments, scalar printing and scalar detection: the one place each is decided.
 
 ``parse_value`` turns a ``set`` VALUE argument into a plain Python value. VALUE is exactly one
 YAML 1.2 core-schema *flow* node: plain scalars resolve per ``yamlcore.resolve_plain``, quoted
 scalars are strings, ``{...}`` is a ``dict`` and ``[...]`` a ``list``. Block nodes (``a: 1``,
 ``- a``, ``|``/``>`` scalars) are refused, because they cannot be told apart from a mistyped
-argument. ``format_scalar`` is how ``show`` prints a scalar.
+argument (FR-004). ``format_scalar`` is how ``get`` (and ``show`` on a scalar) prints a scalar
+(FR-005). ``scalar_of`` decides whether a node is a scalar at all, and what its value is
+(FR-001/FR-013).
 """
+
+from dataclasses import dataclass
 
 from troupe import yamlcore
 from troupe.errors import LoadError, UsageError
-from troupe.tree import Scalar
+from troupe.paths import unwrap
+from troupe.tree import Node, Scalar, ScalarNode, TextInclude
 from troupe.yamlcore import RawMapping, RawNode, RawScalar
 
 type Value = Scalar | dict[str, Value] | list[Value]
@@ -77,3 +82,24 @@ def format_scalar(value: Scalar) -> str:
     else:
         printed = repr(value)
     return printed + "\n"
+
+
+@dataclass(frozen=True)
+class ScalarValue:
+    """A node's scalar value. ``ScalarValue(None)`` is a YAML null, which *is* a scalar."""
+
+    value: Scalar
+
+
+def scalar_of(node: Node) -> ScalarValue | None:
+    """Return the scalar value of ``node``, or ``None`` if it is a mapping or a list.
+
+    ``node`` may be as found (a ``YamlInclude`` is unwrapped here, so an include whose root is a
+    scalar counts as that scalar). A text include is the string ``target.text``, exactly.
+    """
+    content = unwrap(node)
+    if isinstance(content, ScalarNode):
+        return ScalarValue(content.value)
+    if isinstance(content, TextInclude):
+        return ScalarValue(content.target.text)
+    return None

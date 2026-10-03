@@ -2,13 +2,19 @@
 
 Order (plan "Engineering Alignment"; research R-04, R-12, R-17):
 
-1. Parse PATH and VALUE: a usage error (exit 2) happens before anything is loaded or imported.
-2. Open the session: load the files on disk and import the theatre if this is its first command.
+1. Parse PATH and VALUE: a usage error (exit 2) happens before anything is loaded, imported or
+   reconciled.
+2. Open the session: lock, load, import or reconcile. Reconcile events are saved here, so they
+   are kept even if the steps below refuse or fail (D-7).
 3. ``apply_set``: decide placement, render, verify in memory. Refusals (exit 3) and path errors
    (exit 5) happen here, before any write; a no-op returns no files.
 4. Write the changed file(s) atomically.
 5. Only after a successful write, append one event per changed leaf (``leaves.diff`` of the tree
-   before and the verified tree after). A failed write appends nothing.
+   before and the verified tree after). The tree before is the reconciled one, so ``old`` is
+   the current file value (FR-007). A failed write appends nothing.
+
+Steps 3-5 run inside the session, under the theatre lock, so the write-back and its events
+are one unit that no reconcile can observe half-done (FR-015).
 
 Success prints nothing.
 """
@@ -38,7 +44,7 @@ def run(theatre: Theatre, args: argparse.Namespace) -> str:
     raw_value: str = args.value
     segments = parse_path(path)
     value = parse_value(raw_value)
-    with open_session(theatre) as session:
+    with open_session(theatre, reconcile=True) as session:
         plan = apply_set(session.tree, segments, path, value, raw_value)
         if plan.tree is None:
             return ""

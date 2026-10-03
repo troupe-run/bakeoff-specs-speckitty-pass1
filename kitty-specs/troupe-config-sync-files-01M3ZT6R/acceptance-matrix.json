@@ -1,0 +1,169 @@
+{
+  "mission_slug": "troupe-config-sync-files-01M3ZT6R",
+  "mission_number": "",
+  "mission_type": "software-dev",
+  "overall_verdict": "pass",
+  "criteria": [
+    {
+      "criterion_id": "FR-001",
+      "description": "Recorded configuration: As an owner, the recorded configuration of a theatre is the set of leaves obtained by replaying its history (import, then every `set` and `remove` in order). Reconcile compares the files against it.",
+      "proof_type": "automated_test",
+      "evidence": "tests/unit/test_history_store.py (13; recorded_leaves after import/set/remove, replay after reopen, tolerant replay of step-1 removes) \u2014 full suite 1275 passed on kitty/mission-troupe-config-sync-files-01M3ZT6R-lane-d (all WP01-WP04 code), plus uv run mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-03T04:52:44+00:00",
+      "notes": "Automated black-box/unit tests mapped from WP requirement_refs; each WP independently reviewed and approved."
+    },
+    {
+      "criterion_id": "FR-002",
+      "description": "Reconcile: As an owner, a reconcile loads the files on disk (root file and all includes, as in step 1). It records one `set` event (`old` = recorded value, or `null` if the leaf was absent; `new` = file value) for each leaf that is new or whose value differs (type-aware comparison), and one `remove` event (`new` = `null`) for each recorded leaf no longer in the files. Ordering follows D-6, all events are recorded atomically, and a reconcile never changes any file.",
+      "proof_type": "automated_test",
+      "evidence": "tests/unit/test_reconcile.py (21; changed value, document-order sets then recorded-order removes, null vs remove, never writes files); tests/integration/test_reconcile_first.py (16; US1 scenarios 1-3, 5) \u2014 full suite 1275 passed on kitty/mission-troupe-config-sync-files-01M3ZT6R-lane-d (all WP01-WP04 code), plus uv run mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-03T04:52:44+00:00",
+      "notes": "Automated black-box/unit tests mapped from WP requirement_refs; each WP independently reviewed and approved."
+    },
+    {
+      "criterion_id": "FR-003",
+      "description": "No-op edits record nothing: As an owner, an edit that leaves every leaf's type and value unchanged records nothing. Such edits include whitespace, indentation, comments, quoting, scalar spelling of the same value, flow/block style, and replacing an include by equal inline content.",
+      "proof_type": "automated_test",
+      "evidence": "tests/unit/test_reconcile.py::test_formatting_and_comment_only_edits_record_nothing (parametrized); test_reconcile_first.py formatting/comment case; tests/integration/test_watch.py::test_comment_only_and_formatting_only_edits_record_nothing; tests/integration/test_watch_includes.py::test_include_replaced_by_equal_inline_content_records_nothing \u2014 full suite 1275 passed on kitty/mission-troupe-config-sync-files-01M3ZT6R-lane-d (all WP01-WP04 code), plus uv run mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-03T04:52:44+00:00",
+      "notes": "Automated black-box/unit tests mapped from WP requirement_refs; each WP independently reviewed and approved."
+    },
+    {
+      "criterion_id": "FR-004",
+      "description": "Reconcile first: As an owner, `show`, `set` and `watch` reconcile after loading (and importing, if needed) and before doing anything else. Usage errors (exit 2) are still detected before loading. A load failure exits 4 and records nothing.",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_reconcile_first.py (show/set reconcile first; usage error exits 2 before reconcile; unloadable exits 4 recording nothing) \u2014 full suite 1275 passed on kitty/mission-troupe-config-sync-files-01M3ZT6R-lane-d (all WP01-WP04 code), plus uv run mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-03T04:52:44+00:00",
+      "notes": "Automated black-box/unit tests mapped from WP requirement_refs; each WP independently reviewed and approved."
+    },
+    {
+      "criterion_id": "FR-005",
+      "description": "history never reconciles: As an owner, `history` never reconciles: it prints only what has been recorded. It still imports a never-imported theatre (step-1 behaviour, D-5).",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_history.py::test_history_does_not_reconcile_a_hand_edit; test_reconcile_first.py::test_history_never_reconciles_but_the_next_show_does \u2014 full suite 1275 passed on kitty/mission-troupe-config-sync-files-01M3ZT6R-lane-d (all WP01-WP04 code), plus uv run mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-03T04:52:44+00:00",
+      "notes": "Automated black-box/unit tests mapped from WP requirement_refs; each WP independently reviewed and approved."
+    },
+    {
+      "criterion_id": "FR-006",
+      "description": "Reconcile kept on later failure: As an owner, if a command's reconcile succeeded and the command then fails (exit 3 or 5), the reconcile's events stay recorded (D-7).",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_reconcile_first.py::test_set_failing_after_reconcile_keeps_reconcile_events_and_records_no_set (exit 3 and exit 5) \u2014 full suite 1275 passed on kitty/mission-troupe-config-sync-files-01M3ZT6R-lane-d (all WP01-WP04 code), plus uv run mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-03T04:52:44+00:00",
+      "notes": "Automated black-box/unit tests mapped from WP requirement_refs; each WP independently reviewed and approved."
+    },
+    {
+      "criterion_id": "FR-007",
+      "description": "set after reconcile: As an owner, `set`'s own events are computed against the configuration as it stands after its reconcile, so its `old` values are the current file values. The step-1 rule that a `set` emits exactly one event per changed leaf, and nothing for a no-op, is unchanged.",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_set_history.py::test_set_after_hand_edit_records_the_hand_edit_then_the_set; test_reconcile_first.py scenario 7 \u2014 full suite 1275 passed on kitty/mission-troupe-config-sync-files-01M3ZT6R-lane-d (all WP01-WP04 code), plus uv run mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-03T04:52:44+00:00",
+      "notes": "Automated black-box/unit tests mapped from WP requirement_refs; each WP independently reviewed and approved."
+    },
+    {
+      "criterion_id": "FR-008",
+      "description": "watch invocation: As an owner, I run `troupe config watch [--theatre <dir>]`. `--theatre` falls back to `$TROUPE_THEATRE`, then the current directory, as for the other subcommands. Any extra argument exits 2.",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_watch.py::test_watch_with_extra_argument_exits_2, test_watching_line_uses_env_var_then_cwd_when_no_option \u2014 full suite 1275 passed on kitty/mission-troupe-config-sync-files-01M3ZT6R-lane-d (all WP01-WP04 code), plus uv run mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-03T04:52:44+00:00",
+      "notes": "Automated black-box/unit tests mapped from WP requirement_refs; each WP independently reviewed and approved."
+    },
+    {
+      "criterion_id": "FR-009",
+      "description": "watch readiness line: As an owner, once `watch` has loaded, imported if needed, reconciled, and is able to observe changes to every watched file, it prints exactly one line `watching <dir>` to stdout and flushes it. Nothing else is ever written to stdout (D-2). `<dir>` is the theatre directory exactly as given: the `--theatre` argument verbatim (contract); when it comes from `$TROUPE_THEATRE` or defaults to the current directory, that value as given, not resolved (out of contract; choice D-8).",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_watch.py::test_watch_prints_exactly_watching_dir_and_nothing_else, test_watching_line_echoes_theatre_argument_verbatim, test_edit_immediately_after_watching_line_is_not_missed \u2014 full suite 1275 passed on kitty/mission-troupe-config-sync-files-01M3ZT6R-lane-d (all WP01-WP04 code), plus uv run mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-03T04:52:44+00:00",
+      "notes": "Automated black-box/unit tests mapped from WP requirement_refs; each WP independently reviewed and approved."
+    },
+    {
+      "criterion_id": "FR-010",
+      "description": "watch startup failure: As an owner, if the configuration cannot be loaded when `watch` starts, it exits 4 with empty stdout and a stderr message naming the file, and never prints `watching` (D-4).",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_watch.py::test_watch_on_unloadable_configuration_exits_4_without_the_line (5 cases) \u2014 full suite 1275 passed on kitty/mission-troupe-config-sync-files-01M3ZT6R-lane-d (all WP01-WP04 code), plus uv run mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-03T04:52:44+00:00",
+      "notes": "Automated black-box/unit tests mapped from WP requirement_refs; each WP independently reviewed and approved."
+    },
+    {
+      "criterion_id": "FR-011",
+      "description": "watch reconciles on change: As an owner, within 2 seconds of any change, made after `watching <dir>` appears, to the root file or any currently included file (YAML or text include, at any depth), `watch` reconciles.",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_watch.py (22; root, YAML include, text include, atomic-rename save, root renamed; recorded within 2 s) \u2014 full suite 1275 passed on kitty/mission-troupe-config-sync-files-01M3ZT6R-lane-d (all WP01-WP04 code), plus uv run mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-03T04:52:44+00:00",
+      "notes": "Automated black-box/unit tests mapped from WP requirement_refs; each WP independently reviewed and approved."
+    },
+    {
+      "criterion_id": "FR-012",
+      "description": "Watched set follows includes: As an owner, the set of watched files is recomputed on every reconcile. An include added by a hand edit is followed: its leaves are recorded as `set` events, and its file is watched from then on. A file no longer included stops affecting the history.",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_watch_includes.py (9; include added/removed via command and watch, nested, text include); test_watch.py::test_missing_include_target_created_later_is_recorded \u2014 full suite 1275 passed on kitty/mission-troupe-config-sync-files-01M3ZT6R-lane-d (all WP01-WP04 code), plus uv run mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-03T04:52:44+00:00",
+      "notes": "Automated black-box/unit tests mapped from WP requirement_refs; each WP independently reviewed and approved."
+    },
+    {
+      "criterion_id": "FR-013",
+      "description": "watch survives unloadable edits: As an owner, while `watch` runs, a hand edit that makes the configuration unloadable produces one stderr line naming the offending file and records nothing. `watch` keeps running and reconciles normally once a later change makes the files loadable again (D-1).",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_watch.py::test_unloadable_edit_reports_once_keeps_watching_then_recovers \u2014 full suite 1275 passed on kitty/mission-troupe-config-sync-files-01M3ZT6R-lane-d (all WP01-WP04 code), plus uv run mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-03T04:52:44+00:00",
+      "notes": "Automated black-box/unit tests mapped from WP requirement_refs; each WP independently reviewed and approved."
+    },
+    {
+      "criterion_id": "FR-014",
+      "description": "watch stops on signal: As an owner, `watch` runs in the foreground until SIGINT or SIGTERM, then exits 0, leaving each reconcile either fully recorded or not recorded at all.",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_watch.py::test_sigint_and_sigterm_exit_zero_within_two_seconds (both signals) \u2014 full suite 1275 passed on kitty/mission-troupe-config-sync-files-01M3ZT6R-lane-d (all WP01-WP04 code), plus uv run mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-03T04:52:44+00:00",
+      "notes": "Mid-reconcile signal atomicity relies on one atomic eventsourcing save() per reconcile (HistoryStore.record); not interrupted in a black-box test."
+    },
+    {
+      "criterion_id": "FR-015",
+      "description": "Write-backs not re-detected: As an owner, a `set` run while `watch` runs records exactly the `set`'s own events. Neither `watch` nor any later reconcile records an event for the `set`'s write-back.",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_watch_set.py (11; set during watch records exactly its own events: scalar, list replace, no-op, include and text-include write-backs, ten sets in a row, set then show) \u2014 full suite 1275 passed on kitty/mission-troupe-config-sync-files-01M3ZT6R-lane-d (all WP01-WP04 code), plus uv run mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-03T04:52:44+00:00",
+      "notes": "Automated black-box/unit tests mapped from WP requirement_refs; each WP independently reviewed and approved."
+    },
+    {
+      "criterion_id": "FR-016",
+      "description": "Each difference recorded once: As an owner, when `watch` and a command, or two reconciles, run around the same time, each difference between the files and the recorded configuration is recorded exactly once. A command's events are never interleaved with another reconcile's events.",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_watch_set.py::test_concurrent_commands_record_a_hand_edit_exactly_once_so_reconciles_are_serialised (30 rounds; reviewer mutation: session lock removed -> fails 3/3), race tests, seq integrity; tests/unit/test_lock.py (5; cross-process exclusion) \u2014 full suite 1275 passed on kitty/mission-troupe-config-sync-files-01M3ZT6R-lane-d (all WP01-WP04 code), plus uv run mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-03T04:52:44+00:00",
+      "notes": "Each WP independently reviewed by reviewer-renata; WP04 rejected once to add a black-box test that fails when concurrent reconciles are not serialised."
+    }
+  ],
+  "negative_invariants": []
+}

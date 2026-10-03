@@ -1,5 +1,8 @@
 """``troupe config show PATH``: print the scalar at PATH (FR-009).
 
+``show`` reconciles first (FR-004): hand edits are recorded before the value is printed, so the
+printed value is the current file value.
+
 A text include is a string (the target file's exact text). A mapping, a list (including a whole
 YAML include) or a missing path is a ``PathError`` (exit 5).
 """
@@ -24,7 +27,7 @@ def run(theatre: Theatre, args: argparse.Namespace) -> str:
     """
     path: str = args.path
     segments = parse_path(path)
-    with open_session(theatre) as session:
+    with open_session(theatre, reconcile=True) as session:
         node = unwrap(lookup(session.tree, segments, path))
     if isinstance(node, ScalarNode):
         return format_scalar(node.value)

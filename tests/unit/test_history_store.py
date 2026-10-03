@@ -139,3 +139,71 @@ def test_environment_variables_cannot_redirect_the_store(
     assert {p.name for p in state_dir.iterdir() if not p.name.endswith(("-wal", "-shm"))} == {
         HISTORY_DB_NAME
     }
+
+
+def test_recorded_leaves_after_import_equal_imported_leaves_in_order(
+    store: HistoryStore,
+) -> None:
+    imported: dict[str, JsonScalar] = {"a": 1, "b.0": "x", "c": None}
+    store.import_leaves(imported)
+
+    recorded = store.recorded_leaves()
+
+    assert recorded == imported
+    assert list(recorded) == list(imported)
+
+
+def test_recorded_leaves_apply_set_and_remove_events(store: HistoryStore) -> None:
+    store.import_leaves({"a": 1, "b": 2})
+    store.record(
+        [
+            Change("set", "a", 1, 10),
+            Change("set", "n", None, "new"),
+            Change("remove", "b", 2, None),
+        ]
+    )
+
+    recorded = store.recorded_leaves()
+
+    assert recorded == {"a": 10, "n": "new"}
+    assert list(recorded) == ["a", "n"]
+
+
+def test_recorded_leaves_are_rebuilt_after_reopening_the_store(
+    store: HistoryStore, state_dir: Path
+) -> None:
+    store.import_leaves({"a": 1, "b": 2, "c": 3})
+    store.record([Change("set", "b", 2, 20), Change("remove", "c", 3, None)])
+    written = store.recorded_leaves()
+    store.close()
+
+    reopened = HistoryStore(state_dir)
+    try:
+        assert reopened.recorded_leaves() == written == {"a": 1, "b": 20}
+    finally:
+        reopened.close()
+
+
+def test_replay_tolerates_remove_of_a_never_recorded_path(
+    store: HistoryStore, state_dir: Path
+) -> None:
+    store.import_leaves({"a": 1})
+    store.record([Change("remove", "ghost", "x", None)])
+    store.close()
+
+    reopened = HistoryStore(state_dir)
+    try:
+        assert reopened.recorded_leaves() == {"a": 1}
+        assert reopened.records()[-1] == HistoryRecord(2, "remove", "ghost", "x", None)
+    finally:
+        reopened.close()
+
+
+def test_recorded_leaves_returns_a_copy(store: HistoryStore) -> None:
+    store.import_leaves({"a": 1})
+
+    first = store.recorded_leaves()
+    first["a"] = 99
+    first["extra"] = "added"
+
+    assert store.recorded_leaves() == {"a": 1}

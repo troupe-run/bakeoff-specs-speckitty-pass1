@@ -1,8 +1,15 @@
-"""Command-line parsing and dispatch for ``troupe config`` (FR-001, FR-006).
+"""Command-line parsing and dispatch for ``troupe config`` (FR-001, FR-006, FR-008).
 
-This module owns the output-channel discipline: stdout is written in exactly one place, after
-the command has succeeded; every contracted failure becomes one ``troupe: <message>`` line on
-stderr and the exit code its ``TroupeError`` subclass declares. It holds no command logic.
+This module owns the output-channel discipline: it is the only writer of stdout and stderr.
+Every contracted failure becomes one ``troupe: <message>`` line on stderr and the exit code its
+``TroupeError`` subclass declares, with stdout left empty. It holds no command logic.
+
+- The step-1 commands (``COMMAND_MODULES``) return their stdout text, written once, after the
+  command has succeeded.
+- ``watch`` runs until SIGINT/SIGTERM (research R-09). Through the callbacks passed to it, it
+  writes its one ``watching <dir>`` line to stdout (flushed) only once it is ready, and reports
+  later load failures on stderr. A ``TroupeError`` raised before it is ready (e.g. a
+  ``LoadError`` at startup) is handled like any other: one stderr line, empty stdout.
 """
 
 import argparse
@@ -60,10 +67,23 @@ def build_parser() -> argparse.ArgumentParser:
     set_.add_argument("value", metavar="VALUE")
     history = commands.add_parser("history", help="print recorded changes as JSON Lines")
     history.add_argument("path", metavar="PATH", nargs="?", default=None)
+    watch = commands.add_parser(
+        "watch", help="record hand edits as they happen until SIGINT/SIGTERM"
+    )
 
-    for subparser in (show, set_, history):
+    for subparser in (show, set_, history, watch):
         _add_theatre_option(subparser)
     return parser
+
+
+def _announce(line: str) -> None:
+    sys.stdout.write(line + "\n")
+    sys.stdout.flush()
+
+
+def _report(message: str) -> None:
+    sys.stderr.write(f"troupe: {message}\n")
+    sys.stderr.flush()
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -71,8 +91,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         args = build_parser().parse_args(argv)
         theatre_arg = args.theatre if args.theatre is not None else os.environ.get(THEATRE_ENV_VAR)
-        theatre_dir = Path(theatre_arg) if theatre_arg else Path.cwd()
-        theatre = locate(theatre_dir)  # exit 4 before any command module is imported
+        given = theatre_arg if theatre_arg else os.getcwd()  # as given, never resolved (D-8)
+        theatre = locate(Path(given))  # exit 4 before any command module is imported
+        if args.command == "watch":
+            from troupe.commands.watch import watch  # lazy, like the step-1 commands
+
+            watch(theatre, given, announce=_announce, report=_report)
+            return 0
         module = importlib.import_module(f"troupe.commands.{COMMAND_MODULES[args.command]}")
         output = cast(Command, module).run(theatre, args)
     except TroupeError as err:

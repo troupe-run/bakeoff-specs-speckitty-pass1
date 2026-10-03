@@ -6,6 +6,11 @@ add ``history.sqlite-wal``/``-shm`` beside it). Each leaf change is one domain e
 creation event is version 1, so a change event's ``seq`` is its version minus 1 (research R-02,
 R-15). Every operation saves its events in one ``save()`` call, which SQLite applies atomically.
 
+The aggregate's state is the recorded configuration: a path -> value map of the leaves the
+history has recorded (FR-001 of mission troupe-config-sync-files). The event methods' bodies
+build it, and ``eventsourcing`` runs them again on every replay, so it is rebuilt from the
+events whenever the aggregate is loaded and existing histories need no migration.
+
 Values are JSON scalars. Non-finite floats (``.inf``, ``.nan``) round-trip through the store and
 are printed by ``json.dumps`` as ``Infinity``/``NaN``, which is not strict JSON; this edge is
 accepted.
@@ -52,19 +57,23 @@ class ConfigHistory(Aggregate):
 
     @event("Created")
     def __init__(self) -> None:
-        pass
+        self.leaves: dict[str, JsonScalar] = {}
 
     @event(LeafImported)
     def leaf_imported(self, path: str, new: JsonScalar) -> None:
-        pass
+        self.leaves[path] = new
 
     @event(LeafSet)
     def leaf_set(self, path: str, old: JsonScalar, new: JsonScalar) -> None:
-        pass
+        # An existing path keeps its position; a new one is appended.
+        self.leaves[path] = new
 
     @event(LeafRemoved)
     def leaf_removed(self, path: str, old: JsonScalar) -> None:
-        pass
+        # Tolerate a path that was never recorded: step-1 ``set`` diffed against the files, not
+        # the history, so a key added by hand and then removed by ``set`` was recorded as removed
+        # without ever being recorded as present. Replaying such a history must not fail.
+        self.leaves.pop(path, None)
 
 
 @dataclass(frozen=True)
@@ -143,6 +152,15 @@ class HistoryStore:
             else:
                 history.leaf_removed(change.path, change.old)
         self._app.save(history)
+
+    def recorded_leaves(self) -> dict[str, JsonScalar]:
+        """Return a copy of the recorded configuration, in recorded order.
+
+        Raises:
+            AggregateNotFoundError: If the theatre has not been imported; callers import first.
+        """
+        history: ConfigHistory = self._app.repository.get(HISTORY_ID)
+        return dict(history.leaves)
 
     def records(self) -> list[HistoryRecord]:
         """Return every change event, oldest first (``[]`` before import)."""

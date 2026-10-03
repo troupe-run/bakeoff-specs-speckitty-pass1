@@ -1,9 +1,10 @@
 """History events recorded by ``set`` (FR-008, FR-022, FR-023, US3), through the real CLI.
 
 A ``set`` appends one ``set`` event per leaf it changes or creates and one ``remove`` event per
-leaf that no longer exists, after its write succeeded; ``old`` is whatever the file held at that
-moment (hand edits included). No-op, refused and failed ``set`` commands append nothing. Every
-test also compares the complete bytes of every theatre file.
+leaf that no longer exists, after its write succeeded. A ``set`` first reconciles, recording any
+hand edits as their own events, so its own ``old`` is the current file value (FR-007 of mission
+troupe-config-sync-files). No-op, refused and failed ``set`` commands append nothing of their own.
+Every test also compares the complete bytes of every theatre file.
 """
 
 import json
@@ -92,19 +93,23 @@ def test_set_event_line_is_exact_json(make_theatre: MakeTheatre) -> None:
     )
 
 
-def test_set_after_hand_edit_records_the_hand_edited_value_as_old(
+def test_set_after_hand_edit_records_the_hand_edit_then_the_set(
     make_theatre: MakeTheatre,
 ) -> None:
     theatre = make_theatre(FIXTURE)
     assert _history(theatre) == IMPORT
     hand_edited = str(FIXTURE["troupe.yml"]).replace("name: gpt", "name: hand")
     (theatre / ".troupe/troupe.yml").write_text(hand_edited, encoding="utf-8")
-    assert _history(theatre) == IMPORT  # the hand edit itself is not an event
+    assert _history(theatre) == IMPORT  # ``history`` never reconciles, so nothing is recorded yet
 
     _set_ok(theatre, "model.name", "set")
 
     assert snapshot(theatre) == _bytes(_root(hand_edited.replace("name: hand", "name: set")))
-    assert _history(theatre)[-1] == _event(7, "set", "model.name", "hand", "set")
+    assert _history(theatre) == [
+        *IMPORT,
+        _event(7, "set", "model.name", "gpt", "hand"),  # the set's reconcile
+        _event(8, "set", "model.name", "hand", "set"),  # the set's own event
+    ]
 
 
 def test_list_shrink_records_set_and_remove(make_theatre: MakeTheatre) -> None:

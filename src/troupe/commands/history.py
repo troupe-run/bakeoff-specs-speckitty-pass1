@@ -3,6 +3,9 @@
 One JSON object per line, oldest first, keys in the order ``seq, op, path, old, new``. With
 PATH, only events whose path equals PATH or lies under it (``PATH.``-prefixed); a PATH that
 matches nothing prints nothing.
+
+``history`` never reconciles (FR-005): it reports what has been recorded. It still imports a
+never-imported theatre (D-5).
 """
 
 import argparse
@@ -39,7 +42,7 @@ def run(theatre: Theatre, args: argparse.Namespace) -> str:
     path: str | None = args.path
     if path is not None:
         parse_path(path)
-    with open_session(theatre) as session:
+    with open_session(theatre, reconcile=False) as session:
         records = session.history.records()
     if path is not None:
         records = [record for record in records if _matches(record, path)]

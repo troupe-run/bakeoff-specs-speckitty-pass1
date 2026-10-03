@@ -89,7 +89,7 @@ def test_second_history_run_does_not_reimport(make_theatre: MakeTheatre) -> None
     assert second == first == FIXTURE_IMPORT
 
 
-def test_hand_edit_after_import_produces_no_event(make_theatre: MakeTheatre) -> None:
+def test_history_does_not_reconcile_a_hand_edit(make_theatre: MakeTheatre) -> None:
     theatre = make_theatre({"troupe.yml": "a: 1\nb: 2\n"})
     imported = _history(theatre)
 
@@ -97,6 +97,16 @@ def test_hand_edit_after_import_produces_no_event(make_theatre: MakeTheatre) -> 
 
     assert _history(theatre) == imported
     assert [r["path"] for r in imported] == ["a", "b"]
+
+    shown = run_cli("config", "show", "a", "--theatre", str(theatre))
+
+    assert (shown.code, shown.out, shown.err) == (0, "100\n", "")
+    assert _history(theatre) == [
+        *imported,
+        {"seq": 3, "op": "set", "path": "a", "old": 1, "new": 100},
+        {"seq": 4, "op": "set", "path": "c", "old": None, "new": 3},
+        {"seq": 5, "op": "remove", "path": "b", "old": 2, "new": None},
+    ]
 
 
 def test_history_of_empty_configuration_prints_nothing(make_theatre: MakeTheatre) -> None:

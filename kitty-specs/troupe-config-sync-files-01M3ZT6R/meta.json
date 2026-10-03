@@ -1,4 +1,16 @@
 {
+  "acceptance_history": [
+    {
+      "acceptance_mode": "pr",
+      "accepted_at": "2026-10-03T04:52:54.996179+00:00",
+      "accepted_by": "claude",
+      "accepted_from_commit": "71b6eb23b2b9f4de056f753a3804b1ae258b54d6"
+    }
+  ],
+  "acceptance_mode": "pr",
+  "accepted_at": "2026-10-03T04:52:54.996179+00:00",
+  "accepted_by": "claude",
+  "accepted_from_commit": "71b6eb23b2b9f4de056f753a3804b1ae258b54d6",
   "coordination_branch": "kitty/mission-troupe-config-sync-files-01M3ZT6R",
   "created_at": "2026-10-03T02:41:32.826787+00:00",
   "flattened": false,

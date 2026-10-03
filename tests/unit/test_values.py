@@ -1,12 +1,15 @@
-"""VALUE parsing (FR-004) and scalar printing (FR-005)."""
+"""VALUE parsing (FR-004), scalar printing (FR-005) and scalar detection (FR-001/FR-013)."""
 
 import math
+from pathlib import Path
 
 import pytest
 
 from troupe.errors import UsageError
-from troupe.tree import Scalar
-from troupe.values import Value, format_scalar, parse_value
+from troupe.loader import load
+from troupe.paths import lookup
+from troupe.tree import Node, Scalar
+from troupe.values import ScalarValue, Value, format_scalar, parse_value, scalar_of
 
 
 @pytest.mark.parametrize(
@@ -131,3 +134,37 @@ def test_parse_value_rejects_ambiguous_mapping_keys(text: str) -> None:
 )
 def test_format_scalar_prints_per_contract(value: Scalar, printed: str) -> None:
     assert format_scalar(value) == printed
+
+
+def _node_at(tmp_path: Path, files: dict[str, str], path: str) -> Node:
+    for rel, text in files.items():
+        (tmp_path / rel).write_text(text, encoding="utf-8")
+    return lookup(load(tmp_path / "troupe.yml"), path.split("."), path)
+
+
+def test_scalar_of_null_scalar_is_a_scalar_with_none_value(tmp_path: Path) -> None:
+    node = _node_at(tmp_path, {"troupe.yml": "stop: null\n"}, "stop")
+
+    assert scalar_of(node) == ScalarValue(None)
+
+
+def test_scalar_of_text_include_is_its_text(tmp_path: Path) -> None:
+    files = {"troupe.yml": "prompt: file:sys.md\n", "sys.md": "a: 1\n"}
+
+    assert scalar_of(_node_at(tmp_path, files, "prompt")) == ScalarValue("a: 1\n")
+
+
+@pytest.mark.parametrize("path", ["model", "tools", "agent"])
+def test_scalar_of_mapping_and_list_is_none(tmp_path: Path, path: str) -> None:
+    files = {
+        "troupe.yml": "model:\n  t: 0.2\ntools: [a]\nagent: file:agent.yml\n",
+        "agent.yml": "name: Ada\n",
+    }
+
+    assert scalar_of(_node_at(tmp_path, files, path)) is None
+
+
+def test_scalar_of_unwraps_yaml_include_with_scalar_root(tmp_path: Path) -> None:
+    files = {"troupe.yml": "level: file:level.yml\n", "level.yml": "3\n"}
+
+    assert scalar_of(_node_at(tmp_path, files, "level")) == ScalarValue(3)

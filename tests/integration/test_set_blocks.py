@@ -6,7 +6,7 @@ indicator and chomping unless the value's trailing newlines require another) and
 values: unchanged paragraphs keep their bytes, a changed paragraph is re-wrapped greedily at its
 old longest content-line width, an over-long word takes its own line, a new paragraph wraps at
 the value's longest old content line, a more-indented line exits 3). Every test compares the
-complete bytes of every theatre file; after a successful ``set``, ``show`` prints the new value.
+complete bytes of every theatre file; after a successful ``set``, ``get`` prints the new value.
 """
 
 import json
@@ -22,8 +22,8 @@ def _set(theatre: Path, path: str, value: str) -> CliResult:
     return run_cli("config", "set", path, value, "--theatre", str(theatre))
 
 
-def _show(theatre: Path, path: str) -> str:
-    result = run_cli("config", "show", path, "--theatre", str(theatre))
+def _get(theatre: Path, path: str) -> str:
+    result = run_cli("config", "get", path, "--theatre", str(theatre))
     assert (result.code, result.err) == (0, ""), result.err
     return result.out
 
@@ -37,9 +37,9 @@ def _history(theatre: Path) -> list[dict[str, Any]]:
 def _check(
     make_theatre: MakeTheatre, before: str | bytes, path: str, value: str, after: str | bytes
 ) -> Path:
-    """The theatre holds only the root file; assert its whole bytes and ``show PATH``.
+    """The theatre holds only the root file; assert its whole bytes and ``get PATH``.
 
-    ``value`` is the VALUE argument; ``show`` must print what it parses to.
+    ``value`` is the VALUE argument; ``get`` must print what it parses to.
     """
     theatre = make_theatre({"troupe.yml": before})
     result = _set(theatre, path, value)
@@ -47,7 +47,7 @@ def _check(
     expected = after.encode("utf-8") if isinstance(after, str) else after
     assert snapshot(theatre) == {ROOT: expected}
     parsed = json.loads(value) if value.startswith('"') else value
-    assert _show(theatre, path) == (parsed if parsed.endswith("\n") else parsed + "\n")
+    assert _get(theatre, path) == (parsed if parsed.endswith("\n") else parsed + "\n")
     return theatre
 
 

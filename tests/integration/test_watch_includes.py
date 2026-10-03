@@ -56,14 +56,14 @@ def _imported(make_theatre: MakeTheatre, files: Files) -> tuple[Path, list[Event
 def _reconciled(
     theatre: Path, mode: str, edit: Callable[[], float], seconds: float = 2.0
 ) -> list[Event]:
-    """Apply ``edit`` and let a command (``show``) or a running ``watch`` reconcile it.
+    """Apply ``edit`` and let a command (``get``) or a running ``watch`` reconcile it.
 
-    Returns ``history`` once the reconcile is due: right after ``show`` for a command, or
+    Returns ``history`` once the reconcile is due: right after ``get`` for a command, or
     ``seconds`` after the edit for ``watch``, which must then stop cleanly.
     """
     if mode == "command":
         edit()
-        shown = run_cli("config", "show", "model.name", "--theatre", str(theatre))
+        shown = run_cli("config", "get", "model.name", "--theatre", str(theatre))
         assert (shown.code, shown.out, shown.err) == (0, "m0\n", "")
         return history_events(theatre)
     with WatchProcess("--theatre", str(theatre)) as w:
@@ -128,7 +128,7 @@ def test_include_removed_by_hand_records_removes_and_stops_watching(
         time.sleep(QUIET)
         while_watching = history_events(theatre)
         stopped = w.stop()
-    shown = run_cli("config", "show", "model.name", "--theatre", str(theatre))
+    shown = run_cli("config", "get", "model.name", "--theatre", str(theatre))
 
     assert len(imported) == 3
     assert while_watching == expected

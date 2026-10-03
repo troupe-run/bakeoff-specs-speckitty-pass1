@@ -1,10 +1,22 @@
-"""``troupe config show PATH`` through the real CLI (US1, FR-005, FR-009): exact stdout bytes."""
+"""``troupe config show [PATH]`` through the real CLI (US2, FR-003 to FR-006, FR-013 to FR-015).
+
+Exact stdout bytes where the spec gives them; elsewhere stdout is parsed back as YAML by both a
+YAML 1.2 and a YAML 1.1 reader (research D-10) and compared with data written out by hand.
+"""
 
 import json
+import math
+import warnings
 from pathlib import Path
 from typing import Any
 
+import pytest
+from ruamel.yaml import YAML
+
 from conftest import HISTORY_PREFIX, MakeTheatre, all_files, run_cli, snapshot
+
+type YamlVersion = tuple[int, int]
+YAML_VERSIONS: list[YamlVersion] = [(1, 2), (1, 1)]
 
 FIXTURE: dict[str, str | bytes] = {
     "troupe.yml": (
@@ -14,6 +26,9 @@ FIXTURE: dict[str, str | bytes] = {
         "  stream: true\n"
         "  stop: null\n"
         "  max_tokens: 42\n"
+        "  big: 1e20\n"
+        "  low: -.inf\n"
+        "  odd: .nan\n"
         "tools: [a, b]\n"
         "agents:\n"
         "  coder: file:agents/coder.yaml\n"
@@ -21,15 +36,76 @@ FIXTURE: dict[str, str | bytes] = {
         "notes: |\n"
         "  line one\n"
         "  line two\n"
+        "looks_typed: ['true', '123', '', 2001-12-14, yes, 1_000]\n"
+        "'key: odd': x\n"
+        "crlf: file:crlf.txt\n"
+        "empty_map: {}\n"
+        "empty_list: []\n"
+        "team:\n"
+        "  - name: Ada\n"
+        "    role: lead\n"
+        "  - [x, y]\n"
     ),
     "agents/coder.yaml": "name: Ada\nskills: file:skills/coder.yml\n",
     "agents/skills/coder.yml": "primary: python\n",
     "prompts/sys.md": "You are helpful.\nBe brief.\n",
+    "crlf.txt": b"a\r\nb\r\n",
+}
+
+NAN = object()  # stands for every NaN when comparing data (NaN != NaN)
+
+# The whole resolved FIXTURE, written out by hand (includes replaced by their content).
+RESOLVED: dict[str, Any] = {
+    "model": {
+        "temperature": 0.2,
+        "name": "gpt",
+        "stream": True,
+        "stop": None,
+        "max_tokens": 42,
+        "big": 1e20,
+        "low": -math.inf,
+        "odd": NAN,
+    },
+    "tools": ["a", "b"],
+    "agents": {"coder": {"name": "Ada", "skills": {"primary": "python"}}},
+    "prompt": "You are helpful.\nBe brief.\n",
+    "notes": "line one\nline two\n",
+    "looks_typed": ["true", "123", "", "2001-12-14", "yes", "1_000"],
+    "key: odd": "x",
+    "crlf": "a\r\nb\r\n",
+    "empty_map": {},
+    "empty_list": [],
+    "team": [{"name": "Ada", "role": "lead"}, ["x", "y"]],
 }
 
 
-def _show(theatre: Path, path: str) -> tuple[int, str, str]:
-    result = run_cli("config", "show", path, "--theatre", str(theatre))
+def without_nan(data: object) -> object:
+    """``data`` with every NaN float replaced by ``NAN``, so ``==`` can compare it."""
+    if isinstance(data, float) and math.isnan(data):
+        return NAN
+    if isinstance(data, dict):
+        return {key: without_nan(value) for key, value in data.items()}
+    if isinstance(data, list):
+        return [without_nan(item) for item in data]
+    return data
+
+
+def parse(text: str, version: YamlVersion) -> object:
+    """Load ``text`` with ruamel safe-load as a YAML ``version`` reader, NaN made comparable."""
+    reader = YAML(typ="safe", pure=True)
+    reader.version = version
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")  # 1.1 readers warn about some numbers
+        return without_nan(reader.load(text))
+
+
+def _show(theatre: Path, *args: str) -> tuple[int, str, str]:
+    result = run_cli("config", "show", *args, "--theatre", str(theatre))
+    return result.code, result.out, result.err
+
+
+def _get(theatre: Path, path: str) -> tuple[int, str, str]:
+    result = run_cli("config", "get", path, "--theatre", str(theatre))
     return result.code, result.out, result.err
 
 
@@ -39,159 +115,184 @@ def _history(theatre: Path) -> list[dict[str, Any]]:
     return [json.loads(line) for line in result.out.splitlines()]
 
 
-# US1 scenario 1
-def test_show_float_prints_repr(make_theatre: MakeTheatre) -> None:
+# --- US2 scenario 4, FR-004: a scalar prints exactly what get prints ----------------------------
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        pytest.param("model.max_tokens", id="int"),
+        pytest.param("model.temperature", id="float"),
+        pytest.param("model.big", id="float-exponent"),
+        pytest.param("model.low", id="float-inf"),
+        pytest.param("model.odd", id="float-nan"),
+        pytest.param("model.stream", id="bool"),
+        pytest.param("model.stop", id="null"),
+        pytest.param("model.name", id="plain-string"),
+        pytest.param("looks_typed.0", id="string-that-looks-typed"),
+        pytest.param("notes", id="string-ending-in-newline"),
+        pytest.param("prompt", id="text-include"),
+        pytest.param("crlf", id="crlf-text-include"),
+        pytest.param("agents.coder.name", id="inside-yaml-include"),
+    ],
+)
+def test_show_scalar_prints_exactly_what_get_prints(make_theatre: MakeTheatre, path: str) -> None:
     theatre = make_theatre(FIXTURE)
 
-    assert _show(theatre, "model.temperature") == (0, "0.2\n", "")
+    got = _get(theatre, path)
+
+    assert got[0] == 0, got
+    assert _show(theatre, path) == got
 
 
-def test_show_float_uses_python_repr_for_exponents_and_specials(
+def test_show_scalar_keeps_get_float_spellings(make_theatre: MakeTheatre) -> None:
+    theatre = make_theatre(FIXTURE)
+
+    assert _show(theatre, "model.big") == (0, "1e+20\n", "")
+    assert _show(theatre, "model.low") == (0, "-inf\n", "")
+    assert _show(theatre, "model.odd") == (0, "nan\n", "")
+
+
+def test_show_scalar_yaml_include_root_prints_like_get(make_theatre: MakeTheatre) -> None:
+    theatre = make_theatre({"troupe.yml": "port: file:port.yml\n", "port.yml": "8080\n"})
+
+    assert _show(theatre, "port") == _get(theatre, "port") == (0, "8080\n", "")
+
+
+# --- US2 scenarios 1 to 3, FR-005/FR-006: sections as block YAML --------------------------------
+
+
+def test_show_mapping_prints_block_yaml(make_theatre: MakeTheatre) -> None:
+    theatre = make_theatre(
+        {"troupe.yml": "server: file:server.yml\n", "server.yml": "port: 8080\nhost: example.org\n"}
+    )
+
+    assert _show(theatre, "server") == (0, "port: 8080\nhost: example.org\n", "")
+
+
+def test_show_flow_list_prints_block_sequence(make_theatre: MakeTheatre) -> None:
+    theatre = make_theatre({"troupe.yml": "tools: [a, b]\n"})
+
+    assert _show(theatre, "tools") == (0, "- a\n- b\n", "")
+
+
+def test_show_whole_configuration_includes_text_include_as_literal_block(
     make_theatre: MakeTheatre,
 ) -> None:
-    theatre = make_theatre({"troupe.yml": "big: 1e20\none: 1.\nneg: -.inf\nnan: .NaN\n"})
+    theatre = make_theatre(
+        {"troupe.yml": "prompt: file:sys.md\n", "sys.md": "line one\nline two\n"}
+    )
 
-    assert _show(theatre, "big") == (0, "1e+20\n", "")
-    assert _show(theatre, "one") == (0, "1.0\n", "")
-    assert _show(theatre, "neg") == (0, "-inf\n", "")
-    assert _show(theatre, "nan") == (0, "nan\n", "")
+    code, out, err = _show(theatre)
+
+    assert (code, err) == (0, "")
+    assert "prompt: |\n  line one\n  line two\n" in out
 
 
-def test_show_string_appends_newline(make_theatre: MakeTheatre) -> None:
+def test_show_whole_configuration_exact_layout(make_theatre: MakeTheatre) -> None:
+    theatre = make_theatre(
+        {
+            "troupe.yml": (
+                "name: demo\n"
+                "server: file:server.yml\n"
+                "tools: [a, b]\n"
+                "team:\n  - {name: Ada, role: lead}\n  - [p, q]\n"
+                "empty: {}\n"
+                "flag: 'true'\n"
+            ),
+            "server.yml": "port: 8080\n",
+        }
+    )
+
+    assert _show(theatre) == (
+        0,
+        "name: demo\n"
+        "server:\n"
+        "  port: 8080\n"
+        "tools:\n"
+        "  - a\n"
+        "  - b\n"
+        "team:\n"
+        "  - name: Ada\n"
+        "    role: lead\n"
+        "  - - p\n"
+        "    - q\n"
+        "empty: {}\n"
+        "flag: 'true'\n",
+        "",
+    )
+
+
+# --- US2 scenario 5, NFR-001: read-back equals the resolved configuration ------------------------
+
+
+@pytest.mark.parametrize("version", YAML_VERSIONS, ids=["yaml-1.2", "yaml-1.1"])
+def test_show_without_path_parses_back_to_resolved_configuration(
+    make_theatre: MakeTheatre, version: YamlVersion
+) -> None:
     theatre = make_theatre(FIXTURE)
 
-    assert _show(theatre, "model.name") == (0, "gpt\n", "")
+    code, out, err = _show(theatre)
+
+    assert (code, err) == (0, "")
+    assert parse(out, version) == RESOLVED
 
 
-def test_show_quoted_string_prints_unquoted_text(make_theatre: MakeTheatre) -> None:
-    theatre = make_theatre({"troupe.yml": "a: \"0.2\"\nb: 'it''s'\nc: \"tab\\there\"\n"})
+@pytest.mark.parametrize("version", YAML_VERSIONS, ids=["yaml-1.2", "yaml-1.1"])
+@pytest.mark.parametrize("path", ["model", "agents", "agents.coder", "looks_typed", "team"])
+def test_show_section_parses_back_to_resolved_section(
+    make_theatre: MakeTheatre, path: str, version: YamlVersion
+) -> None:
+    theatre = make_theatre(FIXTURE)
+    expected: Any = RESOLVED
+    for segment in path.split("."):
+        expected = expected[segment]
 
-    assert _show(theatre, "a") == (0, "0.2\n", "")
-    assert _show(theatre, "b") == (0, "it's\n", "")
-    assert _show(theatre, "c") == (0, "tab\there\n", "")
+    code, out, err = _show(theatre, path)
+
+    assert (code, err) == (0, "")
+    assert parse(out, version) == expected
 
 
-def test_show_string_ending_in_newline_prints_exactly(make_theatre: MakeTheatre) -> None:
+def test_show_keys_in_file_order(make_theatre: MakeTheatre) -> None:
+    theatre = make_theatre(
+        {"troupe.yml": "zeta: 1\nalpha: file:inc.yml\nmid: 2\n", "inc.yml": "b: 1\na: 2\n"}
+    )
+
+    assert _show(theatre) == (0, "zeta: 1\nalpha:\n  b: 1\n  a: 2\nmid: 2\n", "")
+
+
+def test_show_whole_yaml_include_prints_its_content(make_theatre: MakeTheatre) -> None:
     theatre = make_theatre(FIXTURE)
 
-    assert _show(theatre, "notes") == (0, "line one\nline two\n", "")
+    assert _show(theatre, "agents.coder") == (0, "name: Ada\nskills:\n  primary: python\n", "")
 
 
-def test_show_bool_null_int(make_theatre: MakeTheatre) -> None:
+def test_show_empty_root_prints_empty_mapping(make_theatre: MakeTheatre) -> None:
+    theatre = make_theatre({"troupe.yml": ""})
+
+    assert _show(theatre) == (0, "{}\n", "")
+
+
+# --- FR-003, US2 scenario 6, NFR-002: errors ----------------------------------------------------
+
+
+def test_show_missing_path_exits_5_naming_path(make_theatre: MakeTheatre) -> None:
     theatre = make_theatre(FIXTURE)
 
-    assert _show(theatre, "model.stream") == (0, "true\n", "")
-    assert _show(theatre, "model.stop") == (0, "null\n", "")
-    assert _show(theatre, "model.max_tokens") == (0, "42\n", "")
+    for path in ("missing", "model.missing", "tools.2"):
+        code, out, err = _show(theatre, path)
+        assert (code, out) == (5, ""), path
+        assert err.startswith("troupe: ") and path in err and err.count("\n") == 1, err
 
 
-def test_show_yaml_core_schema_strings(make_theatre: MakeTheatre) -> None:
-    theatre = make_theatre({"troupe.yml": "a: yes\nb: 2001-12-14\nc: 1_000\nd: off\n"})
-
-    assert _show(theatre, "a") == (0, "yes\n", "")
-    assert _show(theatre, "b") == (0, "2001-12-14\n", "")
-    assert _show(theatre, "c") == (0, "1_000\n", "")
-    assert _show(theatre, "d") == (0, "off\n", "")
-
-
-# US1 scenario 2
-def test_show_value_inside_yaml_include(make_theatre: MakeTheatre) -> None:
+def test_show_path_through_scalar_exits_5(make_theatre: MakeTheatre) -> None:
     theatre = make_theatre(FIXTURE)
 
-    assert _show(theatre, "agents.coder.name") == (0, "Ada\n", "")
-
-
-def test_show_nested_include_relative_to_including_file(make_theatre: MakeTheatre) -> None:
-    theatre = make_theatre(FIXTURE)
-
-    assert _show(theatre, "agents.coder.skills.primary") == (0, "python\n", "")
-
-
-# US1 scenario 3
-def test_show_text_include_prints_exact_file_text(make_theatre: MakeTheatre) -> None:
-    theatre = make_theatre(FIXTURE)
-
-    assert _show(theatre, "prompt") == (0, "You are helpful.\nBe brief.\n", "")
-
-
-def test_show_text_include_preserves_crlf_bytes(make_theatre: MakeTheatre) -> None:
-    theatre = make_theatre({"troupe.yml": "prompt: file:sys.md\n", "sys.md": b"a\r\nb\r\n"})
-
-    assert _show(theatre, "prompt") == (0, "a\r\nb\r\n", "")
-
-
-def test_show_text_include_without_final_newline_gets_one(make_theatre: MakeTheatre) -> None:
-    theatre = make_theatre({"troupe.yml": "prompt: file:sys.md\n", "sys.md": "no newline"})
-
-    assert _show(theatre, "prompt") == (0, "no newline\n", "")
-
-
-def test_show_text_include_that_looks_like_yaml_is_a_string(make_theatre: MakeTheatre) -> None:
-    theatre = make_theatre({"troupe.yml": "data: file:data.txt\n", "data.txt": "a: 1\n"})
-
-    assert _show(theatre, "data") == (0, "a: 1\n", "")
-
-
-# US1 scenario 4
-def test_show_list_item_by_index(make_theatre: MakeTheatre) -> None:
-    theatre = make_theatre(FIXTURE)
-
-    assert _show(theatre, "tools.1") == (0, "b\n", "")
-
-
-def test_show_list_exits_5(make_theatre: MakeTheatre) -> None:
-    theatre = make_theatre(FIXTURE)
-
-    code, out, err = _show(theatre, "tools")
-
-    assert (code, out) == (5, "")
-    assert err == "troupe: tools is a list, not a scalar\n"
-
-
-def test_show_mapping_exits_5_and_names_path(make_theatre: MakeTheatre) -> None:
-    theatre = make_theatre(FIXTURE)
-
-    code, out, err = _show(theatre, "model")
-
-    assert (code, out) == (5, "")
-    assert err == "troupe: model is a mapping, not a scalar\n"
-
-
-def test_show_whole_yaml_include_exits_5_as_mapping(make_theatre: MakeTheatre) -> None:
-    theatre = make_theatre(FIXTURE)
-
-    code, out, err = _show(theatre, "agents.coder")
-
-    assert (code, out) == (5, "")
-    assert err == "troupe: agents.coder is a mapping, not a scalar\n"
-
-
-# US1 scenario 5
-def test_show_missing_path_exits_5(make_theatre: MakeTheatre) -> None:
-    theatre = make_theatre(FIXTURE)
-
-    for path in ("model.missing", "nothing.here", "tools.2"):
+    for path in ("model.name.first", "prompt.0"):
         code, out, err = _show(theatre, path)
         assert (code, out) == (5, ""), path
         assert err.startswith("troupe: ") and path in err, err
-
-
-def test_show_through_scalar_exits_5(make_theatre: MakeTheatre) -> None:
-    theatre = make_theatre(FIXTURE)
-
-    code, out, err = _show(theatre, "model.name.first")
-
-    assert (code, out) == (5, "")
-    assert "model.name.first" in err
-
-
-def test_show_through_text_include_exits_5(make_theatre: MakeTheatre) -> None:
-    theatre = make_theatre(FIXTURE)
-
-    code, out, err = _show(theatre, "prompt.0")
-
-    assert (code, out) == (5, "")
-    assert "prompt.0" in err
 
 
 def test_show_invalid_path_exits_2_and_creates_nothing(make_theatre: MakeTheatre) -> None:
@@ -205,81 +306,51 @@ def test_show_invalid_path_exits_2_and_creates_nothing(make_theatre: MakeTheatre
     assert all_files(theatre) == before
 
 
-# US1 scenario 6
-def test_show_missing_include_target_exits_4_naming_file(make_theatre: MakeTheatre) -> None:
+def test_show_unloadable_configuration_exits_4_naming_file(make_theatre: MakeTheatre) -> None:
     theatre = make_theatre({"troupe.yml": "agents:\n  coder: file:agents/coder.yaml\n"})
 
-    code, out, err = _show(theatre, "agents.coder.name")
-
-    assert (code, out) == (4, "")
-    assert "agents/coder.yaml" in err
+    for args in ((), ("agents",), ("--sources",)):
+        code, out, err = _show(theatre, *args)
+        assert (code, out) == (4, ""), args
+        assert "agents/coder.yaml" in err and err.count("\n") == 1, err
     assert not any(rel.startswith(HISTORY_PREFIX) for rel in all_files(theatre))
 
 
-def test_show_include_cycle_exits_4(make_theatre: MakeTheatre) -> None:
-    theatre = make_theatre(
-        {
-            "troupe.yml": "a: file:a.yml\n",
-            "a.yml": "b: file:b.yml\n",
-            "b.yml": "a: file:a.yml\n",
-        }
-    )
-
-    code, out, err = _show(theatre, "a.b.a")
-
-    assert (code, out) == (4, "")
-    assert "cycle" in err and "a.yml" in err
+# --- FR-013, FR-014: reconcile first, read-only ---------------------------------------------------
 
 
-def test_show_without_root_file_exits_4_naming_file(make_theatre: MakeTheatre) -> None:
-    theatre = make_theatre({"other.yml": "a: 1\n"})
-
-    code, out, err = _show(theatre, "a")
-
-    assert (code, out) == (4, "")
-    assert "troupe.yml" in err
-
-
-def test_show_with_both_root_files_exits_4_naming_both(make_theatre: MakeTheatre) -> None:
-    theatre = make_theatre({"troupe.yml": "a: 1\n", "troupe.yaml": "a: 2\n"})
-
-    code, out, err = _show(theatre, "a")
-
-    assert (code, out) == (4, "")
-    assert "troupe.yml" in err and "troupe.yaml" in err
-
-
-# US1 scenario 7
-def test_show_reads_hand_edits_after_import(make_theatre: MakeTheatre) -> None:
-    theatre = make_theatre(FIXTURE)
-    assert _show(theatre, "agents.coder.name") == (0, "Ada\n", "")
-
-    coder = theatre / ".troupe" / "agents" / "coder.yaml"
-    coder.write_text("name: Grace\nskills: file:skills/coder.yml\n", encoding="utf-8")
-
-    assert _show(theatre, "agents.coder.name") == (0, "Grace\n", "")
-
-
-def test_first_show_imports_theatre(make_theatre: MakeTheatre) -> None:
-    theatre = make_theatre({"troupe.yml": "a: 1\nb: [x]\n"})
-
-    assert _show(theatre, "a") == (0, "1\n", "")
-    assert any(rel.startswith(HISTORY_PREFIX) for rel in all_files(theatre))
+def test_show_reads_hand_edits_and_records_them_first(make_theatre: MakeTheatre) -> None:
+    theatre = make_theatre({"troupe.yml": "a: 1\nb: file:b.yml\n", "b.yml": "c: old\n"})
     imported = _history(theatre)
-    assert [(r["op"], r["path"], r["new"]) for r in imported] == [
-        ("import", "a", 1),
-        ("import", "b.0", "x"),
-    ]
+    (theatre / ".troupe" / "b.yml").write_text("c: new\n", encoding="utf-8")
 
-    assert _show(theatre, "a") == (0, "1\n", "")
-    assert _history(theatre) == imported
+    assert _show(theatre) == (0, "a: 1\nb:\n  c: new\n", "")
+
+    assert [(e["op"], e["path"], e["old"], e["new"]) for e in _history(theatre)] == [
+        *[(e["op"], e["path"], e["old"], e["new"]) for e in imported],
+        ("set", "b.c", "old", "new"),
+    ]
 
 
 def test_show_changes_no_configuration_file(make_theatre: MakeTheatre) -> None:
     theatre = make_theatre(FIXTURE)
     before = snapshot(theatre)
 
-    assert _show(theatre, "prompt")[0] == 0
-    assert _show(theatre, "model")[0] == 5
+    for args in ((), ("model",), ("prompt",), ("--sources",), ("model", "--sources")):
+        assert _show(theatre, *args)[0] == 0, args
+    assert _show(theatre, "missing")[0] == 5
 
     assert snapshot(theatre) == before
+
+
+# --- FR-015: help -----------------------------------------------------------------------------
+
+
+def test_help_lists_show_with_sources_option() -> None:
+    config_help = run_cli("config", "--help")
+    show_help = run_cli("config", "show", "--help")
+
+    assert (config_help.code, show_help.code) == (0, 0)
+    assert "print PATH, or everything, as YAML" in config_help.out
+    assert "[PATH]" in show_help.out and "--sources" in show_help.out
+    assert "# from <file>" in show_help.out

@@ -72,8 +72,8 @@ def _set(theatre: Path, path: str, value: str) -> float:
     return time.monotonic()
 
 
-def _show(theatre: Path, path: str) -> CliResult:
-    return run_cli("config", "show", path, "--theatre", str(theatre))
+def _get(theatre: Path, path: str) -> CliResult:
+    return run_cli("config", "get", path, "--theatre", str(theatre))
 
 
 def _save(theatre: Path, rel: str, text: str) -> float:
@@ -209,12 +209,12 @@ def test_ten_sets_in_a_row_during_watch_record_exactly_ten_events(
     assert stopped == (0, "", "")
 
 
-def test_set_without_watch_then_show_records_nothing_more(make_theatre: MakeTheatre) -> None:  # 5
+def test_set_without_watch_then_get_records_nothing_more(make_theatre: MakeTheatre) -> None:  # 5
     theatre = make_theatre(FIXTURE)
     before = history_events(theatre)
 
     _set(theatre, "model.temperature", "0.5")
-    shown = _show(theatre, "model.temperature")
+    shown = _get(theatre, "model.temperature")
 
     assert (shown.code, shown.out, shown.err) == (0, "0.5\n", "")
     assert history_events(theatre) == [*before, _event(8, "set", "model.temperature", 0.2, 0.5)]
@@ -251,12 +251,12 @@ def test_hand_edit_just_before_set_is_recorded_once(make_theatre: MakeTheatre) -
     assert stopped == (0, "", "")
 
 
-def test_hand_edit_with_concurrent_show_and_watch_is_recorded_once(
+def test_hand_edit_with_concurrent_get_and_watch_is_recorded_once(
     make_theatre: MakeTheatre,
 ) -> None:
     # What this checks: commands that run after ``watch`` has recorded a hand edit do not record
     # it again. It is NOT the race that detects a missing theatre lock: ``watch`` polls every
-    # 0.25 s and usually reconciles before the ``show`` processes have even started, so they
+    # 0.25 s and usually reconciles before the ``get`` processes have even started, so they
     # rarely reconcile concurrently. That race is covered without ``watch`` by
     # ``test_concurrent_commands_record_a_hand_edit_exactly_once_so_reconciles_are_serialised``.
     theatre = make_theatre(FIXTURE)
@@ -267,8 +267,8 @@ def test_hand_edit_with_concurrent_show_and_watch_is_recorded_once(
         for name in names[1:]:
             edited_at = _save(theatre, "agents/coder.yaml", f"name: {name}\nlevel: 3\n")
             with ThreadPoolExecutor(max_workers=3) as pool:
-                shown = list(pool.map(lambda _: _show(theatre, "agents.coder.name"), range(3)))
-            # Each show reconciles before printing (or finds watch already did), so it prints
+                shown = list(pool.map(lambda _: _get(theatre, "agents.coder.name"), range(3)))
+            # Each get reconciles before printing (or finds watch already did), so it prints
             # the new value; the history check below proves nobody recorded the edit twice.
             assert [(s.code, s.out, s.err) for s in shown] == [(0, f"{name}\n", "")] * 3
         events = recorded_within(theatre, edited_at)
@@ -288,9 +288,9 @@ LOCK_ROUNDS = 30  # each unserialised round fails about 20 % of the time: 0.8**3
 RACERS = 3
 
 
-def _start_show(theatre: Path, path: str) -> subprocess.Popen[bytes]:
+def _start_get(theatre: Path, path: str) -> subprocess.Popen[bytes]:
     return subprocess.Popen(
-        [sys.executable, "-m", "troupe", "config", "show", path, "--theatre", str(theatre)],
+        [sys.executable, "-m", "troupe", "config", "get", path, "--theatre", str(theatre)],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         env={k: v for k, v in os.environ.items() if k != "TROUPE_THEATRE"},
@@ -302,7 +302,7 @@ def test_concurrent_commands_record_a_hand_edit_exactly_once_so_reconciles_are_s
 ) -> None:
     """FR-016 / NFR-003 without ``watch``: the race that fails if reconciles are not serialised.
 
-    Each round makes one hand edit, then starts three ``show`` processes at once, so all three
+    Each round makes one hand edit, then starts three ``get`` processes at once, so all three
     find the same unrecorded difference and reconcile at about the same time. With the theatre
     lock each difference is recorded exactly once. Without it (no lock in the session, or a lock
     that does not exclude other processes) a round fails about 20 % of the time: a command
@@ -316,7 +316,7 @@ def test_concurrent_commands_record_a_hand_edit_exactly_once_so_reconciles_are_s
     for r in range(1, LOCK_ROUNDS + 1):
         new_name = f"m{r}"
         _edit_root(theatre, r"^  name: .*$", f"  name: {new_name}")
-        racers = [_start_show(theatre, "model.name") for _ in range(RACERS)]
+        racers = [_start_get(theatre, "model.name") for _ in range(RACERS)]
         try:
             outputs = [p.communicate(timeout=30) for p in racers]
         finally:
@@ -385,12 +385,12 @@ def test_history_has_no_gaps_or_duplicate_seq_after_races(make_theatre: MakeThea
     with _watch(theatre) as w:
         w.wait_ready()
         for i in range(5):
-            # A hand edit to another file while a set and two shows race with watch...
+            # A hand edit to another file while a set and two gets race with watch...
             _save(theatre, "agents/coder.yaml", f"name: Ada\nlevel: {10 + i}\n")
             with ThreadPoolExecutor(max_workers=3) as pool:
-                shows = [pool.submit(_show, theatre, p) for p in ("model.name", "tools.0")]
+                gets = [pool.submit(_get, theatre, p) for p in ("model.name", "tools.0")]
                 pool.submit(_set, theatre, "model.temperature", str(i)).result()
-                assert [(f.result().code, f.result().err) for f in shows] == [(0, "")] * 2
+                assert [(f.result().code, f.result().err) for f in gets] == [(0, "")] * 2
             # ...then a hand edit to the file the set has just written.
             _edit_root(theatre, r"^  name: .*$", f"  name: race{i}")
             expected += Counter(

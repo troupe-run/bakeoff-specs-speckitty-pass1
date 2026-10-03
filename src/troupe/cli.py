@@ -1,10 +1,13 @@
 """Command-line parsing and dispatch for ``troupe config`` (FR-001, FR-006, FR-008).
 
+Commands: ``get PATH``, ``show [PATH] [--sources]``, ``set PATH VALUE``, ``history [PATH]``
+and ``watch``.
+
 This module owns the output-channel discipline: it is the only writer of stdout and stderr.
 Every contracted failure becomes one ``troupe: <message>`` line on stderr and the exit code its
 ``TroupeError`` subclass declares, with stdout left empty. It holds no command logic.
 
-- The step-1 commands (``COMMAND_MODULES``) return their stdout text, written once, after the
+- The one-shot commands (``COMMAND_MODULES``) return their stdout text, written once, after the
   command has succeeded.
 - ``watch`` runs until SIGINT/SIGTERM (research R-09). Through the callbacks passed to it, it
   writes its one ``watching <dir>`` line to stdout (flushed) only once it is ready, and reports
@@ -23,7 +26,7 @@ from typing import Final, NoReturn, Protocol, cast
 from troupe.errors import TroupeError, UsageError
 from troupe.theatre import Theatre, locate
 
-COMMAND_MODULES: Final = {"show": "show", "set": "set_value", "history": "history"}
+COMMAND_MODULES: Final = {"get": "get", "show": "show", "set": "set_value", "history": "history"}
 THEATRE_ENV_VAR: Final = "TROUPE_THEATRE"
 
 
@@ -60,8 +63,15 @@ def build_parser() -> argparse.ArgumentParser:
     _add_theatre_option(config)
     commands = config.add_subparsers(dest="command", required=True)
 
-    show = commands.add_parser("show", help="print the scalar at PATH")
-    show.add_argument("path", metavar="PATH")
+    get = commands.add_parser("get", help="print the scalar at PATH")
+    get.add_argument("path", metavar="PATH")
+    show = commands.add_parser("show", help="print PATH, or everything, as YAML")
+    show.add_argument("path", metavar="PATH", nargs="?", default=None)
+    show.add_argument(
+        "--sources",
+        action="store_true",
+        help="end every line holding a scalar with '# from <file>'",
+    )
     set_ = commands.add_parser("set", help="set the value at PATH to VALUE")
     set_.add_argument("path", metavar="PATH")
     set_.add_argument("value", metavar="VALUE")
@@ -71,7 +81,7 @@ def build_parser() -> argparse.ArgumentParser:
         "watch", help="record hand edits as they happen until SIGINT/SIGTERM"
     )
 
-    for subparser in (show, set_, history, watch):
+    for subparser in (get, show, set_, history, watch):
         _add_theatre_option(subparser)
     return parser
 

@@ -40,7 +40,7 @@ def test_set_without_value_is_usage_error() -> None:
 
 
 def test_usage_error_is_a_single_troupe_prefixed_stderr_line() -> None:
-    result = run_cli("config", "show")
+    result = run_cli("config", "get")
 
     assert result.code == 2
     assert result.err.startswith("troupe: ")
@@ -52,11 +52,11 @@ def test_config_help_exits_0_and_lists_subcommands() -> None:
     result = run_cli("config", "--help")
 
     assert result.code == 0
-    assert all(name in result.out for name in ("show", "set", "history"))
+    assert all(name in result.out for name in ("get", "show", "set", "history"))
 
 
 def test_missing_config_file_exits_4_and_names_file(tmp_path: Path) -> None:
-    result = run_cli("config", "show", "a.b", "--theatre", str(tmp_path))
+    result = run_cli("config", "get", "a.b", "--theatre", str(tmp_path))
 
     assert (result.code, result.out) == (4, "")
     assert str(tmp_path.resolve() / ".troupe" / "troupe.yml") in result.err
@@ -65,7 +65,7 @@ def test_missing_config_file_exits_4_and_names_file(tmp_path: Path) -> None:
 def test_missing_root_file_with_existing_state_dir_exits_4(make_theatre: MakeTheatre) -> None:
     theatre = make_theatre({"other.yml": "a: 1\n"})
 
-    result = run_cli("config", "show", "a", "--theatre", str(theatre))
+    result = run_cli("config", "get", "a", "--theatre", str(theatre))
 
     assert (result.code, result.out) == (4, "")
     assert str(theatre.resolve() / ".troupe" / "troupe.yml") in result.err
@@ -74,7 +74,7 @@ def test_missing_root_file_with_existing_state_dir_exits_4(make_theatre: MakeThe
 def test_both_yml_and_yaml_exit_4_and_name_both_files(make_theatre: MakeTheatre) -> None:
     theatre = make_theatre({"troupe.yml": "a: 1\n", "troupe.yaml": "a: 2\n"})
 
-    result = run_cli("config", "show", "a", "--theatre", str(theatre))
+    result = run_cli("config", "get", "a", "--theatre", str(theatre))
 
     assert (result.code, result.out) == (4, "")
     state_dir = theatre.resolve() / ".troupe"
@@ -92,7 +92,7 @@ def test_nonexistent_theatre_directory_exits_4_and_names_it(tmp_path: Path) -> N
 
 
 def test_theatre_defaults_to_current_directory(tmp_path: Path) -> None:
-    result = run_cli("config", "show", "a.b", cwd=tmp_path)
+    result = run_cli("config", "get", "a.b", cwd=tmp_path)
 
     assert (result.code, result.out) == (4, "")
     assert str(tmp_path.resolve() / ".troupe" / "troupe.yml") in result.err
@@ -105,11 +105,11 @@ def test_theatre_env_var_is_default_and_option_wins(tmp_path: Path) -> None:
     from_option.mkdir()
     env = {"TROUPE_THEATRE": str(from_env)}
 
-    by_env = run_cli("config", "show", "a.b", cwd=tmp_path, env=env)
+    by_env = run_cli("config", "get", "a.b", cwd=tmp_path, env=env)
     by_option = run_cli(
-        "config", "show", "a.b", "--theatre", str(from_option), cwd=tmp_path, env=env
+        "config", "get", "a.b", "--theatre", str(from_option), cwd=tmp_path, env=env
     )
-    by_empty = run_cli("config", "show", "a.b", cwd=tmp_path, env={"TROUPE_THEATRE": ""})
+    by_empty = run_cli("config", "get", "a.b", cwd=tmp_path, env={"TROUPE_THEATRE": ""})
 
     assert str(from_env.resolve() / ".troupe" / "troupe.yml") in by_env.err
     assert str(from_option.resolve() / ".troupe" / "troupe.yml") in by_option.err
@@ -119,8 +119,8 @@ def test_theatre_env_var_is_default_and_option_wins(tmp_path: Path) -> None:
 @pytest.mark.parametrize(
     "argv_before_theatre, argv_after_theatre",
     [
-        (["config", "--theatre"], ["show", "a.b"]),
-        (["config", "show", "--theatre"], ["a.b"]),
+        (["config", "--theatre"], ["get", "a.b"]),
+        (["config", "get", "--theatre"], ["a.b"]),
         (["config", "set", "a.b", "1", "--theatre"], []),
     ],
     ids=["on-config", "before-positional", "after-positionals"],
@@ -160,7 +160,7 @@ def test_missing_root_creates_no_files(tmp_path: Path) -> None:
 @pytest.mark.skipif(shutil.which("uv") is None, reason="uv is not on PATH")
 def test_uv_run_troupe_from_repo_root(tmp_path: Path) -> None:
     completed = subprocess.run(
-        ["uv", "run", "troupe", "config", "show", "x", "--theatre", str(tmp_path)],
+        ["uv", "run", "troupe", "config", "get", "x", "--theatre", str(tmp_path)],
         capture_output=True,
         cwd=REPO_ROOT,
         check=False,

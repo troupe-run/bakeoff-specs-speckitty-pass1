@@ -1,9 +1,9 @@
 """Reconcile first (User Story 1, FR-002..FR-007, NFR-004), through the real CLI.
 
-Hand edits made while nothing ran are recorded by the next ``show`` or ``set`` before it does its
-own work; ``history`` never reconciles. The number in each test's comment is the US1 acceptance
-scenario it covers. Wherever a reconcile runs, the files are compared byte for byte with what the
-hand edit left (a reconcile never writes a file).
+Hand edits made while nothing ran are recorded by the next ``get``, ``show`` or ``set`` before it
+does its own work; ``history`` never reconciles. The number in each test's comment is the US1
+acceptance scenario it covers. Wherever a reconcile runs, the files are compared byte for byte
+with what the hand edit left (a reconcile never writes a file).
 """
 
 import json
@@ -39,8 +39,8 @@ def _history(theatre: Path) -> list[dict[str, Any]]:
     return [json.loads(line) for line in result.out.splitlines()]
 
 
-def _show(theatre: Path, path: str) -> CliResult:
-    return run_cli("config", "show", path, "--theatre", str(theatre))
+def _get(theatre: Path, path: str) -> CliResult:
+    return run_cli("config", "get", path, "--theatre", str(theatre))
 
 
 def _set(theatre: Path, path: str, value: str) -> CliResult:
@@ -69,13 +69,13 @@ def _edit_root(theatre: Path, old: str, new: str) -> dict[str, bytes]:
     return _edit(theatre, "troupe.yml", ROOT.replace(old, new))
 
 
-def test_show_after_hand_edit_prints_new_value_and_records_one_set(
+def test_get_after_hand_edit_prints_new_value_and_records_one_set(
     make_theatre: MakeTheatre,
 ) -> None:  # 1
     theatre = _imported(make_theatre)
     edited = _edit_root(theatre, "temperature: 0.2", "temperature: 0.5")
 
-    shown = _show(theatre, "model.temperature")
+    shown = _get(theatre, "model.temperature")
 
     assert (shown.code, shown.out, shown.err) == (0, "0.5\n", "")
     assert _history(theatre)[IMPORTED:] == [_event(8, "set", "model.temperature", 0.2, 0.5)]
@@ -86,7 +86,7 @@ def test_key_added_by_hand_records_set_with_old_null(make_theatre: MakeTheatre) 
     theatre = _imported(make_theatre)
     edited = _edit_root(theatre, "  temperature: 0.2\n", "  temperature: 0.2\n  top_p: 0.9\n")
 
-    assert _show(theatre, "model.temperature").code == 0
+    assert _get(theatre, "model.temperature").code == 0
 
     assert _history(theatre)[IMPORTED:] == [_event(8, "set", "model.top_p", None, 0.9)]
     assert snapshot(theatre) == edited
@@ -96,13 +96,13 @@ def test_list_item_deleted_by_hand_records_remove(make_theatre: MakeTheatre) -> 
     theatre = _imported(make_theatre)
     edited = _edit_root(theatre, "tools: [a, b]", "tools: [a]")
 
-    assert _show(theatre, "model.name").code == 0
+    assert _get(theatre, "model.name").code == 0
 
     assert _history(theatre)[IMPORTED:] == [_event(8, "remove", "tools.1", "b", None)]
     assert snapshot(theatre) == edited
 
 
-def test_formatting_and_comment_only_edits_then_show_record_nothing(
+def test_formatting_and_comment_only_edits_then_get_record_nothing(
     make_theatre: MakeTheatre,
 ) -> None:  # 4
     theatre = _imported(make_theatre)
@@ -121,7 +121,7 @@ def test_formatting_and_comment_only_edits_then_show_record_nothing(
         "prompt: file:sys.md\n",
     )
 
-    assert _show(theatre, "model.temperature").out == "0.2\n"
+    assert _get(theatre, "model.temperature").out == "0.2\n"
 
     assert _history(theatre) == imported
     assert snapshot(theatre) == edited
@@ -133,20 +133,20 @@ def test_text_include_edited_by_hand_records_one_set_with_old_and_new_text(
     theatre = _imported(make_theatre)
     edited = _edit(theatre, "sys.md", "Be brief.\n")
 
-    assert _show(theatre, "model.name").code == 0
+    assert _get(theatre, "model.name").code == 0
 
     assert _history(theatre)[IMPORTED:] == [_event(8, "set", "prompt", "Be kind.\n", "Be brief.\n")]
     assert snapshot(theatre) == edited
 
 
-def test_history_never_reconciles_but_the_next_show_does(make_theatre: MakeTheatre) -> None:  # 6
+def test_history_never_reconciles_but_the_next_get_does(make_theatre: MakeTheatre) -> None:  # 6
     theatre = _imported(make_theatre)
     imported = _history(theatre)
     edited = _edit(theatre, "agents/coder.yaml", "name: Grace\nlevel: 3\n")
 
     assert _history(theatre) == imported
     assert _history(theatre) == imported
-    assert _show(theatre, "agents.coder.name").out == "Grace\n"
+    assert _get(theatre, "agents.coder.name").out == "Grace\n"
 
     assert _history(theatre) == [*imported, _event(8, "set", "agents.coder.name", "Ada", "Grace")]
     assert snapshot(theatre) == edited
@@ -208,7 +208,7 @@ def test_set_failing_after_reconcile_keeps_reconcile_events_and_records_no_set(
         ),
     ],
 )
-@pytest.mark.parametrize("command", ["show", "set"])
+@pytest.mark.parametrize("command", ["get", "show", "set"])
 def test_unloadable_hand_edit_exits_4_names_the_file_and_records_nothing(
     make_theatre: MakeTheatre, command: str, rel: str, good: str, bad: str
 ) -> None:  # 9
@@ -233,16 +233,16 @@ def test_unloadable_hand_edit_exits_4_names_the_file_and_records_nothing(
     # command recorded nothing and ``history`` itself does not reconcile the repaired edit.
     _edit(theatre, rel, good)
     assert _history(theatre) == imported
-    assert _show(theatre, "model.temperature").out == "0.2\n"
+    assert _get(theatre, "model.temperature").out == "0.2\n"
     assert len(_history(theatre)) == IMPORTED + 1
 
 
-def test_two_shows_after_one_hand_edit_record_it_once(make_theatre: MakeTheatre) -> None:  # 10
+def test_two_gets_after_one_hand_edit_record_it_once(make_theatre: MakeTheatre) -> None:  # 10
     theatre = _imported(make_theatre)
     edited = _edit_root(theatre, "temperature: 0.2", "temperature: 0.5")
 
-    assert _show(theatre, "model.temperature").out == "0.5\n"
-    assert _show(theatre, "model.temperature").out == "0.5\n"
+    assert _get(theatre, "model.temperature").out == "0.5\n"
+    assert _get(theatre, "model.temperature").out == "0.5\n"
 
     assert _history(theatre)[IMPORTED:] == [_event(8, "set", "model.temperature", 0.2, 0.5)]
     assert snapshot(theatre) == edited
@@ -263,7 +263,7 @@ def test_set_usage_error_with_pending_hand_edit_exits_2_and_records_nothing(
     assert snapshot(theatre) == edited
 
 
-def test_history_built_by_step_one_commands_reconciles_on_show(
+def test_history_built_by_step_one_commands_reconciles_on_get(
     make_theatre: MakeTheatre,
 ) -> None:
     theatre = make_theatre(FIXTURE)
@@ -276,7 +276,7 @@ def test_history_built_by_step_one_commands_reconciles_on_show(
         ROOT.replace("temperature: 0.2", "temperature: 0.9").replace("[a, b]", "[a, c]"),
     )
 
-    assert _show(theatre, "model.temperature").out == "0.9\n"
+    assert _get(theatre, "model.temperature").out == "0.9\n"
 
     assert _history(theatre)[IMPORTED:] == [
         _event(8, "set", "model.temperature", 0.2, 0.5),

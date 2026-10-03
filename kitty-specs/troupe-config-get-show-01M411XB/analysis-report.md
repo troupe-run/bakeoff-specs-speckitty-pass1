@@ -4,12 +4,12 @@ artifact_type: spec-kitty.analysis-report
 command: /spec-kitty.analyze
 mission_slug: troupe-config-get-show-01M411XB
 mission_id: 01M411XBPYCFHFT2CTA5MR35YA
-generated_at: '2026-10-03T14:46:52.618819+00:00'
+generated_at: '2026-10-03T15:02:16.982035+00:00'
 analyzer_agent: unknown
 input_artifacts:
   spec.md:
     path: kitty-specs/troupe-config-get-show-01M411XB/spec.md
-    sha256: 0c2341e5b427cad3c00757c9bb6f7758acaa12878003f8ccfd1bdbd50afa6a6a
+    sha256: 4dd2da5ddf7eed6d0d7e93373cb925822ed0f22fc517a3f00c746d2b3b05422b
   plan.md:
     path: kitty-specs/troupe-config-get-show-01M411XB/plan.md
     sha256: 6789646ede2364cfd9552c750b7da24ccce60808ed9c0f98ce89917a32b51b77
@@ -21,10 +21,10 @@ input_artifacts:
     sha256: a48e59b0f9fb45472e8fd41c29f431bdb475a6b0598bd083c88c6017f4b0ab03
 verdict: ready
 issue_counts:
-  medium: 1
-  low: 5
   high: 0
+  low: 6
   critical: 0
+  medium: 1
   info: 0
 findings:
 - id: I1
@@ -51,6 +51,10 @@ findings:
   severity: low
   category: inconsistency
   summary: 'Re-analysis after WP01 review: research D-10 and FR-008 now require plain strings to read back under YAML 1.2 and 1.1; WP01 rework tracks it, and WP03 parse-back tests inherit it.'
+- id: R2
+  severity: low
+  category: inconsistency
+  summary: "D-10 extended to floats: show's YAML writes exponent floats with a '.' (1.0e+20); show on a scalar without --sources must keep get's repr() output (FR-004), so WP03 must not route that case through the renderer."
 ---
 
 ## Specification Analysis Report
@@ -62,6 +66,7 @@ findings:
 | O1 | Ownership | MEDIUM | tasks/WP03 "Pre-authorised out-of-map edit"; lanes.json lane-b | WP03 changes `cli.py` (owned by WP02) | Safe because WP03 depends on WP02 (sequential). The reviewer must confirm the diff touches only the `show` subparser |
 | U1 | Underspecification | LOW | research.md D-6 | Newlines in file names are not handled in source labels | Accept as recorded; the contract is silent |
 | R1 | Inconsistency | LOW | research.md D-10; spec.md FR-008 | Added after the WP01 review: plain strings must read back under YAML 1.2 and 1.1 | Covered by WP01 rework (review-feedback-1); WP03 uses the renderer unchanged |
+| R2 | Inconsistency | LOW | research.md D-10; spec.md FR-008, FR-004 | Exponent floats in YAML get a `.`; plain scalar output stays repr() | WP03: scalar without `--sources` uses `format_scalar`, never `render` |
 | C1 | Coverage | LOW | kitty-specs/troupe-config-load-show-set-01M3XGPG/contracts/cli.md | Old contract describes `show` as scalar-only | Historical artifact superseded by C-001; leave unchanged |
 
 **Coverage Summary Table:**

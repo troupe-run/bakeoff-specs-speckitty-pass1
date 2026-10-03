@@ -86,3 +86,8 @@ Every choice here is one the contract leaves open. The PO delegated these choice
 ## get refusal wording
 
 - **Decision**: `"{path} is a {mapping|list}, not a scalar; use 'troupe config show {path}'"`, in one constant/format in `commands/get.py`.
+
+## D-10 Plain only when every common YAML reader agrees (added during WP01 review)
+
+- **Decision**: In `show` output a string value or key is written plain only if (a) `scalars.choose_style` allows plain (D-5) **and** (b) the plain text, placed as a value (`k: <s>`) or as a key (`<s>: x`), loads with ruamel safe-load (`YAML(typ="safe", pure=True)`) as the same string under both YAML 1.2 and YAML 1.1 (`version = (1, 1)`). For a key, the loaded document must be exactly `{s: "x"}`, which rules out the merge key `<<`. Otherwise the next style that can hold the string is used: single quotes, else double quotes.
+- **Rationale**: The reviewer found strings that are plain under the YAML 1.2 core schema but that common readers turn into something else. Examples: `2001-12-14` reads as a date, `1_000`, `0x1_0` and `0b101` as ints, `yes`/`on` as bools under 1.1, `=` fails, and `<<` is read as a merge key. This breaks NFR-001 as tested (D-8). Quoting more never changes the data, so this is the conservative choice (TROUPE-002). The rule lives in `yamlout.py` only; `set`'s write-back quoting (step-1 FR-015) is unchanged.

@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "troupe config history record with Lineage (one JSON object per line)",
+  "type": "object",
+  "required": ["seq", "op", "path", "old", "new", "actor", "via", "at", "reason", "change"],
+  "properties": {
+    "seq": {"type": "integer", "minimum": 1, "description": "1-based, strictly increasing in output order"},
+    "op": {"enum": ["import", "set", "remove"]},
+    "path": {"type": "string"},
+    "old": {"type": ["string", "number", "boolean", "null"], "description": "null for import"},
+    "new": {"type": ["string", "number", "boolean", "null"], "description": "null for remove"},
+    "actor": {
+      "type": "object",
+      "required": ["kind", "id"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {"enum": ["human", "agent", "unknown"]},
+        "id": {"type": ["string", "null"], "minLength": 1}
+      }
+    },
+    "via": {
+      "enum": ["import", "cli", "file", null],
+      "description": "null only for set/remove events recorded before step 4 (out of contract, DM 01M436RBNQT22F9AM54QER2FT9)"
+    },
+    "at": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?Z$"},
+    "reason": {"type": ["string", "null"]},
+    "change": {"type": "string", "minLength": 1}
+  },
+  "allOf": [
+    {"if": {"properties": {"op": {"const": "import"}}}, "then": {"properties": {"old": {"const": null}}}},
+    {"if": {"properties": {"op": {"const": "remove"}}}, "then": {"properties": {"new": {"const": null}}}},
+    {"if": {"properties": {"actor": {"properties": {"kind": {"const": "unknown"}}}}}, "then": {"properties": {"actor": {"properties": {"id": {"const": null}}}}}},
+    {"if": {"properties": {"via": {"enum": ["import", "file"]}}, "required": ["via"]}, "then": {"properties": {"actor": {"properties": {"kind": {"const": "unknown"}}}, "reason": {"const": null}}}}
+  ]
+}

@@ -24,6 +24,7 @@
   "purpose_context": "Configuration is changed by people and AI agents through the CLI, by hand edits, and by the first import. This mission adds an auditable lineage to every history event — actor, channel, UTC time, optional reason, and a change id shared by everything one command produces — and states 'unknown' explicitly where the author cannot be known.",
   "purpose_tldr": "Record who changed each setting, how, when, why, and which other changes came with it, readable through 'troupe config history'.",
   "slug": "troupe-config-lineage-01M436R0",
+  "status_phase": "1",
   "target_branch": "feat/troupe-config-lineage",
   "topology": "coord",
   "vcs": "git",

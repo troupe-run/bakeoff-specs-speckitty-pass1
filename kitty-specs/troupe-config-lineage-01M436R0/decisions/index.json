@@ -1,0 +1,70 @@
+{
+  "entries": [
+    {
+      "created_at": "2026-10-04T10:18:35.575712Z",
+      "decision_id": "01M436RBNQT22F9AM54QER2FT9",
+      "final_answer": "Out of contract; agent's choice: (A) report pre-lineage events with what is known (real 'at' from the stored event timestamp; actor unknown/null; reason null; via 'import' for import events, null for set/remove since cli vs file cannot be told apart; a stable per-event change id). Stored events are never rewritten. Recorded in the spec, not as a contract amendment.",
+      "input_key": "legacy_event_lineage",
+      "mission_id": "01M436R0741RAC0Z3626FRD5C1",
+      "mission_slug": "troupe-config-lineage-01M436R0",
+      "opened_by": "cli",
+      "options": [
+        "Report what is known, mark the rest unknown (recommended)",
+        "Refuse to read a pre-lineage history",
+        "Other"
+      ],
+      "origin_flow": "specify",
+      "other_answer": false,
+      "question": "History recorded before this step has no actor, channel, reason or change id. How should 'troupe config history' report those older events?",
+      "rationale": null,
+      "resolved_at": "2026-10-04T10:19:49.095193Z",
+      "resolved_by": null,
+      "slot_key": "specify.lineage.legacy-events",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
+    },
+    {
+      "created_at": "2026-10-04T10:19:52.429418Z",
+      "decision_id": "01M436TPQDWVSZQYFD6D5343DC",
+      "final_answer": "Yes: validate TROUPE_ACTOR after argument parsing and before the theatre is located or loaded, so a bad value exits 2 and nothing (not even an import or reconcile) is recorded. Safest: a command that will fail records nothing.",
+      "input_key": "actor_check_order",
+      "mission_id": "01M436R0741RAC0Z3626FRD5C1",
+      "mission_slug": "troupe-config-lineage-01M436R0",
+      "opened_by": "cli",
+      "options": [],
+      "origin_flow": "specify",
+      "other_answer": false,
+      "question": "Should every troupe config command check TROUPE_ACTOR before locating/loading the configuration?",
+      "rationale": null,
+      "resolved_at": "2026-10-04T10:19:55.907552Z",
+      "resolved_by": null,
+      "slot_key": "specify.lineage.actor-check-order",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
+    },
+    {
+      "created_at": "2026-10-04T10:19:59.048463Z",
+      "decision_id": "01M436TX68S2MGE4DN9AM02KTJ",
+      "final_answer": "{\"kind\": \"human\", \"id\": null}: the command still runs (no data lost, no user blocked) and the unknown id is stated explicitly rather than guessed.",
+      "input_key": "login_name_unknown",
+      "mission_id": "01M436R0741RAC0Z3626FRD5C1",
+      "mission_slug": "troupe-config-lineage-01M436R0",
+      "opened_by": "cli",
+      "options": [],
+      "origin_flow": "specify",
+      "other_answer": false,
+      "question": "If TROUPE_ACTOR is unset and the login name cannot be determined, what is the actor?",
+      "rationale": null,
+      "resolved_at": "2026-10-04T10:20:02.353327Z",
+      "resolved_by": null,
+      "slot_key": "specify.lineage.login-unknown",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
+    }
+  ],
+  "mission_id": "01M436R0741RAC0Z3626FRD5C1",
+  "version": 1
+}

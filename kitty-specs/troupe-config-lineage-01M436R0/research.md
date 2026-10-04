@@ -97,3 +97,12 @@ Each decision below is one the contract leaves open. Choices that are out of con
   - `--force` or an override would hide the branch rule rather than satisfy it.
   - Rewriting `main`'s history would lose the record of what was merged.
 - **Evidence**: `git diff 3d51b78 main -- src tests pyproject.toml uv.lock` is empty, so the tested code is unchanged (1652 passed, mypy/ruff clean, D-10).
+
+## D-12 — `/spec-kitty.merge` retry after delivery
+
+- **Situation**: `spec-kitty merge --mission troupe-config-lineage-01M436R0`, run on request after delivery, skipped lanes a–e (already integrated). It then failed the same way as in D-10: the squash into `feat/troupe-config-lineage` conflicted on `meta.json` and `research.md`, which the coordination branch does not carry. The tool rolled back the squash. It also reverted WP05's `done` transition on the coordination branch (`f6dea70`).
+- **Outcome**:
+  - `main` and `feat/troupe-config-lineage` were unchanged by the retry.
+  - No git operation was left in progress, and every worktree was clean.
+  - WP05 was set back to `done` with `move-task --to done --force --done-override-reason`; the reason is in the event log.
+- **Why not retry again**: a retry can only fail the same way. The mission is already delivered on `main` (D-10, D-11), and only mission bookkeeping is affected.

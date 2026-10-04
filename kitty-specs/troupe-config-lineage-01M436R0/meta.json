@@ -1,0 +1,15 @@
+{
+  "coordination_branch": "kitty/mission-troupe-config-lineage-01M436R0",
+  "created_at": "2026-10-04T10:18:24.017202+00:00",
+  "flattened": false,
+  "friendly_name": "troupe configuration: lineage for every change",
+  "mission_id": "01M436R0741RAC0Z3626FRD5C1",
+  "mission_number": null,
+  "mission_slug": "troupe-config-lineage-01M436R0",
+  "mission_type": "software-dev",
+  "purpose_context": "Configuration is changed by people and AI agents through the CLI, by hand edits, and by the first import. This mission adds an auditable lineage to every history event — actor, channel, UTC time, optional reason, and a change id shared by everything one command produces — and states 'unknown' explicitly where the author cannot be known.",
+  "purpose_tldr": "Record who changed each setting, how, when, why, and which other changes came with it, readable through 'troupe config history'.",
+  "slug": "troupe-config-lineage-01M436R0",
+  "target_branch": "feat/troupe-config-lineage",
+  "topology": "coord"
+}

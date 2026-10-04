@@ -87,3 +87,13 @@ Each decision below is one the contract leaves open. Choices that are out of con
 - **Evidence**:
   - The diff between the coordination branch and the reviewed lane-e branch over `src tests pyproject.toml uv.lock` is empty.
   - On the resulting tree: `uv run pytest` gives 1652 passed; `uv run mypy --strict`, `uv run ruff check` and `uv run ruff format --check` are clean.
+
+## D-11 — Post-merge `/spec-kitty.accept` run (product owner: "make the safest assumption")
+
+- **Situation**: after delivery to `main`, `spec-kitty agent mission accept` blocked for two reasons. It refuses to run on `main`; it must run on `feat/troupe-config-lineage` or the coordination branch. It also flags the missing `docs/` path convention, which D-10 already covers.
+- **Decision**: change no code and add no files to the project. `feat/troupe-config-lineage` was fast-forwarded to `main`, which only adds the merge and retrospective commits, so the code is unchanged. Acceptance was then re-run there with `--lenient`, which downgrades only the `docs/` path-convention check (acceptance commit `b5777a9`, all five WPs accepted and already merged). `main` was then fast-forwarded to that branch, so it gains only `kitty-specs/` bookkeeping.
+- **Rationale**: this is the least risky option. User configuration files and the code that touches them are untouched, and the contract is not affected. The alternatives were rejected:
+  - Creating an empty `docs/` adds structure no one asked for (TROUPE-007/-008).
+  - `--force` or an override would hide the branch rule rather than satisfy it.
+  - Rewriting `main`'s history would lose the record of what was merged.
+- **Evidence**: `git diff 3d51b78 main -- src tests pyproject.toml uv.lock` is empty, so the tested code is unchanged (1652 passed, mypy/ruff clean, D-10).

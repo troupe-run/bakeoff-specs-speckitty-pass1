@@ -11,5 +11,7 @@
   "purpose_tldr": "Record who changed each setting, how, when, why, and which other changes came with it, readable through 'troupe config history'.",
   "slug": "troupe-config-lineage-01M436R0",
   "target_branch": "feat/troupe-config-lineage",
-  "topology": "coord"
+  "topology": "coord",
+  "vcs": "git",
+  "vcs_locked_at": "2026-10-04T10:38:29.560252+00:00"
 }

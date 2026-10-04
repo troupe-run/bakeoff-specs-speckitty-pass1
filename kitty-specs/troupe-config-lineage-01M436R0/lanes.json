@@ -1,0 +1,124 @@
+{
+  "version": 1,
+  "mission_slug": "troupe-config-lineage-01M436R0",
+  "mission_id": "01M436R0741RAC0Z3626FRD5C1",
+  "mission_branch": "kitty/mission-troupe-config-lineage-01M436R0",
+  "target_branch": "feat/troupe-config-lineage",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "src/troupe/lineage.py",
+        "tests/unit/test_lineage.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "tests/fixtures/pre_lineage/**",
+        "tests/unit/test_pre_lineage_fixture.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "app-shell",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-c",
+      "wp_ids": [
+        "WP03"
+      ],
+      "write_scope": [
+        "src/troupe/cli.py",
+        "src/troupe/commands/get.py",
+        "src/troupe/commands/set_value.py",
+        "src/troupe/commands/show.py",
+        "src/troupe/history.py",
+        "src/troupe/reconcile.py",
+        "src/troupe/session.py",
+        "tests/conftest.py",
+        "tests/integration/test_lineage_recording.py",
+        "tests/unit/test_history_store.py",
+        "tests/unit/test_reconcile.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup",
+        "tests"
+      ],
+      "depends_on_lanes": [
+        "lane-a",
+        "lane-b"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-d",
+      "wp_ids": [
+        "WP04"
+      ],
+      "write_scope": [
+        "src/troupe/commands/history.py",
+        "tests/integration/test_get.py",
+        "tests/integration/test_history.py",
+        "tests/integration/test_reconcile_first.py",
+        "tests/integration/test_set_blocks.py",
+        "tests/integration/test_set_existing.py",
+        "tests/integration/test_set_history.py",
+        "tests/integration/test_set_new_entries.py",
+        "tests/integration/test_show.py",
+        "tests/integration/test_watch.py",
+        "tests/integration/test_watch_includes.py",
+        "tests/integration/test_watch_set.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "tests"
+      ],
+      "depends_on_lanes": [
+        "lane-c"
+      ],
+      "parallel_group": 2
+    },
+    {
+      "lane_id": "lane-e",
+      "wp_ids": [
+        "WP05"
+      ],
+      "write_scope": [
+        "tests/integration/test_lineage_changes.py",
+        "tests/integration/test_lineage_cli.py",
+        "tests/integration/test_lineage_pre_lineage.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-d"
+      ],
+      "parallel_group": 3
+    }
+  ],
+  "computed_at": "2026-10-04T10:34:52.684246+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [],
+  "planning_commit_sha": "f77b9e91f204ab14894f288468b610cfdac0054c"
+}

@@ -28,6 +28,7 @@ from conftest import (
     MakeTheatre,
     WatchProcess,
     all_files,
+    core,
     history_events,
     recorded_within,
     run_cli,
@@ -125,7 +126,7 @@ def test_set_during_watch_records_exactly_its_own_event(make_theatre: MakeTheatr
         stopped = w.stop()
 
     assert len(before) == IMPORTED
-    assert events == [*before, _event(8, "set", "model.temperature", 0.2, 0.5)]
+    assert core(events) == [*core(before), _event(8, "set", "model.temperature", 0.2, 0.5)]
     assert written[".troupe/troupe.yml"] == ROOT.replace("0.2  #", "0.5  #").encode()
     assert snapshot(theatre) == written  # watch wrote nothing
     assert stopped == (0, "", "")
@@ -145,8 +146,8 @@ def test_list_replacement_during_watch_records_set_and_remove_once(
         events = recorded_within(theatre, _set(theatre, "tools", "[c]"))
         stopped = w.stop()
 
-    assert events == [
-        *before,
+    assert core(events) == [
+        *core(before),
         _event(8, "set", "tools.0", "a", "c"),
         _event(9, "remove", "tools.1", "b", None),
     ]
@@ -180,8 +181,12 @@ def test_set_inside_include_and_text_include_during_watch_records_once(
         stopped = w.stop()
 
     level = _event(8, "set", "agents.coder.level", 3, 4)
-    assert after_yaml == [*before, level]
-    assert after_text == [*before, level, _event(9, "set", "prompt", "Be kind.\n", "Be brave.")]
+    assert core(after_yaml) == [*core(before), level]
+    assert core(after_text) == [
+        *core(before),
+        level,
+        _event(9, "set", "prompt", "Be kind.\n", "Be brave."),
+    ]
     assert snapshot(theatre)[".troupe/sys.md"] == b"Be brave."
     assert stopped == (0, "", "")
 
@@ -199,8 +204,8 @@ def test_ten_sets_in_a_row_during_watch_record_exactly_ten_events(
         stopped = w.stop()
 
     olds: list[object] = [0.2, *range(1, 10)]
-    assert events == [
-        *before,
+    assert core(events) == [
+        *core(before),
         *(
             _event(IMPORTED + n, "set", "model.temperature", old, n)
             for n, old in zip(range(1, 11), olds, strict=True)
@@ -217,7 +222,10 @@ def test_set_without_watch_then_get_records_nothing_more(make_theatre: MakeTheat
     shown = _get(theatre, "model.temperature")
 
     assert (shown.code, shown.out, shown.err) == (0, "0.5\n", "")
-    assert history_events(theatre) == [*before, _event(8, "set", "model.temperature", 0.2, 0.5)]
+    assert core(history_events(theatre)) == [
+        *core(before),
+        _event(8, "set", "model.temperature", 0.2, 0.5),
+    ]
 
 
 # --- FR-016: each difference recorded once, never interleaved (US3 scenario 4) ----------------
@@ -274,8 +282,8 @@ def test_hand_edit_with_concurrent_get_and_watch_is_recorded_once(
         events = recorded_within(theatre, edited_at)
         stopped = w.stop()
 
-    assert events == [
-        *before,
+    assert core(events) == [
+        *core(before),
         *(
             _event(IMPORTED + n, "set", "agents.coder.name", old, new)
             for n, (old, new) in enumerate(pairwise(names), start=1)
@@ -328,8 +336,8 @@ def test_concurrent_commands_record_a_hand_edit_exactly_once_so_reconciles_are_s
         assert results == [(0, f"{new_name}\n".encode(), b"")] * RACERS, f"round {r}"
 
         settled = history_events(theatre)  # history does not reconcile: shows what they recorded
-        assert settled == [
-            *events,
+        assert core(settled) == [
+            *core(events),
             _event(len(events) + 1, "set", "model.name", name, new_name),
         ], f"round {r}"
         events, name = settled, new_name

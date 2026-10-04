@@ -5,6 +5,10 @@ The rule: record ``diff(recorded leaves, leaves of the files)`` and nothing else
 later sees the write-back finds no difference: write-backs are never recorded twice (FR-015,
 research R-01). Reconcile only reads files; it never writes them (NFR-004).
 
+Each reconcile is its own change: it builds one ``file_lineage()`` (unknown actor, via ``file``)
+for all the events it records. That covers the reconcile before a command's own work and each
+reconcile ``watch`` performs (FR-005, FR-010, FR-011). It never sees the CLI actor.
+
 This module also names the files a load read (``watched_files``), which ``watch`` observes.
 """
 
@@ -12,6 +16,7 @@ from pathlib import Path
 
 from troupe.history import HistoryStore
 from troupe.leaves import Change, diff, flatten
+from troupe.lineage import file_lineage
 from troupe.tree import MappingNode, Node, SequenceNode, SourceFile, TextInclude, YamlInclude
 
 
@@ -19,11 +24,12 @@ def reconcile(store: HistoryStore, tree: Node) -> list[Change]:
     """Record one event per leaf that differs between the history and ``tree``; return them.
 
     Ordering (D-6) is ``leaves.diff``'s: ``set`` in file document order, then ``remove`` in
-    recorded order. All events are saved in one atomic ``save()``; nothing is saved for ``[]``.
+    recorded order. All events are saved in one atomic ``save()`` and share one new file
+    lineage, so they form one change; nothing is saved for ``[]``.
     Call only under the theatre lock and only after the theatre has been imported.
     """
     changes = diff(store.recorded_leaves(), flatten(tree))
-    store.record(changes)
+    store.record(changes, file_lineage())
     return changes
 
 

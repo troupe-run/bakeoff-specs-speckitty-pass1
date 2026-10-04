@@ -17,6 +17,7 @@ import pytest
 from conftest import (
     MakeTheatre,
     WatchProcess,
+    core,
     history_events,
     recorded_within,
     run_cli,
@@ -80,9 +81,9 @@ def test_include_added_by_hand_is_followed_by_next_command(
 
     events = _reconciled(theatre, "command", lambda: _write(theatre, "troupe.yml", ROOT + INCLUDE))
 
-    assert imported == [_event(1, "import", "model.name", None, "m0")]
-    assert events == [
-        *imported,
+    assert core(imported) == [_event(1, "import", "model.name", None, "m0")]
+    assert core(events) == [
+        *core(imported),
         _event(2, "set", "agents.coder.name", None, "Ada"),
         _event(3, "set", "agents.coder.model", None, "m1"),
     ]
@@ -99,12 +100,12 @@ def test_include_added_by_hand_is_followed_by_watch_and_then_watched(
         edited = recorded_within(theatre, edited_at)
         stopped = w.stop()
 
-    assert included == [
-        *imported,
+    assert core(included) == [
+        *core(imported),
         _event(2, "set", "agents.coder.name", None, "Ada"),
         _event(3, "set", "agents.coder.model", None, "m1"),
     ]
-    assert edited == [*included, _event(4, "set", "agents.coder.name", "Ada", "Grace")]
+    assert core(edited) == [*core(included), _event(4, "set", "agents.coder.name", "Ada", "Grace")]
     assert stopped == (0, "", "")
 
 
@@ -115,11 +116,11 @@ def test_include_removed_by_hand_records_removes_and_stops_watching(
     theatre, imported = _imported(make_theatre, INCLUDED)
     removed = _reconciled(theatre, mode, lambda: _write(theatre, "troupe.yml", ROOT))
     expected = [
-        *imported,
+        *core(imported),
         _event(4, "remove", "agents.coder.name", "Ada", None),
         _event(5, "remove", "agents.coder.model", "m1", None),
     ]
-    assert removed == expected
+    assert core(removed) == expected
 
     # The file is no longer included: editing it records nothing, whoever reconciles.
     with WatchProcess("--theatre", str(theatre)) as w:
@@ -131,10 +132,10 @@ def test_include_removed_by_hand_records_removes_and_stops_watching(
     shown = run_cli("config", "get", "model.name", "--theatre", str(theatre))
 
     assert len(imported) == 3
-    assert while_watching == expected
+    assert core(while_watching) == expected
     assert stopped == (0, "", "")
     assert (shown.code, shown.out, shown.err) == (0, "m0\n", "")
-    assert history_events(theatre) == expected
+    assert core(history_events(theatre)) == expected
 
 
 @pytest.mark.parametrize("mode", MODES)
@@ -170,12 +171,15 @@ def test_nested_include_added_inside_an_included_file_is_followed(
         stopped = w.stop()
 
     assert len(imported) == 3
-    assert nested == [
-        *imported,
+    assert core(nested) == [
+        *core(imported),
         _event(4, "set", "agents.coder.skills.lint", None, "strict"),
         _event(5, "set", "agents.coder.skills.review", None, 2),
     ]
-    assert edited == [*nested, _event(6, "set", "agents.coder.skills.lint", "strict", "loose")]
+    assert core(edited) == [
+        *core(nested),
+        _event(6, "set", "agents.coder.skills.lint", "strict", "loose"),
+    ]
     assert stopped == (0, "", "")
 
 
@@ -190,4 +194,4 @@ def test_text_include_added_by_hand_records_its_text_as_one_leaf(
         theatre, mode, lambda: _write(theatre, "troupe.yml", ROOT + "prompt: file:sys.md\n")
     )
 
-    assert events == [*imported, _event(2, "set", "prompt", None, text)]
+    assert core(events) == [*core(imported), _event(2, "set", "prompt", None, text)]

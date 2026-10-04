@@ -1,7 +1,13 @@
 """Command-line parsing and dispatch for ``troupe config`` (FR-001, FR-006, FR-008).
 
-Commands: ``get PATH``, ``show [PATH] [--sources]``, ``set PATH VALUE``, ``history [PATH]``
-and ``watch``.
+Commands: ``get PATH``, ``show [PATH] [--sources]``, ``set PATH VALUE [--reason TEXT]``,
+``history [PATH]`` and ``watch``.
+
+``TROUPE_ACTOR`` is resolved once, here, right after the arguments are parsed and before the
+theatre is located (FR-003, spec DM 01M436TPQDWVSZQYFD6D5343DC). An invalid value is a
+``UsageError`` (exit 2), so nothing is located, locked, loaded, imported or recorded. The
+resolved actor is passed to the one-shot command; ``watch`` is validated too but records only
+file reconciles, which have no CLI actor.
 
 This module owns the output-channel discipline: it is the only writer of stdout and stderr.
 Every contracted failure becomes one ``troupe: <message>`` line on stderr and the exit code its
@@ -24,6 +30,7 @@ from pathlib import Path
 from typing import Final, NoReturn, Protocol, cast
 
 from troupe.errors import TroupeError, UsageError
+from troupe.lineage import Actor, resolve_actor
 from troupe.theatre import Theatre, locate
 
 COMMAND_MODULES: Final = {"get": "get", "show": "show", "set": "set_value", "history": "history"}
@@ -33,7 +40,7 @@ THEATRE_ENV_VAR: Final = "TROUPE_THEATRE"
 class Command(Protocol):
     """Interface every ``troupe.commands.<module>`` satisfies."""
 
-    def run(self, theatre: Theatre, args: argparse.Namespace) -> str: ...
+    def run(self, theatre: Theatre, args: argparse.Namespace, actor: Actor) -> str: ...
 
 
 class _Parser(argparse.ArgumentParser):
@@ -75,6 +82,9 @@ def build_parser() -> argparse.ArgumentParser:
     set_ = commands.add_parser("set", help="set the value at PATH to VALUE")
     set_.add_argument("path", metavar="PATH")
     set_.add_argument("value", metavar="VALUE")
+    set_.add_argument(
+        "--reason", metavar="TEXT", default=None, help="record TEXT as the reason for this change"
+    )
     history = commands.add_parser("history", help="print recorded changes as JSON Lines")
     history.add_argument("path", metavar="PATH", nargs="?", default=None)
     watch = commands.add_parser(
@@ -100,6 +110,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     """Run the CLI and return the process exit code."""
     try:
         args = build_parser().parse_args(argv)
+        actor = resolve_actor(os.environ)  # before locating: a bad value records nothing
         theatre_arg = args.theatre if args.theatre is not None else os.environ.get(THEATRE_ENV_VAR)
         given = theatre_arg if theatre_arg else os.getcwd()  # as given, never resolved (D-8)
         theatre = locate(Path(given))  # exit 4 before any command module is imported
@@ -109,7 +120,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             watch(theatre, given, announce=_announce, report=_report)
             return 0
         module = importlib.import_module(f"troupe.commands.{COMMAND_MODULES[args.command]}")
-        output = cast(Command, module).run(theatre, args)
+        output = cast(Command, module).run(theatre, args, actor)
     except TroupeError as err:
         sys.stderr.write(f"troupe: {err.message}\n")
         return err.exit_code

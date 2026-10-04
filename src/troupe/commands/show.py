@@ -18,14 +18,17 @@ configuration or include file (FR-014); only the history store may change.
 import argparse
 
 from troupe import yamlout
+from troupe.lineage import Actor
 from troupe.paths import lookup, parse_path
 from troupe.session import open_session
 from troupe.theatre import Theatre
 from troupe.values import format_scalar, scalar_of
 
 
-def run(theatre: Theatre, args: argparse.Namespace) -> str:
+def run(theatre: Theatre, args: argparse.Namespace, actor: Actor) -> str:
     """Return the printed node at ``args.path`` (the whole configuration when it is ``None``).
+
+    ``actor`` is unused: a read-only command records no events of its own.
 
     Raises:
         UsageError: If PATH has an empty segment (checked before anything is loaded).

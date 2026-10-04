@@ -1,0 +1,6 @@
+model:
+  name: claude
+  temperature: 0.5
+tools:
+  - search
+  - fetch

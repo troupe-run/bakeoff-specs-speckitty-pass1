@@ -17,6 +17,7 @@ import pytest
 from conftest import (
     MakeTheatre,
     WatchProcess,
+    core,
     history_events,
     recorded_within,
     run_cli,
@@ -107,7 +108,7 @@ def test_root_file_edit_is_recorded_within_two_seconds(make_theatre: MakeTheatre
 
         events = recorded_within(theatre, edited_at)
 
-    assert events[IMPORTED:] == [_set(6, "a", 1, 2)]
+    assert core(events[IMPORTED:]) == [_set(6, "a", 1, 2)]
 
 
 def test_edit_immediately_after_watching_line_is_not_missed(make_theatre: MakeTheatre) -> None:
@@ -130,8 +131,8 @@ def test_yaml_include_and_text_include_edits_are_recorded(make_theatre: MakeThea
         text_edited_at = _write(theatre, "sys.md", "Be brave.\n")
         after_text = recorded_within(theatre, text_edited_at)
 
-    assert after_yaml[IMPORTED:] == [_set(6, "agents.coder.level", 3, 4)]
-    assert after_text[IMPORTED:] == [
+    assert core(after_yaml[IMPORTED:]) == [_set(6, "agents.coder.level", 3, 4)]
+    assert core(after_text[IMPORTED:]) == [
         _set(6, "agents.coder.level", 3, 4),
         _set(7, "prompt", "Be kind.\n", "Be brave.\n"),
     ]
@@ -154,7 +155,7 @@ def test_comment_only_and_formatting_only_edits_record_nothing(
 
     assert len(before) == IMPORTED
     assert quiet == before
-    assert after[IMPORTED:] == [_set(6, "agents.coder.level", 3, 9)]
+    assert core(after[IMPORTED:]) == [_set(6, "agents.coder.level", 3, 9)]
 
 
 @pytest.mark.parametrize("sig", [signal.SIGINT, signal.SIGTERM], ids=["SIGINT", "SIGTERM"])
@@ -244,7 +245,7 @@ def test_unloadable_edit_reports_once_keeps_watching_then_recovers(
     assert second == [*first, f"troupe: cannot load {root}: duplicate key b at line 2\n"]
     # ``history`` cannot load the broken files either, so it is read after the fix: only the
     # fix itself was recorded, nothing for any unloadable state in between.
-    assert recovered[IMPORTED:] == [_set(6, "a", 1, 7)]
+    assert core(recovered[IMPORTED:]) == [_set(6, "a", 1, 7)]
     assert (code, rest) == (0, "")
     assert err == "".join(second)
 
@@ -262,7 +263,7 @@ def test_missing_include_target_created_later_is_recorded(make_theatre: MakeThea
         events = recorded_within(theatre, created_at)
 
     assert len(reported) == 1 and f"include target not found: {target}" in reported[0]
-    assert events[IMPORTED:] == [_set(6, "extra.k", None, "v"), _set(7, "extra.n", None, 2)]
+    assert core(events[IMPORTED:]) == [_set(6, "extra.k", None, "v"), _set(7, "extra.n", None, 2)]
 
 
 def test_rapid_successive_saves_settle_without_duplicates(make_theatre: MakeTheatre) -> None:  # 9
@@ -297,7 +298,7 @@ def test_atomic_rename_save_is_detected(make_theatre: MakeTheatre) -> None:
 
         events = recorded_within(theatre, saved_at)
 
-    assert events[IMPORTED:] == [_set(6, "a", 1, 3)]
+    assert core(events[IMPORTED:]) == [_set(6, "a", 1, 3)]
 
 
 def test_root_file_renamed_to_other_candidate_is_followed(make_theatre: MakeTheatre) -> None:
@@ -314,7 +315,7 @@ def test_root_file_renamed_to_other_candidate_is_followed(make_theatre: MakeThea
         code, _, err = w.stop()
 
     assert len(unchanged) == IMPORTED
-    assert events[IMPORTED:] == [_set(6, "a", 1, 4)]
+    assert core(events[IMPORTED:]) == [_set(6, "a", 1, 4)]
     assert (code, err) == (0, "")
 
 

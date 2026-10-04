@@ -1,8 +1,11 @@
 """Shared test harness: build real theatres on disk and run the real CLI as a subprocess.
 
-Plain helpers (``run_cli``, ``snapshot``, ``all_files``, ``history_events``, ``recorded_within``)
-and the ``WatchProcess`` context manager are importable with ``from conftest import ...``;
-``make_theatre`` is a fixture because it needs ``tmp_path``.
+Plain helpers (``run_cli``, ``snapshot``, ``all_files``, ``history_events``, ``recorded_within``,
+``core``, ``stored_records``) and the ``WatchProcess`` context manager are importable with
+``from conftest import ...``; ``make_theatre`` is a fixture because it needs ``tmp_path``.
+
+Child processes never inherit ``TROUPE_THEATRE`` or ``TROUPE_ACTOR`` from the developer's shell,
+so a value set there cannot change what a test observes.
 """
 
 import json
@@ -12,17 +15,23 @@ import subprocess
 import sys
 import threading
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from types import TracebackType
-from typing import IO, Self
+from typing import IO, Final, Self
 
 import pytest
+
+from troupe.history import HistoryRecord, HistoryStore
 
 type MakeTheatre = Callable[[dict[str, str | bytes]], Path]
 
 HISTORY_PREFIX = ".troupe/history.sqlite"
+# Variables a child process never inherits from the developer's environment.
+HERMETIC_UNSET: Final = ("TROUPE_THEATRE", "TROUPE_ACTOR")
+# The five step-1 keys of a ``history`` line.
+CORE_KEYS: Final = ("seq", "op", "path", "old", "new")
 
 
 @dataclass(frozen=True)
@@ -34,17 +43,23 @@ class CliResult:
     err: str
 
 
-def run_cli(*args: str, cwd: Path | None = None, env: dict[str, str] | None = None) -> CliResult:
+def run_cli(
+    *args: str,
+    cwd: Path | None = None,
+    env: dict[str, str] | None = None,
+    unset: Iterable[str] = (),
+) -> CliResult:
     """Run ``python -m troupe *args`` and capture output without newline translation.
 
-    ``TROUPE_THEATRE`` is removed from the inherited environment; ``env`` entries are added on top.
+    ``TROUPE_THEATRE`` and ``TROUPE_ACTOR`` are always removed from the inherited environment, as
+    is every variable named in ``unset``; ``env`` entries are then added on top.
     """
     completed = subprocess.run(
         [sys.executable, "-m", "troupe", *args],
         capture_output=True,
         text=False,
         cwd=cwd,
-        env=_child_env(env),
+        env=_child_env(env, unset),
         check=False,
     )
     return CliResult(
@@ -54,8 +69,9 @@ def run_cli(*args: str, cwd: Path | None = None, env: dict[str, str] | None = No
     )
 
 
-def _child_env(env: dict[str, str] | None) -> dict[str, str]:
-    return {k: v for k, v in os.environ.items() if k != "TROUPE_THEATRE"} | (env or {})
+def _child_env(env: dict[str, str] | None, unset: Iterable[str] = ()) -> dict[str, str]:
+    removed = {*HERMETIC_UNSET, *unset}
+    return {k: v for k, v in os.environ.items() if k not in removed} | (env or {})
 
 
 def all_files(theatre: Path) -> set[str]:
@@ -79,6 +95,24 @@ def history_events(theatre: Path) -> list[dict[str, object]]:
     return [json.loads(line) for line in result.out.splitlines()]
 
 
+def core(events: Sequence[dict[str, object]]) -> list[dict[str, object]]:
+    """Project parsed ``history`` objects onto the five step-1 keys (``CORE_KEYS``)."""
+    return [{key: event[key] for key in CORE_KEYS} for event in events]
+
+
+def stored_records(theatre: Path) -> list[HistoryRecord]:
+    """Return every record, lineage included, read from the theatre's real history store.
+
+    Opens ``HistoryStore(theatre / ".troupe")``, reads ``records()`` and closes it. Use it only on
+    a theatre whose history exists: opening the store creates the database.
+    """
+    store = HistoryStore(theatre / ".troupe")
+    try:
+        return store.records()
+    finally:
+        store.close()
+
+
 def recorded_within(
     theatre: Path, edited_at: float, seconds: float = 2.0
 ) -> list[dict[str, object]]:
@@ -96,12 +130,18 @@ def recorded_within(
 class WatchProcess:
     """A real ``python -m troupe config watch`` child; use as a context manager (always killed).
 
+    The child's environment is built as for ``run_cli`` (``env`` added, ``unset`` removed).
+
     Reader threads collect the child's stdout lines and stderr lines as they arrive, decoded as
     UTF-8 without newline translation (each line keeps its ``\n``). Every wait has a deadline.
     """
 
     def __init__(
-        self, *args: str, cwd: Path | None = None, env: dict[str, str] | None = None
+        self,
+        *args: str,
+        cwd: Path | None = None,
+        env: dict[str, str] | None = None,
+        unset: Iterable[str] = (),
     ) -> None:
         self._proc = subprocess.Popen(
             [sys.executable, "-m", "troupe", "config", "watch", *args],
@@ -109,7 +149,7 @@ class WatchProcess:
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             cwd=cwd,
-            env=_child_env(env),
+            env=_child_env(env, unset),
         )
         self._changed = threading.Condition()
         self._stdout: list[str] = []

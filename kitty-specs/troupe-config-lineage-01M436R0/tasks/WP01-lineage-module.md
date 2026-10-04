@@ -12,6 +12,9 @@ requirement_refs:
 planning_base_branch: feat/troupe-config-lineage
 merge_target_branch: feat/troupe-config-lineage
 branch_strategy: Planning artifacts for this mission were generated on feat/troupe-config-lineage. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/troupe-config-lineage unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-troupe-config-lineage-01M436R0
+base_commit: 1547307bf69dca1031a8c539fcb45d3a2899bb15
+created_at: '2026-10-04T10:38:34.834232+00:00'
 subtasks:
 - T001
 - T002

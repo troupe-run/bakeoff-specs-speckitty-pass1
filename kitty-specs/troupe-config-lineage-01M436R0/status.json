@@ -1,0 +1,181 @@
+{
+  "event_count": 40,
+  "last_event_id": "01M43GXWE756X8SMMXD8GWCJ03",
+  "materialized_at": "2026-10-04T13:16:22.343609+00:00",
+  "mission_number": "",
+  "mission_slug": "troupe-config-lineage-01M436R0",
+  "mission_type": "",
+  "summary": {
+    "approved": 0,
+    "blocked": 0,
+    "canceled": 0,
+    "claimed": 0,
+    "done": 5,
+    "for_review": 0,
+    "in_progress": 0,
+    "in_review": 0,
+    "planned": 0
+  },
+  "work_packages": {
+    "WP01": {
+      "actor": "merge",
+      "agent": "claude",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 1,
+      "lane": "done",
+      "last_event_id": "01M43GXTQPY9V47T9A4N3H91RH",
+      "last_transition_at": "2026-10-04T13:16:20.598694+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "Lineage module implemented; gates green (1566 passed)",
+        "Cycle 1 fix: field-order assertion added; D-1 cited",
+        "Review passed (cycle 2, reviewer-renata): field-order assertion fixed; API, actor grammar, error message, login fallback, format_at, change ids all match WP and contract; gates green"
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review": null,
+      "review_result": {
+        "feedback_path": "/work/bakeoff-specs-speckitty/kitty-specs/troupe-config-lineage-01M436R0/tasks/WP01-lineage-module/review-cycle-2.md",
+        "reference": "review-cycle://troupe-config-lineage-01M436R0/WP01-lineage-module/review-cycle-2.md",
+        "reviewer": "user",
+        "verdict": "approved"
+      },
+      "role": "reviewer",
+      "shell_pid": 7982,
+      "shell_pid_created_at": "1791112195.8",
+      "subtasks": {
+        "T001": "done",
+        "T002": "done",
+        "T003": "done",
+        "T004": "done",
+        "T005": "done"
+      }
+    },
+    "WP02": {
+      "actor": "merge",
+      "agent": "claude",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 0,
+      "lane": "done",
+      "last_event_id": "01M43GXV5W2MJZKVQZMTF84W3Z",
+      "last_transition_at": "2026-10-04T13:16:21.052455+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "Fixture from a589041 + oracle; 8 events (WP text said six leaves but its YAML has five); gates green",
+        "Review passed (reviewer-renata): real a589041 fixture, independent oracle per contracts/cli.md, drift-detecting sanity tests, all gates green"
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review_result": {
+        "feedback_path": "/work/bakeoff-specs-speckitty/kitty-specs/troupe-config-lineage-01M436R0/tasks/WP02-pre-lineage-fixture/review-cycle-1.md",
+        "reference": "review-cycle://troupe-config-lineage-01M436R0/WP02-pre-lineage-fixture/review-cycle-1.md",
+        "reviewer": "user",
+        "verdict": "approved"
+      },
+      "role": "reviewer",
+      "shell_pid": 9997,
+      "shell_pid_created_at": "1791112421.94",
+      "subtasks": {
+        "T006": "done",
+        "T007": "done",
+        "T008": "done"
+      }
+    },
+    "WP03": {
+      "actor": "merge",
+      "agent": "claude",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 0,
+      "lane": "done",
+      "last_event_id": "01M43GXVJP8VS1JK1ANJ61BFN5",
+      "last_transition_at": "2026-10-04T13:16:21.462031+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "Lineage recorded per producer; v2 events upcast on read; actor before locate; set --reason; 1616 passed",
+        "Review passed (reviewer-renata): topics kept, v2 + upcast verified against fixture, one lineage per producer, actor before locate, set --reason after write; mutation-tested; 1616 passed. Non-blocking gaps (empty reason, refused set, watch e2e) covered by WP05 T019/T021"
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review_result": {
+        "feedback_path": "/work/bakeoff-specs-speckitty/kitty-specs/troupe-config-lineage-01M436R0/tasks/WP03-record-lineage/review-cycle-1.md",
+        "reference": "review-cycle://troupe-config-lineage-01M436R0/WP03-record-lineage/review-cycle-1.md",
+        "reviewer": "user",
+        "verdict": "approved"
+      },
+      "role": "reviewer",
+      "shell_pid": 1776,
+      "shell_pid_created_at": "1791114623.55",
+      "subtasks": {
+        "T009": "done",
+        "T010": "done",
+        "T011": "done",
+        "T012": "done",
+        "T013": "done",
+        "T014": "done",
+        "T015": "done"
+      }
+    },
+    "WP04": {
+      "actor": "merge",
+      "agent": "claude",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 0,
+      "lane": "done",
+      "last_event_id": "01M43GXW12ACQ9TGGW4DR3RB29",
+      "last_transition_at": "2026-10-04T13:16:21.922441+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "History prints ten keys in order; existing tests adapted via core()/byte prefixes; full suite green (329 + 1292), mypy/ruff clean",
+        "Review passed (reviewer-renata): ten keys in contract order; adapted tests keep unchanged five-key literals and byte prefixes; _valid_record enforces the contract; orchestrator renamed test_set_event_line_is_exact_json to match its prefix assertion (a7280bf)"
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review_result": {
+        "feedback_path": "/work/bakeoff-specs-speckitty/kitty-specs/troupe-config-lineage-01M436R0/tasks/WP04-history-output/review-cycle-1.md",
+        "reference": "review-cycle://troupe-config-lineage-01M436R0/WP04-history-output/review-cycle-1.md",
+        "reviewer": "user",
+        "verdict": "approved"
+      },
+      "role": "reviewer",
+      "shell_pid": 1818,
+      "shell_pid_created_at": "1791117098.75",
+      "subtasks": {
+        "T016": "done",
+        "T017": "done",
+        "T018": "done"
+      }
+    },
+    "WP05": {
+      "actor": "merge",
+      "agent": "claude",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 0,
+      "lane": "done",
+      "last_event_id": "01M43GXWE756X8SMMXD8GWCJ03",
+      "last_transition_at": "2026-10-04T13:16:22.343609+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "30 acceptance tests + NFR-001 atomicity test; quickstart verified; requirement->test table complete; 1651 passed",
+        "Review passed (reviewer-renata): every US scenario and edge case has a named test via history output; pre-lineage rows compared byte-for-byte; watch tests use deadlines; NFR-001 atomicity test (accepted out-of-map); mutation spot-checks fail as expected"
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review_result": {
+        "feedback_path": "/work/bakeoff-specs-speckitty/kitty-specs/troupe-config-lineage-01M436R0/tasks/WP05-lineage-acceptance/review-cycle-1.md",
+        "reference": "review-cycle://troupe-config-lineage-01M436R0/WP05-lineage-acceptance/review-cycle-1.md",
+        "reviewer": "user",
+        "verdict": "approved"
+      },
+      "role": "reviewer",
+      "shell_pid": 8775,
+      "shell_pid_created_at": "1791118837.04",
+      "subtasks": {
+        "T019": "done",
+        "T020": "done",
+        "T021": "done",
+        "T022": "done",
+        "T023": "done"
+      }
+    }
+  }
+}

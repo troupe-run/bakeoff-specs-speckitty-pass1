@@ -8,6 +8,7 @@ import pytest
 
 from troupe.history import HistoryRecord, HistoryStore
 from troupe.leaves import flatten
+from troupe.lineage import UNKNOWN_ACTOR, import_lineage
 from troupe.loader import load
 from troupe.reconcile import reconcile, watched_files
 from troupe.tree import Node
@@ -49,7 +50,7 @@ def _changes(records: list[HistoryRecord]) -> list[tuple[str, str, object, objec
 
 
 def _imported(store: HistoryStore, write: Write, files: Files) -> None:
-    store.import_leaves(flatten(write(files)))
+    store.import_leaves(flatten(write(files)), import_lineage())
 
 
 def test_reconcile_records_nothing_when_files_equal_recorded_configuration(
@@ -179,6 +180,33 @@ def test_reconcile_never_writes_files(store: HistoryStore, write: Write, state_d
 
     assert len(changes) == 2
     assert {path: (path.read_bytes(), os.stat(path).st_mtime_ns) for path in config} == before
+
+
+def test_reconcile_records_its_changes_as_one_file_change_with_unknown_actor(
+    store: HistoryStore, write: Write
+) -> None:
+    _imported(store, write, {"troupe.yml": "a: 1\nb: 2\nc: 3\n"})
+    imported_change = store.records()[0].lineage.change
+
+    reconcile(store, write({"troupe.yml": "a: 10\nc: 3\nd: new\n"}))
+
+    reconciled = store.records()[3:]
+    assert len(reconciled) == 3
+    [lineage] = {r.lineage for r in reconciled}
+    assert (lineage.actor, lineage.via, lineage.reason) == (UNKNOWN_ACTOR, "file", None)
+    assert lineage.change != imported_change
+
+
+def test_each_reconcile_is_its_own_change(store: HistoryStore, write: Write) -> None:
+    _imported(store, write, {"troupe.yml": "a: 1\nb: 1\n"})
+
+    reconcile(store, write({"troupe.yml": "a: 2\nb: 2\n"}))
+    reconcile(store, write({"troupe.yml": "a: 3\nb: 3\n"}))
+
+    first, second = store.records()[2:4], store.records()[4:6]
+    assert len({r.lineage.change for r in first}) == 1
+    assert len({r.lineage.change for r in second}) == 1
+    assert first[0].lineage.change != second[0].lineage.change
 
 
 def test_watched_files_cover_root_yaml_includes_and_text_includes_at_any_depth(

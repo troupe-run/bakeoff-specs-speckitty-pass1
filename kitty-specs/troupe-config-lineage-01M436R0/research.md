@@ -78,3 +78,12 @@ Each decision below is one the contract leaves open. Choices that are out of con
 - **Decision**: `tests/fixtures/pre_lineage/` holds `troupe.yml` and the `history.sqlite` recorded by the code at commit `a589041`, through an import, a CLI `set` and a hand edit reconciled by `get`. It also holds `make_fixture.py`, which regenerates the fixture from that commit in a temporary git worktree. Tests copy the fixture into a temporary theatre and never use it in place.
 - **Rationale**: it tests the real old on-disk format produced by the real old code (TROUPE-005), not a hand-made imitation.
 - **Alternatives considered**: synthesising version-1 rows by writing SQL directly. Rejected: that tests our own idea of the old format, not the format itself.
+
+## D-10 — Delivery: lenient acceptance and manual integration after the `spec-kitty merge` squash failure (orchestrator's decision; brief silent)
+
+- **Acceptance**: `spec-kitty accept` blocked only on the software-dev path convention "documentation path `docs/`". This repository has never had a `docs/` directory, and creating an empty one would add structure nobody asked for. Acceptance was therefore run with `--lenient`, which downgrades only path-convention checks to warnings. All 14 FR criteria were recorded as `pass` with test evidence.
+- **Merge**: `spec-kitty merge` merged lanes a–e into the coordination branch `kitty/mission-troupe-config-lineage-01M436R0` and recorded WP01–WP05 as `done`. The final squash into `feat/troupe-config-lineage` then conflicted on `meta.json`, because the coordination branch does not carry the planning documents. The tool rolled the squash back. This is the same failure as in step 2 (troupe-config-sync-files research R-11).
+- **Decision**: in one commit, bring `src/`, `tests/`, `acceptance-matrix.json`, `status.json` and the review-cycle records from the coordination branch onto `feat/troupe-config-lineage`, and keep every planning file from this branch. The two disjoint `status.events.jsonl` logs (18 lifecycle events here, 75 lane events there) are combined by `event_id`, giving 93 events with none lost. `spec-kitty merge` is not retried, because a retry can only fail the same way.
+- **Evidence**:
+  - The diff between the coordination branch and the reviewed lane-e branch over `src tests pyproject.toml uv.lock` is empty.
+  - On the resulting tree: `uv run pytest` gives 1652 passed; `uv run mypy --strict`, `uv run ruff check` and `uv run ruff format --check` are clean.

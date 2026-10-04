@@ -13,6 +13,7 @@ import argparse
 from typing import Final
 
 from troupe.errors import PathError
+from troupe.lineage import Actor
 from troupe.paths import lookup, parse_path, unwrap
 from troupe.session import open_session
 from troupe.theatre import Theatre
@@ -22,8 +23,10 @@ from troupe.values import format_scalar, scalar_of
 SECTION_REFUSAL: Final = "{path} is a {kind}, not a scalar; use 'troupe config show {path}'"
 
 
-def run(theatre: Theatre, args: argparse.Namespace) -> str:
+def run(theatre: Theatre, args: argparse.Namespace, actor: Actor) -> str:
     """Return the printed scalar at ``args.path``.
+
+    ``actor`` is unused: a read-only command records no events of its own.
 
     Raises:
         UsageError: If PATH has an empty segment (checked before anything is loaded).

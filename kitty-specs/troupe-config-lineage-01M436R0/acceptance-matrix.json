@@ -1,0 +1,149 @@
+{
+  "mission_slug": "troupe-config-lineage-01M436R0",
+  "mission_number": "",
+  "mission_type": "software-dev",
+  "overall_verdict": "pass",
+  "criteria": [
+    {
+      "criterion_id": "FR-001",
+      "description": "Verify FR-001 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_history.py::test_history_lines_have_lineage_keys_in_contract_order; _valid_record checks every history line \u2014 full suite 1652 passed on lane-e (all WP01-WP05 code, 43910b3) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-04T13:13:37.317271+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-002",
+      "description": "Verify FR-002 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_lineage_cli.py::test_agent_set_with_reason_is_attributed_to_the_agent_via_cli, test_actor_id_is_everything_after_the_first_colon; tests/unit/test_lineage.py::test_human_and_agent_values_give_that_kind_and_id \u2014 full suite 1652 passed on lane-e (all WP01-WP05 code, 43910b3) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-04T13:13:40.958393+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-003",
+      "description": "Verify FR-003 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_lineage_cli.py::test_invalid_actor_exits_2_and_history_is_unchanged; tests/integration/test_lineage_recording.py::test_invalid_troupe_actor_exits_2_naming_the_variable_for_every_command, test_invalid_troupe_actor_is_reported_before_a_missing_or_broken_configuration; test_lineage_changes.py::test_watch_rejects_invalid_actor_before_announcing \u2014 full suite 1652 passed on lane-e (all WP01-WP05 code, 43910b3) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-04T13:13:44.343220+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-004",
+      "description": "Verify FR-004 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_lineage_cli.py::test_unset_actor_is_the_login_name, test_unset_actor_without_login_variables_is_the_password_database_name, test_unset_actor_with_no_determinable_login_is_human_with_null_id \u2014 full suite 1652 passed on lane-e (all WP01-WP05 code, 43910b3) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-04T13:13:47.958624+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-005",
+      "description": "Verify FR-005 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_lineage_changes.py::test_first_command_imports_as_one_change_with_unknown_actor, test_hand_edit_is_recorded_via_file_with_unknown_actor_even_when_troupe_actor_is_set \u2014 full suite 1652 passed on lane-e (all WP01-WP05 code, 43910b3) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-04T13:13:51.426325+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-006",
+      "description": "Verify FR-006 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_lineage_changes.py::test_reconcile_and_set_in_one_command_are_two_changes, test_first_command_imports_as_one_change_with_unknown_actor; test_lineage_cli.py::test_agent_set_with_reason_is_attributed_to_the_agent_via_cli \u2014 full suite 1652 passed on lane-e (all WP01-WP05 code, 43910b3) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-04T13:13:55.037942+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-007",
+      "description": "Verify FR-007 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "_valid_record at regex on every line; tests/integration/test_lineage_changes.py uniform-at-per-change checks; tests/unit/test_lineage.py::test_format_at_converts_to_utc_with_microseconds_and_z \u2014 full suite 1652 passed on lane-e (all WP01-WP05 code, 43910b3) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-04T13:13:58.398269+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-008",
+      "description": "Verify FR-008 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_lineage_cli.py::test_empty_reason_is_stored_as_empty_string, test_reason_with_quotes_newlines_and_non_ascii_round_trips, test_human_actor_without_reason_has_null_reason; test_lineage_recording.py::test_reason_option_is_rejected_on_commands_other_than_set \u2014 full suite 1652 passed on lane-e (all WP01-WP05 code, 43910b3) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-04T13:14:03.366521+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-009",
+      "description": "Verify FR-009 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_lineage_changes.py::test_change_ids_are_never_reused_across_commands, test_set_replacing_several_leaves_is_one_change_sharing_actor_via_at_reason \u2014 full suite 1652 passed on lane-e (all WP01-WP05 code, 43910b3) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-04T13:14:06.865236+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-010",
+      "description": "Verify FR-010 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_lineage_changes.py::test_reconcile_and_set_in_one_command_are_two_changes, test_import_and_set_on_a_new_theatre_are_two_changes \u2014 full suite 1652 passed on lane-e (all WP01-WP05 code, 43910b3) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-04T13:14:11.009193+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-011",
+      "description": "Verify FR-011 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_lineage_changes.py::test_each_watch_reconcile_is_its_own_change; tests/unit/test_reconcile.py::test_each_reconcile_is_its_own_change \u2014 full suite 1652 passed on lane-e (all WP01-WP05 code, 43910b3) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-04T13:14:14.367968+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-012",
+      "description": "Verify FR-012 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_lineage_pre_lineage.py::test_history_survives_restart_byte_identical; tests/unit/test_history_store.py::test_lineage_is_persisted_and_read_back_after_reopen \u2014 full suite 1652 passed on lane-e (all WP01-WP05 code, 43910b3) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-04T13:14:17.717753+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-013",
+      "description": "Verify FR-013 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_lineage_pre_lineage.py::test_pre_lineage_history_prints_known_fields_and_marks_the_rest_unknown, test_reading_pre_lineage_history_does_not_modify_stored_rows (real a589041 fixture) \u2014 full suite 1652 passed on lane-e (all WP01-WP05 code, 43910b3) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-04T13:14:21.170974+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-014",
+      "description": "Verify FR-014 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_lineage_cli.py::test_refused_set_keeps_its_reconcile_but_not_its_reason, test_noop_set_with_reason_records_nothing \u2014 full suite 1652 passed on lane-e (all WP01-WP05 code, 43910b3) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-04T13:14:24.561826+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    }
+  ],
+  "negative_invariants": []
+}

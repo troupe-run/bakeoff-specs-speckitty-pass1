@@ -12,7 +12,7 @@ from typing import Any
 
 import pytest
 
-from conftest import CliResult, MakeTheatre, run_cli, snapshot
+from conftest import CliResult, MakeTheatre, core, run_cli, snapshot
 
 type Files = dict[str, str | bytes]
 
@@ -78,7 +78,7 @@ def test_get_after_hand_edit_prints_new_value_and_records_one_set(
     shown = _get(theatre, "model.temperature")
 
     assert (shown.code, shown.out, shown.err) == (0, "0.5\n", "")
-    assert _history(theatre)[IMPORTED:] == [_event(8, "set", "model.temperature", 0.2, 0.5)]
+    assert core(_history(theatre)[IMPORTED:]) == [_event(8, "set", "model.temperature", 0.2, 0.5)]
     assert snapshot(theatre) == edited
 
 
@@ -88,7 +88,7 @@ def test_key_added_by_hand_records_set_with_old_null(make_theatre: MakeTheatre) 
 
     assert _get(theatre, "model.temperature").code == 0
 
-    assert _history(theatre)[IMPORTED:] == [_event(8, "set", "model.top_p", None, 0.9)]
+    assert core(_history(theatre)[IMPORTED:]) == [_event(8, "set", "model.top_p", None, 0.9)]
     assert snapshot(theatre) == edited
 
 
@@ -98,7 +98,7 @@ def test_list_item_deleted_by_hand_records_remove(make_theatre: MakeTheatre) -> 
 
     assert _get(theatre, "model.name").code == 0
 
-    assert _history(theatre)[IMPORTED:] == [_event(8, "remove", "tools.1", "b", None)]
+    assert core(_history(theatre)[IMPORTED:]) == [_event(8, "remove", "tools.1", "b", None)]
     assert snapshot(theatre) == edited
 
 
@@ -135,7 +135,9 @@ def test_text_include_edited_by_hand_records_one_set_with_old_and_new_text(
 
     assert _get(theatre, "model.name").code == 0
 
-    assert _history(theatre)[IMPORTED:] == [_event(8, "set", "prompt", "Be kind.\n", "Be brief.\n")]
+    assert core(_history(theatre)[IMPORTED:]) == [
+        _event(8, "set", "prompt", "Be kind.\n", "Be brief.\n")
+    ]
     assert snapshot(theatre) == edited
 
 
@@ -148,7 +150,10 @@ def test_history_never_reconciles_but_the_next_get_does(make_theatre: MakeTheatr
     assert _history(theatre) == imported
     assert _get(theatre, "agents.coder.name").out == "Grace\n"
 
-    assert _history(theatre) == [*imported, _event(8, "set", "agents.coder.name", "Ada", "Grace")]
+    assert core(_history(theatre)) == [
+        *core(imported),
+        _event(8, "set", "agents.coder.name", "Ada", "Grace"),
+    ]
     assert snapshot(theatre) == edited
 
 
@@ -161,7 +166,7 @@ def test_set_after_hand_edit_records_reconcile_event_then_set_event(
     result = _set(theatre, "model.temperature", "0.7")
 
     assert (result.code, result.out, result.err) == (0, "", "")
-    assert _history(theatre)[IMPORTED:] == [
+    assert core(_history(theatre)[IMPORTED:]) == [
         _event(8, "set", "model.temperature", 0.2, 0.5),
         _event(9, "set", "model.temperature", 0.5, 0.7),
     ]
@@ -187,7 +192,7 @@ def test_set_failing_after_reconcile_keeps_reconcile_events_and_records_no_set(
 
     assert (result.code, result.out) == (code, "")
     assert path in result.err
-    assert _history(theatre)[IMPORTED:] == [_event(8, "set", "model.name", "gpt", "hand")]
+    assert core(_history(theatre)[IMPORTED:]) == [_event(8, "set", "model.name", "gpt", "hand")]
     assert snapshot(theatre) == edited
 
 
@@ -244,7 +249,7 @@ def test_two_gets_after_one_hand_edit_record_it_once(make_theatre: MakeTheatre) 
     assert _get(theatre, "model.temperature").out == "0.5\n"
     assert _get(theatre, "model.temperature").out == "0.5\n"
 
-    assert _history(theatre)[IMPORTED:] == [_event(8, "set", "model.temperature", 0.2, 0.5)]
+    assert core(_history(theatre)[IMPORTED:]) == [_event(8, "set", "model.temperature", 0.2, 0.5)]
     assert snapshot(theatre) == edited
 
 
@@ -278,7 +283,7 @@ def test_history_built_by_step_one_commands_reconciles_on_get(
 
     assert _get(theatre, "model.temperature").out == "0.9\n"
 
-    assert _history(theatre)[IMPORTED:] == [
+    assert core(_history(theatre)[IMPORTED:]) == [
         _event(8, "set", "model.temperature", 0.2, 0.5),
         _event(9, "set", "tools.2", None, "c"),
         _event(10, "set", "model.temperature", 0.5, 0.9),

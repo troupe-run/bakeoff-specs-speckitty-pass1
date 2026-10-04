@@ -10,7 +10,15 @@ import json
 from pathlib import Path
 from typing import Any
 
-from conftest import HISTORY_PREFIX, CliResult, MakeTheatre, all_files, run_cli, snapshot
+from conftest import (
+    HISTORY_PREFIX,
+    CliResult,
+    MakeTheatre,
+    all_files,
+    core,
+    run_cli,
+    snapshot,
+)
 
 type Files = dict[str, str | bytes]
 
@@ -166,7 +174,7 @@ def test_plain_value_set_to_string_true_is_single_quoted(make_theatre: MakeTheat
     theatre = make_theatre({"troupe.yml": "a: abc\n"})
 
     _set_ok(theatre, "a", '"true"', {"troupe.yml": "a: 'true'\n"}, "true\n")
-    assert _history(theatre)[-1] == {
+    assert core(_history(theatre))[-1] == {
         "seq": 2,
         "op": "set",
         "path": "a",
@@ -352,7 +360,7 @@ def test_lf_text_include_with_mapping_value_gets_the_argument_text(
     theatre = _text_theatre(make_theatre, "You are helpful.\n")
 
     _set_ok(theatre, "prompt", "{a: 1}", _fixture(prompts__sys_md="{a: 1}"), "{a: 1}\n")
-    record = _history(theatre)[-1]
+    record = core(_history(theatre))[-1]
     assert record == {
         "seq": record["seq"],
         "op": "set",

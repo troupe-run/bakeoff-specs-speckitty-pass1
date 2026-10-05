@@ -39,9 +39,11 @@ coder: file:agents/coder.yaml  # c      coder:  # c
 | D-4 | **An include that is a list item is converted the same way.** `- file:a.yaml` becomes `- $ref: file:a.yaml` with the override key on the next line at the item's content column. | The item is itself the include reference, and the file holding the list holds that reference, so the contract's conversion rule and its list rule agree. Items *inside* an included list are not affected: keys under them go to the file holding that list. |
 | D-5 | **Conversion moves the include string's bytes verbatim** (including its quoting) to the `$ref:` line, and keeps the bytes between the removed value and `#` (two spaces in the contract example) so the comment follows the key, as in `coder:  # c`. | Byte preservation (TROUPE-001): the only change is the one the rule requires. |
 | D-6 | **Override keys may not be named `$ref`.** A `set` whose PATH has a `$ref` segment exits 3 and changes no file; `get`/`show` of such a path exits 5 (the merged value has no `$ref` key). | Writing a `$ref` key would silently turn a mapping into an include or retarget one; refusing is the data-safe choice. |
-| D-7 | **Overrides on non-mapping YAML content → exit 4.** A mapping-form include with sibling keys whose YAML target's content is not a mapping (a list, scalar, or empty document) exits 4 naming the target file. Inside the merge, where only one side is a mapping, the override value replaces the included one. | Deep-merging keys into a list or scalar has no meaning; replacing the whole included content would make the include pointless. Nested replacement follows "override wins". |
+| D-7 | **Overrides on non-mapping YAML content → exit 4.** A mapping-form include with sibling keys whose YAML target's content is not a mapping (a list or scalar) exits 4 naming the target file. An empty target file is an empty mapping, as in step 1, so overrides on it are accepted. Inside the merge, where only one side is a mapping, the override value replaces the included one. | Deep-merging keys into a list or scalar has no meaning; replacing the whole included content would make the include pointless. Nested replacement follows "override wins". Empty targets keep the step-1 meaning (corrected during planning, DM 01M46GE1PATR2GJF9SGQ9NAWQ1). |
 | D-8 | **Ancestor defined by both include and override.** When the deepest existing ancestor mapping already has an override mapping in the including file, the new key is added to that override mapping. With `--in-include`, the new key goes into the innermost included file that defines the ancestor; if only an override defines it, into the file holding that override. | Both are the contract rule applied to merged mappings; `--in-include` exists precisely to target the included file. |
 | D-9 | **`--in-include` is accepted only by `set`**, anywhere among its options like `--reason`; other subcommands exit 2. It has no effect on existing values, list appends or keys inside list items. | Mirrors `--reason` (step 4); the contract scopes the flag to writing a new key. |
+| D-10 | **Replacing a partly overridden mapping → exit 3.** `set PATH VALUE` where the mapping at PATH is defined both by an included file and by an override (e.g. `set coder.tools '{x: 1}'` with `tools` in both) exits 3 and changes no file. A collection defined on only one side is replaced in that file as in step 1. | Writing only the override would let the included keys reappear through the merge, so the value would not read back; writing the included file would change the shared file. Neither is what was asked; refusing cannot corrupt anything (TROUPE-002). |
+| D-11 | **Multi-line include string → conversion refused (exit 3).** If converting a scalar-form include is needed and its `file:` string spans more than one line (a block scalar or a wrapped quoted string), the `set` exits 3 and changes no file. | The string cannot be moved verbatim to a single `$ref:` line, and rewriting it would change bytes the user did not ask to change (TROUPE-001). |
 
 ## Domain Language
 
@@ -136,6 +138,8 @@ When a new setting really belongs to every project using the shared file, the ow
 ### Edge Cases
 
 - `$ref` target missing, or an include cycle through `$ref` → exit 4 (step-1 rule, both forms).
+- An empty included file with overrides is an empty mapping merged with the overrides (D-7).
+- Replacing a mapping defined by both the included file and an override exits 3 (D-10); converting an include written as a multi-line string exits 3 (D-11).
 - Overrides may themselves contain includes (scalar or mapping form); they resolve as usual.
 - An override whose value is a mapping where the included value is a scalar (or vice versa) replaces it (D-7).
 - A hand edit that converts an include to mapping form without changing any merged leaf records nothing at reconcile; a hand edit adding an override records the changed leaves as `set` events (step 2).
@@ -159,7 +163,7 @@ When a new setting really belongs to every project using the shared file, the ow
 | FR-009 | Lists stay in their file | As an owner, appending a list item, and adding a new key inside a list item, is written in the file that holds the list. | High | Open |
 | FR-010 | `set --in-include` | As an owner, `set --in-include PATH VALUE` writes a new key into the file that holds its deepest existing ancestor (the step-1 rule), preferring the innermost included file that defines it (D-8); it does not change where existing values, list appends or keys inside list items are written (D-9). | High | Open |
 | FR-011 | `--in-include` only on `set` | As an owner, `--in-include` is accepted only by `set`, combinable with `--reason`; any other subcommand given it exits 2. | Medium | Open |
-| FR-012 | Include replacement and `$ref` paths refused | As an owner, replacing a whole include (either form) still exits 3; a `set` PATH with a `$ref` segment exits 3; in both cases no file changes (D-6). | High | Open |
+| FR-012 | Include replacement and `$ref` paths refused | As an owner, replacing a whole include (either form) still exits 3; a `set` PATH with a `$ref` segment exits 3 (D-6); replacing a partly overridden mapping exits 3 (D-10); a conversion of a multi-line include string exits 3 (D-11); in all cases no file changes. | High | Open |
 | FR-013 | History unchanged in shape | As an owner, a `set` that adds an override records one `set` event per leaf it creates with the usual lineage; converting to mapping form records nothing by itself; reconcile compares merged leaves. | High | Open |
 
 ### Non-Functional Requirements
@@ -175,7 +179,7 @@ When a new setting really belongs to every project using the shared file, the ow
 
 | ID | Title | Constraint | Category | Priority | Status |
 |----|-------|------------|----------|----------|--------|
-| C-001 | Contract as written | The Overrides and In-include sections are implemented as written; out-of-contract choices (D-1…D-9) are recorded here and in project docs, never as contract amendments. | Business | High | Open |
+| C-001 | Contract as written | The Overrides and In-include sections are implemented as written; out-of-contract choices (D-1…D-11) are recorded here and in project docs, never as contract amendments. | Business | High | Open |
 | C-002 | Fixed platform | Python 3.12+ with uv; CLI as `uv run troupe config …`; `eventsourcing` event store under `<theatre>/.troupe/`; macOS/Linux only (TROUPE-004). | Technical | High | Open |
 | C-003 | Earlier behaviour kept | All step 1–4 behaviour (quoting, placement, comments, folded values, history, lineage, reconcile, watch, exit codes) is unchanged except the new-key rule replaced by FR-005/FR-010 and the additions above. Theatres without `$ref` keys behave exactly as before, except new keys under scalar-form includes. | Technical | High | Open |
 | C-004 | Errors name the file | Every new error message names the path or file involved (TROUPE-003). | Technical | Medium | Open |

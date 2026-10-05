@@ -36,5 +36,5 @@
 ## Notes
 
 - The user-facing surface is a CLI over YAML files, so CLI syntax, file names and YAML text are the product's observable behaviour, not implementation detail (same convention as steps 1–4). C-002 restates the fixed platform from the charter (TROUPE-004).
-- Out-of-contract choices D-1…D-9 are recorded in the spec with reasons (TROUPE-008); DM 01M46FYYFFXXZE893KWDP2WJCW resolved by the product owner, DM 01M46G0570NBW27MB152E1ZQ8K delegated to the agent, DM 01M46G22P50PEX048YGJ9TV5N8 cancelled (contract answers it).
+- Out-of-contract choices D-1…D-11 are recorded in the spec with reasons (TROUPE-008); DM 01M46FYYFFXXZE893KWDP2WJCW resolved by the product owner, DM 01M46G0570NBW27MB152E1ZQ8K delegated to the agent, DM 01M46G22P50PEX048YGJ9TV5N8 cancelled (contract answers it). D-10, D-11 and the D-7 correction were added during planning (DM 01M46GE1PATR2GJF9SGQ9NAWQ1).
 - Validation passed on iteration 1.

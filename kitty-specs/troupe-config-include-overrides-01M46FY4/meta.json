@@ -14,9 +14,8 @@
   "accepted_by": "system",
   "accepted_from_commit": "9dfc2bcbfb53ed79202290bf733220b3e080b694",
   "baseline_merge_commit": "f99a8b2d19e80f9bbe0684693b6b29f3baabec77",
-  "coordination_branch": "kitty/mission-troupe-config-include-overrides-01M46FY4",
   "created_at": "2026-10-05T16:56:45.854936+00:00",
-  "flattened": false,
+  "flattened": true,
   "friendly_name": "troupe configuration: keep shared includes shared",
   "mission_id": "01M46FY4WYKMK8GW2V0RC8QQQ7",
   "mission_number": null,
@@ -27,7 +26,6 @@
   "slug": "troupe-config-include-overrides-01M46FY4",
   "status_phase": "1",
   "target_branch": "feat/troupe-config-include-overrides",
-  "topology": "coord",
   "vcs": "git",
   "vcs_locked_at": "2026-10-05T17:17:28.216809+00:00"
 }

@@ -1,0 +1,79 @@
+{
+  "entries": [
+    {
+      "created_at": "2026-10-05T16:57:11.919340Z",
+      "decision_id": "01M46FYYFFXXZE893KWDP2WJCW",
+      "final_answer": "The file holding the nearest include reference (a.yaml), as the contract literally says",
+      "input_key": "nested_include_override_file",
+      "mission_id": "01M46FY4WYKMK8GW2V0RC8QQQ7",
+      "mission_slug": "troupe-config-include-overrides-01M46FY4",
+      "opened_by": "cli",
+      "options": [
+        "The file holding the nearest include reference (a.yaml), as the contract literally says",
+        "The root file (never touch any included file)",
+        "Other"
+      ],
+      "origin_flow": "specify",
+      "other_answer": false,
+      "question": "When the new key's deepest existing ancestor comes from an include nested inside another include (root -> a.yaml -> b.yaml), which file receives the override?",
+      "rationale": null,
+      "resolved_at": "2026-10-05T16:57:43.135152Z",
+      "resolved_by": null,
+      "slot_key": "specify.overrides.nested-include-target",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
+    },
+    {
+      "created_at": "2026-10-05T16:57:51.584638Z",
+      "decision_id": "01M46G0570NBW27MB152E1ZQ8K",
+      "final_answer": "Out of contract; agent choice: exit 4 naming the file and the $ref path. Conservative (TROUPE-002): a malformed include is never silently treated as data and set never writes overrides against a non-include.",
+      "input_key": "malformed_ref_handling",
+      "mission_id": "01M46FY4WYKMK8GW2V0RC8QQQ7",
+      "mission_slug": "troupe-config-include-overrides-01M46FY4",
+      "opened_by": "cli",
+      "options": [
+        "Exit 4 naming the file (cannot be loaded)",
+        "Treat it as an ordinary mapping with a literal $ref key",
+        "Other"
+      ],
+      "origin_flow": "specify",
+      "other_answer": true,
+      "question": "A mapping has a $ref key whose value is not an include string (e.g. $ref: 5, $ref: agents/coder.yaml without file:). What happens?",
+      "rationale": null,
+      "resolved_at": "2026-10-05T16:58:51.155470Z",
+      "resolved_by": null,
+      "slot_key": "specify.overrides.malformed-ref",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
+    },
+    {
+      "created_at": "2026-10-05T16:58:54.533683Z",
+      "decision_id": "01M46G22P50PEX048YGJ9TV5N8",
+      "final_answer": null,
+      "input_key": "in_include_existing_overridden",
+      "mission_id": "01M46FY4WYKMK8GW2V0RC8QQQ7",
+      "mission_slug": "troupe-config-include-overrides-01M46FY4",
+      "opened_by": "cli",
+      "options": [
+        "Flag ignored: the override is changed, as without the flag",
+        "Change the value in the included file (override still wins, no visible effect)",
+        "Exit with an error",
+        "Other"
+      ],
+      "origin_flow": "specify",
+      "other_answer": false,
+      "question": "set --in-include on an existing value that is overridden in the including file: what happens?",
+      "rationale": "Contract answers it: In-include governs only new keys; Overrides says an existing overridden value changes the override. --in-include has no effect on existing values.",
+      "resolved_at": "2026-10-05T16:59:08.598375Z",
+      "resolved_by": null,
+      "slot_key": "specify.in-include.existing-overridden",
+      "status": "canceled",
+      "step_id": null,
+      "summary_json": null
+    }
+  ],
+  "mission_id": "01M46FY4WYKMK8GW2V0RC8QQQ7",
+  "version": 1
+}

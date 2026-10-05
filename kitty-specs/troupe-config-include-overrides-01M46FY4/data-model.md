@@ -6,13 +6,14 @@
 |---|---|---|
 | `YamlInclude` | `holder: MappingNode \| None` | The mapping that holds this include as `$ref` (mapping form without overrides); `None` for scalar form. |
 | `TextInclude` | `holder: MappingNode \| None` | Same; a text include never has overrides. |
-| `MergedMapping(MappingNode)` | `base: MappingNode`, `override: MappingNode`, `ref: YamlInclude \| None` | Merged view: `entries` = base keys in base order (value from override where present, nested `MergedMapping` where both are mappings) then override-only keys. `ref` set only at the top of a mapping-form include; `override` is then the holder mapping (its `$ref` entry excluded from `entries`). |
+| `MergedMapping(MappingNode)` | `base: Node`, `override: Node`, `ref: YamlInclude \| None` | Merged view. `base` and `override` are kept **as found** (each may be a `YamlInclude`, a `MergedMapping` or a plain `MappingNode`); `entries` = keys of `unwrap(base)` in order (value from `unwrap(override)` where present, nested `MergedMapping` where both values unwrap to mappings) then override-only keys. `ref` is set only at the top of a mapping-form include; `override` is then the holder mapping, whose `$ref` entry is excluded from `entries`. |
 
 Invariants:
 
 - No `$ref` key appears in any merged view (`entries`) or flattened leaf path.
 - Every `ScalarNode`/`TextInclude` in the view keeps its own `Origin` (its source file).
-- A `MergedMapping` is never written through directly: placements only carry concrete `MappingNode`/`SequenceNode`s.
+- A `MergedMapping` is never written through directly: placements only carry concrete `MappingNode`/`SequenceNode`s. The concrete parent of an existing node is found by identity in the tree's concrete sides (`placement.concrete_parent`), never taken from a merged view.
+- The include reference of a concrete mapping D is the `YamlInclude` on PATH's route (including base/override sides of merged mappings, include chains peeled) whose `target` is `D.origin.file`; the deepest such one is the *nearest*.
 
 ## Placements (`troupe/writeback/placement.py`)
 

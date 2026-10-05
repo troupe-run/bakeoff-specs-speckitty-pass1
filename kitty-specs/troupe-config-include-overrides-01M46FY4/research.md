@@ -4,7 +4,7 @@ Product-level out-of-contract choices are spec D-1…D-11. The decisions here ar
 
 ## R-1 — How a merged mapping is represented
 
-- **Decision**: `MergedMapping` is a dataclass subclass of `MappingNode` with extra fields `base: MappingNode`, `override: MappingNode` and `ref: YamlInclude | None` (set only at the top of a mapping-form include). Its `entries` are the merged view; `origin` is the override mapping's origin; `flow` is the base's (the view's shape for verification). `YamlInclude` and `TextInclude` gain `holder: MappingNode | None`, the mapping that holds them as `$ref` (None for scalar form).
+- **Decision**: `MergedMapping` is a dataclass subclass of `MappingNode` with extra fields `base: Node`, `override: Node` (both kept as found, so an override that is itself an include, or a nested mapping-form include, is handled by the same rules) and `ref: YamlInclude | None` (set only at the top of a mapping-form include). Its `entries` are the merged view; `origin` is the override mapping's origin; `flow` is the base's (the view's shape for verification). `YamlInclude` and `TextInclude` gain `holder: MappingNode | None`, the mapping that holds them as `$ref` (None for scalar form).
 - **Rationale**: every reader (`paths.walk`, `leaves.flatten`, `yamlout`, `values.scalar_of`, `_matches`) already handles `MappingNode`, so the merged view is correct for them without new branches; every scalar keeps its own `Origin`, so `show --sources` attributes overrides to the including file for free. Writers go through `placement.py`, which always resolves a merged mapping to one concrete side.
 - **Alternatives considered**: a separate `RefInclude` node type (rejected: a new branch in ~8 modules); merging into plain `MappingNode`s without keeping sides (rejected: placement could not tell where a key lives).
 
@@ -13,16 +13,16 @@ Product-level out-of-contract choices are spec D-1…D-11. The decisions here ar
 - A raw mapping with a `$ref` key: its value must be a scalar whose string starts `file:`, else `LoadError` naming file and `<path>.$ref` (spec D-1). The include resolves like a scalar-form include (same relative-path, missing-target and cycle rules).
 - No siblings → return the include node with `holder` set (YAML or text).
 - Siblings → text target: `LoadError` (contract). YAML target whose unwrapped root is not a mapping: `LoadError` (D-7; an empty file is already an empty mapping). Otherwise convert the siblings as an ordinary mapping (they may contain includes, including mapping-form) and `deep_merge(unwrap(root), overrides)`.
-- `deep_merge(base, override)`: for each base key in order, if the override has the key: if both unwrapped values are mappings → nested `MergedMapping(ref=None)`, else the override value; otherwise the base value. Then override-only keys in override order. Key/entry objects are reused, not copied.
+- `deep_merge(base, override)`: for each base key in order, if the override has the key: if both unwrapped values are mappings → nested `MergedMapping(base=<base value as found>, override=<override value as found>, ref=None)`, else the override value; otherwise the base value. Then override-only keys in override order. Key/entry objects are reused, not copied.
 - **Rationale**: one pure function holds the merge rule (TROUPE-007), the loader only recognises `$ref`.
 
 ## R-3 — Nearest include reference and the list rule
 
-- **Decision**: `place` walks the found nodes from the root and remembers, for each step, the last include reference seen (a `YamlInclude`, or a `MergedMapping` with `ref`) and whether a `SequenceNode` has been passed since. For a new key under deepest existing ancestor D:
-  - D is a `MergedMapping` → `AddKeys(D.override, keys)` (applied recursively if the override side itself is an include or merged mapping).
-  - Else if there is an include reference R above D and no list between R and D → override at R: follow the route R→D through the override tree (R's holder or override mapping); the deepest existing override mapping gets `AddKeys(..., route_rest + keys)`; if R is a scalar-form include → `ConvertInclude(R, route + keys)`.
-  - Else → `AddKeys(D, keys)` (step-1).
-  - `--in-include` → step-1 on the merged view: D is a `MergedMapping` → recurse into `D.base` (innermost included side, spec D-8); else `AddKeys(D, keys)`.
+- **Decision** (refined while writing tasks; same behaviour as approved): for a new key under deepest existing ancestor D (`unwrap(found.nodes[-1])`):
+  - **D is a `MergedMapping`** → the key goes to its override side (spec D-8): `_on_side(D.override, keys)`; with `--in-include`, to its base side `_on_side(D.base, keys)`. `_on_side(node, keys)`: plain `MappingNode` → `AddKeys(node, keys)`; `MergedMapping` → recurse into the same side; `YamlInclude` with `holder` → `AddKeys(holder, keys)` (or, with `--in-include`, recurse into its root); scalar-form `YamlInclude` → `ConvertInclude(include, keys)` (with `--in-include`, recurse into its root).
+  - **D is concrete, `--in-include`** → `AddKeys(D, keys)` (step-1).
+  - **D is concrete** → let F = `D.origin.file`. The *nearest include reference* R is the deepest `YamlInclude` on the route (depths 0…k, peeling include chains and looking at both sides of merged mappings) whose `target` is F. If there is none (F is the root file), or a `SequenceNode` lies on the route between R and D → `AddKeys(D, keys)` (step-1; "a new key inside a list item is written in the file that holds the list"). Otherwise, with `route` = the PATH segments from R down to D: R has a `holder` → `AddKeys(holder, route + keys)`; R is the `ref` of a top `MergedMapping` M → descend `M.override` along `route` through existing plain override mappings and `AddKeys` at the deepest one with the rest; else (scalar form) → `ConvertInclude(R, route + keys)`.
+  - The concrete parent collection and slot of an existing node or of R (for `ReplaceScalar`, `ReplaceCollection`, `ConvertInclude`) is found by identity search over concrete sides (`concrete_parent(root, node)`), never from a merged view.
 - **Rationale**: this is the contract text ("deepest existing ancestor comes from an included file … the file that contains the include reference"; "a new key inside a list item is written in the file that holds the list") with PO answer DM 01M46FYYFFXXZE893KWDP2WJCW for nesting.
 
 ## R-4 — Refusals in placement

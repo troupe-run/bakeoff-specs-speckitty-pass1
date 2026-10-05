@@ -1,7 +1,9 @@
 """Command-line parsing and dispatch for ``troupe config`` (FR-001, FR-006, FR-008).
 
-Commands: ``get PATH``, ``show [PATH] [--sources]``, ``set PATH VALUE [--reason TEXT]``,
-``history [PATH]`` and ``watch``.
+Commands: ``get PATH``, ``show [PATH] [--sources]``,
+``set PATH VALUE [--reason TEXT] [--in-include]``, ``history [PATH]`` and ``watch``.
+``--in-include`` exists only on ``set`` (FR-011, D-9): given to any other command, argparse
+reports an unrecognised argument, a ``UsageError`` (exit 2) like any other bad option.
 
 ``TROUPE_ACTOR`` is resolved once, here, right after the arguments are parsed and before the
 theatre is located (FR-003, spec DM 01M436TPQDWVSZQYFD6D5343DC). An invalid value is a
@@ -84,6 +86,11 @@ def build_parser() -> argparse.ArgumentParser:
     set_.add_argument("value", metavar="VALUE")
     set_.add_argument(
         "--reason", metavar="TEXT", default=None, help="record TEXT as the reason for this change"
+    )
+    set_.add_argument(
+        "--in-include",
+        action="store_true",
+        help="write a new key into the included file instead of an override in the including file",
     )
     history = commands.add_parser("history", help="print recorded changes as JSON Lines")
     history.add_argument("path", metavar="PATH", nargs="?", default=None)

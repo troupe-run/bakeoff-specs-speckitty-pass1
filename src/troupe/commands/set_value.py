@@ -1,5 +1,10 @@
 """``troupe config set PATH VALUE``: change one value byte-surgically, record it (FR-010..023).
 
+``--in-include`` (include-overrides FR-010) is passed through to ``apply_set``: a new key under
+included content goes into the included file instead of becoming an override in the including
+file. Recording is the same with or without it (FR-013): one event per changed leaf, with the
+usual lineage; converting an include to mapping form changes no leaf, so it records nothing.
+
 Order (plan "Engineering Alignment"; research R-04, R-12, R-17):
 
 1. Parse PATH and VALUE: a usage error (exit 2) happens before anything is loaded, imported or
@@ -39,6 +44,7 @@ def run(theatre: Theatre, args: argparse.Namespace, actor: Actor) -> str:
     """Set ``args.path`` to ``args.value``; return the (empty) stdout text.
 
     The set's own events are attributed to ``actor``, via ``cli``, with ``args.reason``.
+    ``args.in_include`` selects the included file for a new key (``set --in-include``).
 
     Raises:
         UsageError: If PATH has an empty segment or VALUE is not one YAML flow node (exit 2).
@@ -49,10 +55,11 @@ def run(theatre: Theatre, args: argparse.Namespace, actor: Actor) -> str:
     path: str = args.path
     raw_value: str = args.value
     reason: str | None = args.reason
+    in_include: bool = args.in_include
     segments = parse_path(path)
     value = parse_value(raw_value)
     with open_session(theatre, reconcile=True) as session:
-        plan = apply_set(session.tree, segments, path, value, raw_value)
+        plan = apply_set(session.tree, segments, path, value, raw_value, in_include=in_include)
         if plan.tree is None:
             return ""
         changes = diff(flatten(session.tree), flatten(plan.tree))

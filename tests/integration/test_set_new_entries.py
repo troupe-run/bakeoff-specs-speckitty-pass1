@@ -17,8 +17,8 @@ from conftest import CliResult, MakeTheatre, run_cli, snapshot
 type Files = dict[str, str | bytes]
 
 
-def _set(theatre: Path, path: str, value: str) -> CliResult:
-    return run_cli("config", "set", path, value, "--theatre", str(theatre))
+def _set(theatre: Path, path: str, value: str, *flags: str) -> CliResult:
+    return run_cli("config", "set", path, value, *flags, "--theatre", str(theatre))
 
 
 def _get(theatre: Path, path: str) -> str:
@@ -47,10 +47,13 @@ def _check(
     value: str,
     expected: Files,
     shown: dict[str, str],
+    *,
+    in_include: bool = False,
 ) -> Path:
     """Build ``files``, run ``set``, assert every file's bytes and ``get`` of each leaf."""
     theatre = make_theatre(files)
-    result = _set(theatre, path, value)
+    flags = ["--in-include"] if in_include else []
+    result = _set(theatre, path, value, *flags)
     assert (result.code, result.out, result.err) == (0, "", "")
     assert snapshot(theatre) == _bytes({**files, **expected})
     for leaf, printed in shown.items():
@@ -163,7 +166,43 @@ def test_new_key_without_sibling_is_plain_or_minimally_quoted(make_theatre: Make
     )
 
 
-def test_new_key_goes_into_included_files_mapping(make_theatre: MakeTheatre) -> None:
+# Overrides (step 5) replaces rule 2 under set; the step-1 behaviour is now `--in-include`.
+
+
+def test_new_key_under_included_mapping_becomes_override_in_including_file(
+    make_theatre: MakeTheatre,
+) -> None:
+    files: Files = {
+        "troupe.yml": "agents:\n  coder: file:agents/coder.yaml\n",
+        "agents/coder.yaml": "name: Ada\n",
+    }
+    _check(
+        make_theatre,
+        files,
+        "agents.coder.limits.level",
+        "3",
+        {
+            "troupe.yml": (
+                "agents:\n  coder:\n    $ref: file:agents/coder.yaml\n    limits:\n      level: 3\n"
+            )
+        },
+        {"agents.coder.limits.level": "3\n", "agents.coder.name": "Ada\n"},
+    )
+
+
+def test_new_key_under_empty_included_file_becomes_override(make_theatre: MakeTheatre) -> None:
+    files: Files = {"troupe.yml": "extra: file:extra.yml\n", "extra.yml": ""}
+    _check(
+        make_theatre,
+        files,
+        "extra.a",
+        "1",
+        {"troupe.yml": "extra:\n  $ref: file:extra.yml\n  a: 1\n"},
+        {"extra.a": "1\n"},
+    )
+
+
+def test_in_include_new_key_goes_into_included_files_mapping(make_theatre: MakeTheatre) -> None:
     files: Files = {
         "troupe.yml": "agents:\n  coder: file:agents/coder.yaml\n",
         "agents/coder.yaml": "name: Ada\n",
@@ -175,10 +214,11 @@ def test_new_key_goes_into_included_files_mapping(make_theatre: MakeTheatre) -> 
         "3",
         {"agents/coder.yaml": "name: Ada\nlimits:\n  level: 3\n"},
         {"agents.coder.limits.level": "3\n"},
+        in_include=True,
     )
 
 
-def test_new_key_into_empty_included_file(make_theatre: MakeTheatre) -> None:
+def test_in_include_new_key_into_empty_included_file(make_theatre: MakeTheatre) -> None:
     files: Files = {"troupe.yml": "extra: file:extra.yml\n", "extra.yml": ""}
     _check(
         make_theatre,
@@ -187,6 +227,7 @@ def test_new_key_into_empty_included_file(make_theatre: MakeTheatre) -> None:
         "1",
         {"extra.yml": "a: 1\n"},
         {"extra.a": "1\n"},
+        in_include=True,
     )
 
 

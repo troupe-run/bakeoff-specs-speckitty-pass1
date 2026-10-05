@@ -1,0 +1,101 @@
+{
+  "event_count": 40,
+  "last_event_id": "01M46TXHJ962XXM7YYSRTQDGGT",
+  "materialized_at": "2026-10-05T20:08:40.265175+00:00",
+  "mission_number": "",
+  "mission_slug": "troupe-config-include-overrides-01M46FY4",
+  "mission_type": "",
+  "summary": {
+    "approved": 0,
+    "blocked": 0,
+    "canceled": 0,
+    "claimed": 0,
+    "done": 5,
+    "for_review": 0,
+    "in_progress": 0,
+    "in_review": 0,
+    "planned": 0
+  },
+  "work_packages": {
+    "WP01": {
+      "actor": "merge",
+      "agent": "claude",
+      "force_count": 0,
+      "lane": "done",
+      "last_event_id": "01M46TXFXTWKHYAWMYVGPMKQKV",
+      "last_transition_at": "2026-10-05T20:08:38.586281+00:00",
+      "review_result": {
+        "feedback_path": "/work/bakeoff-specs-speckitty/kitty-specs/troupe-config-include-overrides-01M46FY4/tasks/WP01-mapping-form-load/review-cycle-1.md",
+        "reference": "review-cycle://troupe-config-include-overrides-01M46FY4/WP01-mapping-form-load/review-cycle-1.md",
+        "reviewer": "user",
+        "verdict": "approved"
+      },
+      "shell_pid": 252,
+      "shell_pid_created_at": "1791220643.46"
+    },
+    "WP02": {
+      "actor": "merge",
+      "agent": "claude",
+      "force_count": 0,
+      "lane": "done",
+      "last_event_id": "01M46TXGAEZ4ECDC2A4ZG2797R",
+      "last_transition_at": "2026-10-05T20:08:38.990950+00:00",
+      "review_result": {
+        "feedback_path": "/work/bakeoff-specs-speckitty/kitty-specs/troupe-config-include-overrides-01M46FY4/tasks/WP02-include-conversion-edits/review-cycle-1.md",
+        "reference": "review-cycle://troupe-config-include-overrides-01M46FY4/WP02-include-conversion-edits/review-cycle-1.md",
+        "reviewer": "user",
+        "verdict": "approved"
+      },
+      "shell_pid": 252,
+      "shell_pid_created_at": "1791220643.46"
+    },
+    "WP03": {
+      "actor": "merge",
+      "agent": "claude",
+      "force_count": 0,
+      "lane": "done",
+      "last_event_id": "01M46TXGRC86B7KANE63C2SYZV",
+      "last_transition_at": "2026-10-05T20:08:39.436705+00:00",
+      "review_result": {
+        "feedback_path": "/work/bakeoff-specs-speckitty/kitty-specs/troupe-config-include-overrides-01M46FY4/tasks/WP03-placement-overrides/review-cycle-1.md",
+        "reference": "review-cycle://troupe-config-include-overrides-01M46FY4/WP03-placement-overrides/review-cycle-1.md",
+        "reviewer": "user",
+        "verdict": "approved"
+      },
+      "shell_pid": 315,
+      "shell_pid_created_at": "1791223070.6"
+    },
+    "WP04": {
+      "actor": "merge",
+      "agent": "claude",
+      "force_count": 1,
+      "lane": "done",
+      "last_event_id": "01M46TXH578KP5G12AY745SS1B",
+      "last_transition_at": "2026-10-05T20:08:39.847152+00:00",
+      "review_result": {
+        "feedback_path": "/work/bakeoff-specs-speckitty/kitty-specs/troupe-config-include-overrides-01M46FY4/tasks/WP04-set-wiring-and-stories/review-cycle-2.md",
+        "reference": "review-cycle://troupe-config-include-overrides-01M46FY4/WP04-set-wiring-and-stories/review-cycle-2.md",
+        "reviewer": "user",
+        "verdict": "approved"
+      },
+      "shell_pid": 4798,
+      "shell_pid_created_at": "1791227358.28"
+    },
+    "WP05": {
+      "actor": "merge",
+      "agent": "claude",
+      "force_count": 0,
+      "lane": "done",
+      "last_event_id": "01M46TXHJ962XXM7YYSRTQDGGT",
+      "last_transition_at": "2026-10-05T20:08:40.265175+00:00",
+      "review_result": {
+        "feedback_path": "/work/bakeoff-specs-speckitty/kitty-specs/troupe-config-include-overrides-01M46FY4/tasks/WP05-overrides-acceptance/review-cycle-1.md",
+        "reference": "review-cycle://troupe-config-include-overrides-01M46FY4/WP05-overrides-acceptance/review-cycle-1.md",
+        "reviewer": "user",
+        "verdict": "approved"
+      },
+      "shell_pid": 10233,
+      "shell_pid_created_at": "1791228397.86"
+    }
+  }
+}

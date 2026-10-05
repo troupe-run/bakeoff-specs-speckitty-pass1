@@ -1,0 +1,31 @@
+{
+  "accept_commit": "6f521397db3c8a26db2752ac3acb3b7d2619a0cc",
+  "acceptance_history": [
+    {
+      "accept_commit": "6f521397db3c8a26db2752ac3acb3b7d2619a0cc",
+      "acceptance_mode": "pr",
+      "accepted_at": "2026-10-05T20:07:42.370237+00:00",
+      "accepted_by": "system",
+      "accepted_from_commit": "9dfc2bcbfb53ed79202290bf733220b3e080b694"
+    }
+  ],
+  "acceptance_mode": "pr",
+  "accepted_at": "2026-10-05T20:07:42.370237+00:00",
+  "accepted_by": "system",
+  "accepted_from_commit": "9dfc2bcbfb53ed79202290bf733220b3e080b694",
+  "baseline_merge_commit": "f99a8b2d19e80f9bbe0684693b6b29f3baabec77",
+  "created_at": "2026-10-05T16:56:45.854936+00:00",
+  "flattened": true,
+  "friendly_name": "troupe configuration: keep shared includes shared",
+  "mission_id": "01M46FY4WYKMK8GW2V0RC8QQQ7",
+  "mission_number": null,
+  "mission_slug": "troupe-config-include-overrides-01M46FY4",
+  "mission_type": "software-dev",
+  "purpose_context": "Included YAML files are shared between projects. Step 5 (CR-A) introduces mapping-form includes ($ref plus override keys, deep-merged) and changes set so that new keys under an included section become overrides in the including file, while existing settings are still changed where they live.",
+  "purpose_tldr": "Adding a new setting under an included section writes an override in the including file instead of modifying the shared include.",
+  "slug": "troupe-config-include-overrides-01M46FY4",
+  "status_phase": "1",
+  "target_branch": "feat/troupe-config-include-overrides",
+  "vcs": "git",
+  "vcs_locked_at": "2026-10-05T17:17:28.216809+00:00"
+}

@@ -52,3 +52,10 @@ Product-level out-of-contract choices are spec D-1…D-11. The decisions here ar
 
 - Integration tests per spec scenario with byte snapshots of the whole theatre directory (except `history.sqlite`); unit tests for `deep_merge`, placement decisions and conversion edits.
 - Updated by contract: `test_new_key_goes_into_included_files_mapping` and `test_new_key_into_empty_included_file` (`tests/integration/test_set_new_entries.py`) now expect overrides in the including file; their `--in-include` variants keep the step-1 expectation.
+
+## R-9 — Post-merge `/spec-kitty.accept` run
+
+- **Situation**: after delivery to `main` (`ded0223`) and the mission review (`b18a000`), `spec-kitty agent mission accept --mission troupe-config-include-overrides-01M46FY4` blocked for two reasons: it refuses to run on `main` (it must run on the mission or target branch), and the repository has no `docs/` directory (the software-dev path convention).
+- **Decision** (same as the lineage mission's D-11; confirmed by the product owner with "Please continue"): change no code and add no files to the project. `feat/troupe-config-include-overrides` was fast-forwarded to `main`, acceptance was re-run there with `--lenient` (which relaxes only the `docs/` path-convention check), giving acceptance commit `bb6b119`, and `main` was fast-forwarded to it.
+- **Rationale**: an empty `docs/` adds structure no one asked for (TROUPE-007/-008); forcing acceptance on `main` would hide the branch rule rather than satisfy it.
+- **Evidence**: `git diff b18a000 b4fcfcd` touches only `kitty-specs/troupe-config-include-overrides-01M46FY4/meta.json`; the diff over `src tests pyproject.toml uv.lock` is empty, so the tested code is unchanged (1848 passed, mypy --strict and ruff clean). The pre-merge acceptance (`6f52139`) already recorded all 13 FR criteria as `pass` with test evidence.

@@ -4,7 +4,7 @@
 
 | Node | New / changed fields | Meaning |
 |---|---|---|
-| `YamlInclude` | `holder: MappingNode \| None` | The mapping that holds this include as `$ref` (mapping form without overrides); `None` for scalar form. |
+| `YamlInclude` | `holder: MappingNode \| None` | The mapping that holds this include as its `$ref` value (mapping form, with or without overrides; for a merged include it is the merged view's `override`); `None` for scalar form. Excluded from equality and repr (the holder's `$ref` entry points back at the include). |
 | `TextInclude` | `holder: MappingNode \| None` | Same; a text include never has overrides. |
 | `MergedMapping(MappingNode)` | `base: Node`, `override: Node`, `ref: YamlInclude \| None` | Merged view. `base` and `override` are kept **as found** (each may be a `YamlInclude`, a `MergedMapping` or a plain `MappingNode`); `entries` = keys of `unwrap(base)` in order (value from `unwrap(override)` where present, nested `MergedMapping` where both values unwrap to mappings) then override-only keys. `ref` is set only at the top of a mapping-form include; `override` is then the holder mapping, whose `$ref` entry is excluded from `entries`. |
 
@@ -22,7 +22,7 @@ Invariants:
 | `ReplaceScalar` / `ReplaceText` / `ReplaceCollection` | existing value (one-sided) | the file holding it |
 | `AppendItem` | index = list length | the list's file |
 | `AddKeys(mapping, keys)` | new key: step-1, `--in-include`, or existing override mapping | `mapping.origin.file` |
-| `ConvertInclude(include, keys)` (NEW) | new key at a scalar-form include reference | the including file |
+| `ConvertInclude(include, parent, slot, keys)` (NEW; `parent=None` when the include is the whole document) | new key at a scalar-form include reference | the including file |
 | refusal (exit 3) | whole include; `MergedMapping` with or without `ref`; `$ref` segment; multi-line include string | none |
 
 ## Load errors (exit 4)

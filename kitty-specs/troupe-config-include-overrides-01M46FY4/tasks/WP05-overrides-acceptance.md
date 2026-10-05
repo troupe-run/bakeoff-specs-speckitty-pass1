@@ -20,7 +20,7 @@ history:
 - at: '2026-10-05T17:30:00Z'
   actor: system
   action: Prompt generated via /spec-kitty.tasks
-agent_profile: reviewer-renata
+agent_profile: python-pedro
 authoritative_surface: tests/integration/test_overrides_acceptance.py
 create_intent:
 - tests/integration/test_overrides_acceptance.py
@@ -28,6 +28,8 @@ execution_mode: code_change
 owned_files:
 - tests/integration/test_overrides_acceptance.py
 role: implementer
+agent: claude
+model: ''
 tags: []
 task_type: implement
 tracker_refs: []

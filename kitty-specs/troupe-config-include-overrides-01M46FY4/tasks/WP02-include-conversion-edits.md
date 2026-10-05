@@ -26,6 +26,8 @@ owned_files:
 - src/troupe/writeback/collections.py
 - tests/unit/test_collections.py
 role: implementer
+agent: claude
+model: ''
 tags: []
 task_type: implement
 tracker_refs: []

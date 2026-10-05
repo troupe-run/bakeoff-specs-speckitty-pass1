@@ -41,6 +41,8 @@ owned_files:
 - tests/integration/test_set_overrides.py
 - tests/integration/test_set_in_include.py
 role: implementer
+agent: claude
+model: ''
 tags: []
 task_type: implement
 tracker_refs: []

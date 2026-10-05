@@ -41,6 +41,8 @@ owned_files:
 - tests/integration/test_loading_ref.py
 - tests/integration/test_reads_overrides.py
 role: implementer
+agent: claude
+model: ''
 tags: []
 task_type: implement
 tracker_refs: []

@@ -33,6 +33,8 @@ owned_files:
 - src/troupe/writeback/placement.py
 - tests/unit/test_placement_overrides.py
 role: implementer
+agent: claude
+model: ''
 tags: []
 task_type: implement
 tracker_refs: []

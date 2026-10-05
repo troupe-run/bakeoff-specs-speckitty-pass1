@@ -24,7 +24,6 @@
   "purpose_context": "Included YAML files are shared between projects. Step 5 (CR-A) introduces mapping-form includes ($ref plus override keys, deep-merged) and changes set so that new keys under an included section become overrides in the including file, while existing settings are still changed where they live.",
   "purpose_tldr": "Adding a new setting under an included section writes an override in the including file instead of modifying the shared include.",
   "slug": "troupe-config-include-overrides-01M46FY4",
-  "status_phase": "1",
   "target_branch": "feat/troupe-config-include-overrides",
   "topology": "coord",
   "vcs": "git",

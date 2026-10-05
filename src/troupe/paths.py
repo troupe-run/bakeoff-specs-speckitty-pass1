@@ -4,6 +4,9 @@ Walking is include-aware: a ``YamlInclude`` is transparent and the walk continue
 ``root``. ``Walk.nodes`` deliberately holds the node *as found* at each step (not unwrapped), so
 a caller can tell that the whole value at a path comes from a YAML include
 (``isinstance(walk.nodes[-1], YamlInclude)``); use ``unwrap`` to get the embedded content.
+
+Mapping-form includes need nothing here (FR-004): a ``MergedMapping`` is a ``MappingNode``, so
+``walk`` reads its merged view (no ``$ref`` key), and ``unwrap`` never needs to unwrap one.
 """
 
 from dataclasses import dataclass

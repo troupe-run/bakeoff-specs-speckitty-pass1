@@ -1,20 +1,185 @@
 {
-  "event_count": 0,
-  "last_event_id": null,
-  "materialized_at": "",
-  "mission_number": "",
-  "mission_slug": "",
+  "event_count": 40,
+  "last_event_id": "01M46TXHJ962XXM7YYSRTQDGGT",
+  "materialized_at": "2026-10-05T20:08:40.265175+00:00",
+  "mission_number": "1",
+  "mission_slug": "troupe-config-include-overrides-01M46FY4",
   "mission_type": "software-dev",
   "summary": {
     "approved": 0,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
-    "done": 0,
+    "done": 5,
     "for_review": 0,
     "in_progress": 0,
     "in_review": 0,
     "planned": 0
   },
-  "work_packages": {}
+  "work_packages": {
+    "WP01": {
+      "actor": "merge",
+      "agent": "claude",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 0,
+      "lane": "done",
+      "last_event_id": "01M46TXFXTWKHYAWMYVGPMKQKV",
+      "last_transition_at": "2026-10-05T20:08:38.586281+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "Ready for review: mapping-form $ref includes load into MergedMapping views (merge.deep_merge, loader D-1/D-7 errors, watched_files both sides); pytest 1686 passed, mypy --strict Success, ruff check/format clean",
+        "Review passed: T001-T007 delivered; $ref converted once and reused; merge rule only in merge.py with node identity reused; D-1/D-7/non-YAML errors name file and path; empty target accepted; watched_files follows base+override (hidden base includes covered). Gates: 34 targeted + 1686 full pytest passed, mypy --strict, ruff check, ruff format --check clean. Shared files: src/troupe/tree.py/loader.py may be touched by WP03/WP04 - rebase on WP01."
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review_result": {
+        "feedback_path": "/work/bakeoff-specs-speckitty/kitty-specs/troupe-config-include-overrides-01M46FY4/tasks/WP01-mapping-form-load/review-cycle-1.md",
+        "reference": "review-cycle://troupe-config-include-overrides-01M46FY4/WP01-mapping-form-load/review-cycle-1.md",
+        "reviewer": "user",
+        "verdict": "approved"
+      },
+      "role": "reviewer",
+      "shell_pid": 4298,
+      "shell_pid_created_at": "1791222438.64",
+      "subtasks": {
+        "T001": "done",
+        "T002": "done",
+        "T003": "done",
+        "T004": "done",
+        "T005": "done",
+        "T006": "done",
+        "T007": "done"
+      }
+    },
+    "WP02": {
+      "actor": "merge",
+      "agent": "claude",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 0,
+      "lane": "done",
+      "last_event_id": "01M46TXGAEZ4ECDC2A4ZG2797R",
+      "last_transition_at": "2026-10-05T20:08:38.990950+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "Ready for review: convert_include_edits (block key line keeps comment gap per D-5, value-on-next-line, block list item D-4, document root incl. BOM, flow mapping/list D-3, D-11 multi-line refusal exit 3) + 28 unit tests on real theatre files with byte-exact expectations. Not yet called: WP04 wires it. Gates: pytest 1680 passed; mypy --strict no issues (67 files); ruff check all passed; ruff format --check 71 files already formatted. Commit 7e6c7fe.",
+        "Review passed: convert_include_edits covers block key-line (contract example byte-exact), next-line value, block list item, document root (BOM-safe), flow mapping/list (FR-020 comment column); D-11 refusal before any edit, exit 3, names PATH and file; CRLF, 4-space step, quoted bytes verbatim; refactors (_add_new_keys/_flow_entries/_insert_lines) behaviour-preserving, existing tests untouched; 201 collections tests pass, mypy/ruff/format clean; only collections.py + test_collections.py changed. Deviations 1-3 accepted per D-5."
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review_result": {
+        "feedback_path": "/work/bakeoff-specs-speckitty/kitty-specs/troupe-config-include-overrides-01M46FY4/tasks/WP02-include-conversion-edits/review-cycle-1.md",
+        "reference": "review-cycle://troupe-config-include-overrides-01M46FY4/WP02-include-conversion-edits/review-cycle-1.md",
+        "reviewer": "user",
+        "verdict": "approved"
+      },
+      "role": "reviewer",
+      "shell_pid": 4541,
+      "shell_pid_created_at": "1791222472.11",
+      "subtasks": {
+        "T008": "done",
+        "T009": "done",
+        "T010": "done",
+        "T011": "done",
+        "T012": "done"
+      }
+    },
+    "WP03": {
+      "actor": "merge",
+      "agent": "claude",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 0,
+      "lane": "done",
+      "last_event_id": "01M46TXGRC86B7KANE63C2SYZV",
+      "last_transition_at": "2026-10-05T20:08:39.436705+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "Ready for review: place() implements Overrides (nearest include ref, holder/override descent, ConvertInclude), in_include, concrete_parent, D-6/D-10 refusals; 34 new unit tests incl. concrete-placement helper; 2 strict xfails (WP04) in test_set_new_entries.py. Gates: pytest 1718 passed 2 xfailed; mypy --strict clean; ruff check/format clean.",
+        "Review passed: place() follows R-3 (nearest include ref per DM 01M46FYYFFXXZE893KWDP2WJCW, list rule, override descent, ConvertInclude via identity-found concrete parent); in_include only affects new keys; D-6/D-10/FR-012 refusals exit 3 naming PATH; concrete-only placements asserted; 130 passed + 2 strict xfail (WP04 to remove in test_set_new_entries.py), mypy/ruff clean"
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review_result": {
+        "feedback_path": "/work/bakeoff-specs-speckitty/kitty-specs/troupe-config-include-overrides-01M46FY4/tasks/WP03-placement-overrides/review-cycle-1.md",
+        "reference": "review-cycle://troupe-config-include-overrides-01M46FY4/WP03-placement-overrides/review-cycle-1.md",
+        "reviewer": "user",
+        "verdict": "approved"
+      },
+      "role": "reviewer",
+      "shell_pid": 2096,
+      "shell_pid_created_at": "1791225201.05",
+      "subtasks": {
+        "T013": "done",
+        "T014": "done",
+        "T015": "done",
+        "T016": "done",
+        "T017": "done"
+      }
+    },
+    "WP04": {
+      "actor": "merge",
+      "agent": "claude",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 1,
+      "lane": "done",
+      "last_event_id": "01M46TXH578KP5G12AY745SS1B",
+      "last_transition_at": "2026-10-05T20:08:39.847152+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "Ready for review: apply_set in_include + ConvertInclude dispatch, merged-view write guards, route-only same-target verifier allowance (crafted-rendering refusal tests), set --in-include CLI, step-1 tests updated by contract (no xfail), US2/US3/US4 story tests; TROUPE-007 REF_KEY single source; bead crs anchor/tag conversion refusal. Gates: pytest 1806 passed; mypy --strict clean; ruff check/format clean.",
+        "Ready for review (cycle 2): fixed blocking review issue: _same_outside now accepts a new included key at the end of a merged view's base-key block (only when the base side's last key is the added key) and pairs entries by key; plain mappings and off-route unchanged. Added CLI stories (flat + nested --in-include under merged views, quickstart end to end incl. show --sources) and crafted-position refusal tests; _gains_override docstring fixed; follow-up bead bakeoff-specs-speckitty-add for side comparison. Gates: pytest 1813 passed; mypy --strict clean; ruff check/format clean.",
+        "Review passed (cycle 2): _orders allows a new base key at the end of the base block in merged views, entries paired by key with exact one-key-added order check; quickstart and nested --in-include repros pass via CLI; 1813 passed, mypy/ruff clean. Non-blocking: chained mapping-form include (c.yaml itself $ref + overrides) with --in-include still refuses exit 3 safely; suggest follow-up bead."
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review": null,
+      "review_result": {
+        "feedback_path": "/work/bakeoff-specs-speckitty/kitty-specs/troupe-config-include-overrides-01M46FY4/tasks/WP04-set-wiring-and-stories/review-cycle-2.md",
+        "reference": "review-cycle://troupe-config-include-overrides-01M46FY4/WP04-set-wiring-and-stories/review-cycle-2.md",
+        "reviewer": "user",
+        "verdict": "approved"
+      },
+      "role": "reviewer",
+      "shell_pid": 7685,
+      "shell_pid_created_at": "1791227941.82",
+      "subtasks": {
+        "T018": "done",
+        "T019": "done",
+        "T020": "done",
+        "T021": "done",
+        "T022": "done",
+        "T023": "done"
+      }
+    },
+    "WP05": {
+      "actor": "merge",
+      "agent": "claude",
+      "agent_profile": "__resolved_profile_absent__",
+      "agent_profile_version": "__resolved_profile_version_absent__",
+      "force_count": 0,
+      "lane": "done",
+      "last_event_id": "01M46TXHJ962XXM7YYSRTQDGGT",
+      "last_transition_at": "2026-10-05T20:08:40.265175+00:00",
+      "model": "__resolved_model_absent__",
+      "notes": [
+        "Ready for review: tests/integration/test_overrides_acceptance.py (35 tests: T024 conversion edges, T025 refusals with files+history untouched, T026 history/reconcile/watch, c3z chained-include story + crafted wrong-position refusals); c3z fix in apply._orders (recursive nested base blocks, out-of-map); apply.py docstring cites D-n. Gates: pytest 1848 passed, mypy --strict ok, ruff check ok, ruff format --check ok.",
+        "Review passed: c3z fix in apply._orders walks nested base levels; structure-based check still requires every old key present and exactly one key added, at the end of the view or the end of a nested base block (crafted wrong-position, dropped-key, wrong-value and two-key writes refused). CLI repro: --in-include changes only b.yaml, no-flag adds an override to troupe.yml only. The verifier does not check which file the new key lands in (crafted c.yaml-end/troupe.yml-end writes accepted); this was already true before WP05 (c22 family), and placement decides the file. 35 acceptance tests; 1848 passed, mypy/ruff/format clean."
+      ],
+      "provider": "__resolved_provider_absent__",
+      "review_result": {
+        "feedback_path": "/work/bakeoff-specs-speckitty/kitty-specs/troupe-config-include-overrides-01M46FY4/tasks/WP05-overrides-acceptance/review-cycle-1.md",
+        "reference": "review-cycle://troupe-config-include-overrides-01M46FY4/WP05-overrides-acceptance/review-cycle-1.md",
+        "reviewer": "user",
+        "verdict": "approved"
+      },
+      "role": "reviewer",
+      "shell_pid": 2196,
+      "shell_pid_created_at": "1791229826.5",
+      "subtasks": {
+        "T024": "done",
+        "T025": "done",
+        "T026": "done",
+        "T027": "done"
+      }
+    }
+  }
 }

@@ -8,6 +8,27 @@ the configuration (every node outside PATH: kind, keys, order, values, scalar st
 must be unchanged. Any mismatch is a refusal (exit 3), so a renderer bug can never become a
 corrupted file. A ``set`` whose value is already the current value is a no-op: no texts at all.
 
+Include overrides (mission include-overrides, FR-005 to FR-010; research R-5):
+
+- Where a new key goes is decided by ``placement.place``: by default a new key under content
+  from an included file becomes an override in the including file, with ``in_include``
+  (``set --in-include``) it goes into the innermost included file that defines its ancestor
+  (the step-1 rule, D-8). Existing values, list appends and keys inside list items are
+  unaffected by ``in_include`` (D-9). Both are decided in ``placement``, not here.
+- A first override on a scalar-form include converts it to mapping form
+  (``ConvertInclude`` -> ``collections.convert_include_edits``, D-2 to D-5; a multi-line
+  include string is refused there, D-11); the edit stays in one file (C-005).
+- Writers only ever receive concrete collections: writing through a merged view
+  (``MergedMapping``) is a programming error, asserted in ``_edits``.
+- Verification allows exactly one structural change, and only on the route to PATH: a node
+  that was an include (or a mapping of the included file) may become a merged view of the
+  *same* include target (or of that same mapping) gaining the new override. Everywhere else a
+  merged view must stay a merged view of the same ``$ref`` target, a plain mapping must stay
+  plain, and an include must keep its form (scalar or mapping), so any other conversion is
+  still a refusal. In a merged view the new key may sit only at the very end (an override) or
+  at the end of one of its nested base blocks (``--in-include`` into a base side, D-8; chained
+  mapping-form includes nest several, ``_orders``).
+
 How an existing scalar is written (``ReplaceScalar``):
 
 - a single-line value replaces exactly the scalar's span, in its current quoting style if that
@@ -43,9 +64,10 @@ from troupe import yamlcore
 from troupe.errors import LoadError, PathError, WriteRefused
 from troupe.leaves import same
 from troupe.loader import load
-from troupe.paths import walk
+from troupe.paths import unwrap, walk
 from troupe.tree import (
     MappingNode,
+    MergedMapping,
     Node,
     ScalarNode,
     SequenceNode,
@@ -57,6 +79,7 @@ from troupe.values import Value
 from troupe.writeback import TextEdit, apply_edits
 from troupe.writeback.blocks import can_block, parse_block, replace_block, replace_with_multiline
 from troupe.writeback.collections import (
+    convert_include_edits,
     detect_indent,
     entry_column,
     new_item_edits,
@@ -68,6 +91,7 @@ from troupe.writeback.fileio import detect_newline, to_crlf, uses_crlf
 from troupe.writeback.placement import (
     AddKeys,
     AppendItem,
+    ConvertInclude,
     Placement,
     ReplaceCollection,
     ReplaceScalar,
@@ -94,7 +118,13 @@ class WritePlan:
 
 
 def apply_set(
-    root: Node, segments: list[str], dotted: str, value: Value, raw_value: str
+    root: Node,
+    segments: list[str],
+    dotted: str,
+    value: Value,
+    raw_value: str,
+    *,
+    in_include: bool = False,
 ) -> WritePlan:
     """Plan ``set dotted VALUE`` on the configuration ``root`` loaded from disk.
 
@@ -104,6 +134,8 @@ def apply_set(
         dotted: PATH as the user wrote it, for messages.
         value: The parsed VALUE.
         raw_value: The VALUE argument exactly as typed (text includes, research R-16).
+        in_include: ``set --in-include``: a new key goes into the included file instead of
+            becoming an override in the including file (FR-010).
 
     Returns:
         The new file texts and the re-loaded tree, verified; no files for a no-op.
@@ -113,7 +145,7 @@ def apply_set(
             a non-string VALUE, a renderer refusal, or a failed verification).
         PathError: Exit 5 (see ``placement.place``).
     """
-    placement = place(root, segments, dotted)
+    placement = place(root, segments, dotted, in_include=in_include)
     if isinstance(placement, ReplaceText):
         return _plan_text(root, segments, dotted, placement.node, value, raw_value)
     if isinstance(placement, ReplaceScalar | ReplaceCollection) and _matches(placement.node, value):
@@ -163,17 +195,31 @@ def _plan_text(
 
 def _edits(placement: Placement, dotted: str, value: Value) -> tuple[SourceFile, list[TextEdit]]:
     """Return the file the change goes into and its edits."""
+    if isinstance(placement, ConvertInclude):
+        if placement.parent is not None:
+            _concrete(placement.parent, "ConvertInclude.parent")
+        origin = placement.include.origin
+        file = origin.file
+        step = detect_indent(file.text)
+        edits = convert_include_edits(
+            file, placement.parent, placement.slot, origin, placement.keys, value, step, path=dotted
+        )
+        return file, edits
     if isinstance(placement, AddKeys):
+        _concrete(placement.mapping, "AddKeys.mapping")
         file = placement.mapping.origin.file
         step = detect_indent(file.text)
         return file, new_key_edits(
             file, placement.mapping, placement.keys, value, step, path=dotted
         )
     if isinstance(placement, AppendItem):
+        _concrete(placement.sequence, "AppendItem.sequence")
         file = placement.sequence.origin.file
         step = detect_indent(file.text)
         return file, new_item_edits(file, placement.sequence, value, step, path=dotted)
     if isinstance(placement, ReplaceCollection):
+        _concrete(placement.parent, "ReplaceCollection.parent")
+        _concrete(placement.node, "ReplaceCollection.node")
         file = placement.node.origin.file
         step = detect_indent(file.text)
         edits = replace_value_edits(
@@ -181,8 +227,14 @@ def _edits(placement: Placement, dotted: str, value: Value) -> tuple[SourceFile,
         )
         return file, edits
     if isinstance(placement, ReplaceScalar):
+        _concrete(placement.parent, "ReplaceScalar.parent")
         return placement.node.origin.file, _scalar_edits(placement, dotted, value)
     raise AssertionError(f"unexpected placement {placement!r}")  # ReplaceText is handled earlier
+
+
+def _concrete(collection: Node, role: str) -> None:
+    """A merged view's origin may lie in another file: never write through one (plan Risks)."""
+    assert not isinstance(collection, MergedMapping), f"{role} is a merged view, not a file's"
 
 
 def _scalar_edits(placement: ReplaceScalar, dotted: str, value: Value) -> list[TextEdit]:
@@ -310,24 +362,36 @@ def _refuse(dotted: str) -> NoReturn:
 def _same_outside(old: Node, new: Node, here: list[str], target: list[str]) -> bool:
     """Whether ``old`` and ``new`` are identical except at ``target`` and below.
 
-    Kinds, flow flags, keys and their order, scalar values (type-aware) and styles, and include
-    targets must all be equal. On the way to ``target`` a mapping may gain the key and a list the
-    item that the ``set`` adds.
+    Kinds, flow flags, keys and their order, scalar values (type-aware) and styles, include
+    targets and include forms must all be equal. On the way to ``target`` a mapping may gain the
+    key (at the position the merge rule gives it, ``_orders``) and a list the item that the
+    ``set`` adds, and a mapping may become a merged view that
+    gains its first override there (``_gains_override``, research R-5). A merged view must stay
+    a merged view of the same ``$ref`` target (or of none) everywhere.
     """
     if here == target:
         return True
-    on_route = here == target[: len(here)]
+    on_route = here == target[: len(here)]  # a strict prefix: ``here == target`` returned
+    if isinstance(new, MergedMapping) and not isinstance(old, MergedMapping):
+        if not (on_route and _gains_override(old, new)):
+            return False
+        old = unwrap(old)
+    elif isinstance(old, MergedMapping):
+        if not isinstance(new, MergedMapping) or _ref_path(new) != _ref_path(old):
+            return False
     if isinstance(old, ScalarNode):
         return isinstance(new, ScalarNode) and new.style == old.style and same(old.value, new.value)
     if isinstance(old, TextInclude):
         return (
             isinstance(new, TextInclude)
+            and (new.holder is None) == (old.holder is None)
             and new.target.path == old.target.path
             and new.target.text == old.target.text
         )
     if isinstance(old, YamlInclude):
         return (
             isinstance(new, YamlInclude)
+            and (new.holder is None) == (old.holder is None)
             and new.target.path == old.target.path
             and _same_outside(old.root, new.root, here, target)
         )
@@ -338,11 +402,13 @@ def _same_outside(old: Node, new: Node, here: list[str], target: list[str]) -> b
         new_keys = [entry.key for entry in new.entries]
         if new_keys != old_keys:
             added = target[len(here)] if on_route else None
-            if added is None or added in old_keys or new_keys != [*old_keys, added]:
+            if added is None or added in old_keys or new_keys not in _orders(old_keys, added, new):
                 return False
+        # Paired by key: the added key may sit before old keys in a merged view (``_orders``).
+        new_values = {entry.key: entry.value for entry in new.entries}
         return all(
-            _same_outside(entry.value, new.entries[index].value, [*here, entry.key], target)
-            for index, entry in enumerate(old.entries)
+            _same_outside(entry.value, new_values[entry.key], [*here, entry.key], target)
+            for entry in old.entries
         )
     if not isinstance(new, SequenceNode) or new.flow != old.flow:
         return False
@@ -354,3 +420,61 @@ def _same_outside(old: Node, new: Node, here: list[str], target: list[str]) -> b
         _same_outside(item, new.items[index], [*here, str(index)], target)
         for index, item in enumerate(old.items)
     )
+
+
+def _orders(old_keys: list[str], added: str, new: MappingNode) -> list[list[str]]:
+    """The key orders ``new`` may have when it gains the key ``added`` (on the route only).
+
+    A plain mapping gains it at the end. A merged view lists its base keys first, then the
+    override-only keys (``troupe.merge``), and so does each merged view nested as a base (chained
+    mapping-form includes, bead c3z), so the base keys of every level form a prefix of the view's
+    keys. A key added to a base side (``--in-include``, D-8) therefore sits at the end of one of
+    those nested base blocks: allowed only where that level's base side ends with ``added``. A key
+    added as an override is override-only, so it sits at the very end.
+    """
+    orders = [[*old_keys, added]]
+    view: MappingNode = new
+    while isinstance(view, MergedMapping):
+        base = unwrap(view.base)
+        if not isinstance(base, MappingNode):  # pragma: no cover - the loader checks (D-7)
+            break
+        if base.entries and base.entries[-1].key == added:
+            at = len(base.entries) - 1
+            orders.append([*old_keys[:at], added, *old_keys[at:]])
+        view = base
+    return orders
+
+
+def _gains_override(old: Node, new: MergedMapping) -> bool:
+    """Whether ``new`` is ``old`` with a first override added (the one allowed conversion).
+
+    - ``old`` is a YAML include (scalar or mapping form, no overrides yet): ``new`` must be the
+      top of a mapping-form include of the same target (``ref.target.path``), i.e. a converted
+      include or a ``$ref``-only mapping that got its first override. The included content
+      must be a plain mapping (a merged one already takes overrides without conversion).
+    - ``old`` is a plain mapping of an included file: ``new`` must be a nested merge
+      (``ref is None``) whose base is that same mapping (same file, same position).
+
+    The caller then compares ``old``'s content with the merged view as with any mapping, so the
+    view may differ from it only by the key the ``set`` adds.
+    """
+    if isinstance(old, YamlInclude):
+        return (
+            new.ref is not None
+            and new.ref.target.path == old.target.path
+            and isinstance(content := unwrap(old), MappingNode)
+            and not isinstance(content, MergedMapping)
+        )
+    if not isinstance(old, MappingNode) or new.ref is not None:
+        return False
+    base = new.base
+    return (
+        isinstance(base, MappingNode)
+        and not isinstance(base, MergedMapping)
+        and base.origin.file.path == old.origin.file.path
+        and base.origin.start == old.origin.start
+    )
+
+
+def _ref_path(node: MergedMapping) -> Path | None:
+    return None if node.ref is None else node.ref.target.path

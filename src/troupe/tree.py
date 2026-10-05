@@ -6,7 +6,7 @@ carries an ``Origin``: the ``SourceFile`` that contains its bytes and the code-p
 included file. This module is stdlib-only so that every other module can depend on it.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
 
@@ -92,21 +92,50 @@ class YamlInclude:
     """A ``file:`` string naming a ``.yml``/``.yaml`` target whose content is embedded here.
 
     ``origin`` is the span of the ``file:`` string in the including file; ``root`` is the
-    target's converted root node (an empty mapping for an empty target).
+    target's converted root node (an empty mapping for an empty target). ``holder`` is the
+    mapping that holds this include as ``$ref`` (mapping form, with or without overrides);
+    ``None`` for the scalar form (FR-001). It is excluded from ``==`` and ``repr`` because the
+    holder's ``$ref`` entry points back at this include.
     """
 
     origin: Origin
     target: SourceFile
     root: "Node"
+    holder: "MappingNode | None" = field(default=None, compare=False, repr=False)
 
 
 @dataclass
 class TextInclude:
-    """A ``file:`` string naming any other target; its value is ``target.text`` exactly."""
+    """A ``file:`` string naming any other target; its value is ``target.text`` exactly.
+
+    ``holder`` is the mapping that holds this include as ``$ref`` (mapping form; a text include
+    never has overrides); ``None`` for the scalar form. Excluded from ``==`` and ``repr`` as for
+    ``YamlInclude``.
+    """
 
     origin: Origin
     target: SourceFile
+    holder: "MappingNode | None" = field(default=None, compare=False, repr=False)
 
 
-# A plain union (not a ``type`` alias) so that ``isinstance(x, Node)`` works.
+@dataclass(kw_only=True)
+class MergedMapping(MappingNode):
+    """A mapping-form include with overrides, or a mapping both sides of a merge define.
+
+    ``entries`` is the merged view (see ``troupe.merge``). ``base`` and ``override`` are the two
+    sides *as found* (a plain mapping, a ``YamlInclude`` or another ``MergedMapping``). ``ref`` is
+    the ``$ref`` include at the top of a mapping-form include, else ``None``; ``override`` is then
+    the holder mapping as written (its ``$ref`` entry is not in ``entries``).
+    ``origin`` is the override side's origin; ``flow`` is the base side's (research R-1).
+    Never write through a merged view: writers resolve a concrete side (``writeback.placement``).
+    Construct with keywords only.
+    """
+
+    base: "Node"
+    override: "Node"
+    ref: "YamlInclude | None"
+
+
+# A plain union (not a ``type`` alias) so that ``isinstance(x, Node)`` works. ``MergedMapping`` is
+# a ``MappingNode`` subclass, so it is already covered and needs no member of its own (R-1).
 Node = ScalarNode | MappingNode | SequenceNode | YamlInclude | TextInclude

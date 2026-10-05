@@ -13,6 +13,8 @@ Contract:
 - FR-015: a new key, and a new string value, copy the quoting style of the preceding sibling key
   or value; with no sibling, plain or the minimal quoting the text needs.
 - FR-020: a changed line keeps its end-of-line comment at its column (``comments.replace_in_line``).
+- Include overrides FR-006: ``convert_include_edits`` turns a scalar-form include into mapping
+  form (``$ref`` first, include bytes verbatim) with its first override (spec D-2 to D-5, D-11).
 
 Every function is pure: it reads ``SourceFile.text`` and the SourceTree spans and returns
 ``TextEdit`` values. Block collection ends reported by the parser run past trailing blank and
@@ -62,10 +64,12 @@ from typing import TypeGuard
 
 from troupe import yamlcore
 from troupe.errors import LoadError, WriteRefused
+from troupe.merge import REF_KEY
 from troupe.tree import (
     MappingEntry,
     MappingNode,
     Node,
+    Origin,
     Scalar,
     ScalarNode,
     ScalarStyle,
@@ -490,8 +494,12 @@ def _shape(node: RawNode | None) -> _Shape:
 
 
 def _insert_entry(file: SourceFile, node: Collection, out: _Lines, path: str) -> list[TextEdit]:
+    return _insert_lines(file, insertion_point(file.text, node), out, path)
+
+
+def _insert_lines(file: SourceFile, pos: int, out: _Lines, path: str) -> list[TextEdit]:
+    """Insert ``out`` at the line start ``pos`` (``len(text)`` after an unterminated last line)."""
     text = file.text
-    pos = insertion_point(text, node)
     at_open_end = pos == len(text) and _ends_without_break(text)
     if at_open_end:
         _check_open_end(file, path)
@@ -542,16 +550,38 @@ def new_key_edits(
     key_style = _quote_style(last.key_style) if last is not None else None
     value_style = _value_style(last.value) if last is not None else None
     offset = _sequence_offset(text, mapping, step) if seq_offset is None else seq_offset
-    renderer = _Renderer(step, offset)
     out = _Lines()
-    indent = entry_column(text, mapping)
+    _add_new_keys(
+        out,
+        _Renderer(step, offset),
+        keys,
+        value,
+        entry_column(text, mapping),
+        key_style,
+        value_style,
+    )
+    return _insert_entry(file, mapping, out, path)
+
+
+def _add_new_keys(
+    out: _Lines,
+    renderer: _Renderer,
+    keys: list[str],
+    value: Value,
+    indent: int,
+    key_style: QuoteStyle | None,
+    value_style: QuoteStyle | None,
+) -> None:
+    """Add the block lines of ``keys[0]`` at ``indent``, intermediate mappings, then ``value``.
+
+    The styles are the preceding sibling's (FR-015) and apply to the first level only.
+    """
     for key in keys[:-1]:
         out.add(" " * indent + _block_key(key, key_style) + ":")
         key_style = value_style = None
-        indent += step
+        indent += renderer.step
     head = " " * indent + _block_key(keys[-1], key_style) + ":"
     renderer.attach(out, head, value, indent, value_style)
-    return _insert_entry(file, mapping, out, path)
 
 
 def new_item_edits(
@@ -596,16 +626,20 @@ def render_flow_value(value: Value, preferred: QuoteStyle | None = None) -> str:
     double-quoted (block scalars are not allowed in flow context).
     """
     if isinstance(value, dict):
-        entries = (
-            render_string(k, choose_style(k, None, "flow")) + ": " + render_flow_value(v)
-            for k, v in value.items()
-        )
-        return "{" + _FLOW_SEPARATOR.join(entries) + "}"
+        return "{" + _flow_entries(value) + "}"
     if isinstance(value, list):
         return "[" + _FLOW_SEPARATOR.join(render_flow_value(v) for v in value) + "]"
     if isinstance(value, str) and "\n" in value:
         return render_new_multiline(value, "flow", 0)[0]
     return render_scalar(value, preferred, "flow")
+
+
+def _flow_entries(value: dict[str, Value]) -> str:
+    """The entries of a flow mapping without its braces: ``k: v, …``."""
+    return _FLOW_SEPARATOR.join(
+        render_string(k, choose_style(k, None, "flow")) + ": " + render_flow_value(v)
+        for k, v in value.items()
+    )
 
 
 def flow_append_edits(
@@ -944,3 +978,137 @@ def _rewrite_span(text: str, start: int, end: int, new_text: str) -> list[TextEd
     last_line = text[last:line_end]
     new_line = replace_in_line(last_line, 0, end - last, text[first:start] + new_text)
     return _minimal_edit(text, first, line_end, new_line)
+
+
+# --- Include conversion to mapping form (mission include-overrides, FR-006, research R-7) ------
+
+
+def convert_include_edits(
+    file: SourceFile,
+    parent: Collection | None,
+    slot: str | int | None,
+    include: Origin,
+    keys: list[str],
+    value: Value,
+    step: int,
+    *,
+    path: str,
+) -> list[TextEdit]:
+    """Turn the scalar-form include at ``include`` into mapping form with one new override.
+
+    This is only the text half of FR-006: the caller has already decided that the include must
+    be converted, and passes spans and the concrete collection holding the include. ``$ref`` is
+    written plain and first (D-2) and the include string's bytes ``text[start:end]``, quotes and
+    escapes included, move to it verbatim (D-5). The override lines are rendered by the step-1
+    new-key renderer (FR-015 to FR-017) with no sibling to copy styles from: ``$ref`` is not a
+    configuration value. New lines go immediately after the include's line, use the file's line
+    ending, and are indented with the caller's ``step`` (``detect_indent``).
+
+    - Block mapping parent, value on the key's line (``coder: file:x.yaml  # c``): the separator
+      and the include string are deleted, the rest of the line is kept byte for byte, so the gap
+      before the comment stays and the comment follows the key (D-5, contract example
+      ``coder:  # c``). The ``$ref`` line and the overrides go below at key column + ``step``.
+      This keeps the *gap*, unlike FR-020 which keeps the *column* of a value changed in place:
+      here the value leaves the line, so there is no value whose column the comment could keep.
+    - Block mapping parent with the value on a following line, block sequence item (D-4) and
+      document root (``parent`` is ``None``): ``$ref: `` is inserted before the include string,
+      a pure insertion that keeps the bytes between the string and any comment (D-5); the
+      overrides go below at the include string's column (for an item, its content column).
+    - Flow parent, mapping or sequence (D-3): the include string becomes
+      ``{$ref: <bytes>, k: v}``, nested flow mappings for intermediate keys; the line keeps its
+      end-of-line comment's column (FR-020).
+
+    Args:
+        file: The file holding the include (``include.file``).
+        parent: The collection holding the include, or ``None`` for a whole-document include.
+        slot: The include's key in a block mapping ``parent``; unused otherwise.
+        include: The span of the include string.
+        keys: The override path below the include, at least one segment; ``keys[:-1]`` become
+            intermediate mappings and the last gets ``value``.
+        value: The override's value.
+        step: The file's indentation step.
+        path: The configuration path, for refusal messages.
+
+    Raises:
+        WriteRefused: If the include string spans several lines (D-11), an anchor or tag
+            precedes it (bead crs: converting would drop or move it), or a new block scalar
+            would absorb the lines after it; raised before any edit is produced.
+    """
+    if not keys:
+        raise ValueError("convert_include_edits needs at least one override key")
+    text = file.text
+    start, end = include.start, include.end
+    include_text = text[start:end]
+    if "\n" in include_text or include_text[:1] in ("|", ">"):
+        line = text.count("\n", 0, start) + 1
+        raise WriteRefused(
+            f"{path}: the include at {file.path} line {line} spans several lines; cannot convert"
+            " it to mapping form without rewriting it; no file changed"
+        )
+    _refuse_properties(file, parent, slot, start, path)
+    ref = f"{REF_KEY}: {include_text}"
+    if parent is not None and parent.flow:
+        entries = _flow_entries({keys[0]: _nest(keys[1:], value)})
+        return _rewrite_span(text, start, end, "{" + ref + _FLOW_SEPARATOR + entries + "}")
+    renderer = _Renderer(step, step)
+    out = _Lines()
+    if isinstance(parent, MappingNode):
+        if slot is None:
+            raise ValueError("an include in a mapping is addressed by its key")
+        anchor = _anchor(text, parent, slot)
+        if anchor.line_start == _line_start(text, start):
+            indent = anchor.column + step
+            out.add(" " * indent + ref)
+            _add_new_keys(out, renderer, keys, value, indent, None, None)
+            below = _insert_lines(file, _next_line(text, start), out, path)
+            return [TextEdit(anchor.head_end, end, ""), *below]
+    _add_new_keys(out, renderer, keys, value, _column(text, start), None, None)
+    below = _insert_lines(file, _next_line(text, start), out, path)
+    return [TextEdit(start, start, REF_KEY + ": "), *below]
+
+
+def _refuse_properties(
+    file: SourceFile, parent: Collection | None, slot: str | int | None, start: int, path: str
+) -> None:
+    """Refuse a conversion when anything but blanks and comments precedes the include string.
+
+    Between the include's owner (the key's ``:``, the item's ``-``, the previous flow item or
+    the start of the document) and the include string only whitespace, comments, flow ``,``/``[``
+    and, for a whole document, directives and ``---`` may appear. Anything else is an anchor or
+    a tag (``coder: &a file:x.yaml``, ``- !t file:x.yaml``) that conversion would delete or move
+    onto the new mapping, so it is refused (TROUPE-001, TROUPE-002). The loader rejects anchors
+    and tags already; this keeps the writer safe on its own.
+    """
+    text = file.text
+    if isinstance(parent, MappingNode):
+        if not isinstance(slot, str):
+            raise ValueError("an include in a mapping is addressed by its key")
+        lower = _anchor(text, parent, slot).head_end
+    elif isinstance(parent, SequenceNode):
+        if not isinstance(slot, int):
+            raise ValueError("an include in a sequence is addressed by its index")
+        if not parent.flow:
+            lower = _anchor(text, parent, slot).head_end
+        elif slot:
+            lower = parent.items[slot - 1].origin.end
+        else:
+            lower = parent.origin.start + 1
+    else:
+        lower = 0
+    for raw in text[lower:start].split("\n"):
+        line = raw.rstrip("\r")
+        cut = find_comment_start(line, 0)
+        content = (line if cut is None else line[:cut]).strip(" \t" + BOM)
+        if isinstance(parent, SequenceNode) and parent.flow:
+            content = content.strip(" \t,[")
+        elif parent is None:
+            if content.startswith("%"):
+                continue
+            if content.startswith("---"):
+                content = content[3:].strip(" \t")
+        if content:
+            line_no = text.count("\n", 0, start) + 1
+            raise WriteRefused(
+                f"{path}: the include at {file.path} line {line_no} has an anchor or tag;"
+                " cannot convert it to mapping form without dropping it; no file changed"
+            )

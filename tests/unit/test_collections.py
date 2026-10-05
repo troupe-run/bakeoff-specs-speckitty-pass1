@@ -10,12 +10,15 @@ from pathlib import Path
 
 import pytest
 
+from conftest import MakeTheatre
+from troupe import yamlcore
 from troupe.errors import WriteRefused
 from troupe.loader import load
 from troupe.tree import MappingNode, Node, ScalarNode, SequenceNode, TextInclude, YamlInclude
 from troupe.writeback import TextEdit, apply_edits
 from troupe.writeback.collections import (
     Value,
+    convert_include_edits,
     detect_indent,
     entry_column,
     flow_append_edits,
@@ -978,3 +981,263 @@ def test_flow_mapping_value_ending_in_colon_stays_parseable() -> None:
 
 def test_flow_replace_of_empty_value_of_key_ending_in_colon_keeps_key() -> None:
     _check("m: {a:}\n", _replace("m", "a:", value=[1]), "m: {a:: [1]}\n", {"m": {"a:": [1]}})
+
+
+# --- Include conversion to mapping form (include overrides FR-006, D-2 to D-5, D-11, R-7) ---
+
+_INCLUDED = {"agents/coder.yaml": "model: m\n", "agents/a.yaml": "name: a\n"}
+
+
+def _convert(
+    make_theatre: MakeTheatre, before: str, *at: str | int, keys: tuple[str, ...], value: Value
+) -> str:
+    """Load ``before`` as a real theatre's troupe.yml, convert the include at ``at``, apply.
+
+    ``at`` locates the include from the root (empty: the whole document is the include); the
+    step is the file's own (``detect_indent``). The result must still be YAML.
+    """
+    theatre = make_theatre({"troupe.yml": before, **_INCLUDED})
+    root = load(theatre / ".troupe" / "troupe.yml")
+    parent: MappingNode | SequenceNode | None = None
+    slot: str | int | None = None
+    if at:
+        holder = _map(root, *at[:-1])
+        assert isinstance(holder, MappingNode | SequenceNode)
+        parent, slot = holder, at[-1]
+    include = _map(root, *at)
+    assert isinstance(include, YamlInclude)
+    file = include.origin.file
+    assert file.text == before
+    path = ".".join(str(segment) for segment in (*at, *keys))
+    edits = convert_include_edits(
+        file, parent, slot, include.origin, list(keys), value, detect_indent(before), path=path
+    )
+    after = apply_edits(before, edits)
+    assert yamlcore.compose(after, "converted") is not None
+    return after
+
+
+def test_convert_block_include_keeps_comment_gap_on_key_line(make_theatre: MakeTheatre) -> None:
+    after = _convert(
+        make_theatre,
+        "coder: file:agents/coder.yaml  # c\n",
+        "coder",
+        keys=("temperature",),
+        value=0.3,
+    )
+    assert after == "coder:  # c\n  $ref: file:agents/coder.yaml\n  temperature: 0.3\n"
+
+
+@pytest.mark.parametrize(
+    ("before", "expected"),
+    [
+        (
+            "coder: file:agents/coder.yaml\n",
+            "coder:\n  $ref: file:agents/coder.yaml\n  temperature: 0.3\n",
+        ),
+        # trailing spaces after the value stay on the key's line, as they were
+        (
+            "coder: file:agents/coder.yaml   \n",
+            "coder:   \n  $ref: file:agents/coder.yaml\n  temperature: 0.3\n",
+        ),
+        # a file without a final line break still ends without one
+        (
+            "coder: file:agents/coder.yaml",
+            "coder:\n  $ref: file:agents/coder.yaml\n  temperature: 0.3",
+        ),
+    ],
+)
+def test_convert_block_include_without_comment(
+    make_theatre: MakeTheatre, before: str, expected: str
+) -> None:
+    after = _convert(make_theatre, before, "coder", keys=("temperature",), value=0.3)
+    assert after == expected
+
+
+def test_convert_block_include_in_four_space_file_indents_four(make_theatre: MakeTheatre) -> None:
+    before = "team:\n    lead: ann\nagents:\n    coder: file:agents/coder.yaml  # c\n"
+    after = _convert(make_theatre, before, "agents", "coder", keys=("temperature",), value=0.3)
+    assert after == (
+        "team:\n    lead: ann\nagents:\n    coder:  # c\n"
+        "        $ref: file:agents/coder.yaml\n        temperature: 0.3\n"
+    )
+
+
+def test_convert_block_include_with_value_on_next_line(make_theatre: MakeTheatre) -> None:
+    before = "coder:\n  file:agents/coder.yaml  # c\nother: 1\n"
+    after = _convert(make_theatre, before, "coder", keys=("temperature",), value=0.3)
+    assert after == "coder:\n  $ref: file:agents/coder.yaml  # c\n  temperature: 0.3\nother: 1\n"
+
+
+def test_convert_block_include_with_intermediate_keys_creates_nested_override(
+    make_theatre: MakeTheatre,
+) -> None:
+    after = _convert(
+        make_theatre,
+        "coder: file:agents/coder.yaml  # c\nother: 1\n",
+        "coder",
+        keys=("model", "params", "temperature"),
+        value=0.3,
+    )
+    assert after == (
+        "coder:  # c\n  $ref: file:agents/coder.yaml\n"
+        "  model:\n    params:\n      temperature: 0.3\nother: 1\n"
+    )
+
+
+@pytest.mark.parametrize(
+    ("key", "value", "rendered"),
+    [
+        ("tools", ["read", "write"], "  tools:\n    - read\n    - write\n"),
+        ("limits", {"tokens": 100, "turns": 3}, "  limits:\n    tokens: 100\n    turns: 3\n"),
+        ("prompt", "Be brief.\nBe kind.\n", "  prompt: |\n    Be brief.\n    Be kind.\n"),
+        ("empty", [], "  empty: []\n"),
+        ("label", "a: b", "  label: 'a: b'\n"),
+    ],
+)
+def test_convert_block_include_with_collection_and_multiline_values_uses_step1_renderers(
+    make_theatre: MakeTheatre, key: str, value: Value, rendered: str
+) -> None:
+    before = "coder: file:agents/coder.yaml\nother: 1\n"
+    after = _convert(make_theatre, before, "coder", keys=(key,), value=value)
+    assert after == "coder:\n  $ref: file:agents/coder.yaml\n" + rendered + "other: 1\n"
+
+
+@pytest.mark.parametrize(
+    ("before", "keys", "value", "expected"),
+    [
+        # contract D-3 example; the longer line keeps one space before the comment (FR-020)
+        (
+            "agents: {coder: file:agents/coder.yaml}  # c\n",
+            ("t",),
+            1,
+            "agents: {coder: {$ref: file:agents/coder.yaml, t: 1}} # c\n",
+        ),
+        # with room, the comment keeps its column (FR-020)
+        (
+            "agents: {coder: file:agents/coder.yaml}                # c\n",
+            ("t",),
+            1,
+            "agents: {coder: {$ref: file:agents/coder.yaml, t: 1}}  # c\n",
+        ),
+        # intermediate keys are nested flow mappings
+        (
+            "agents: {coder: file:agents/coder.yaml, x: 1}\n",
+            ("model", "t"),
+            1,
+            "agents: {coder: {$ref: file:agents/coder.yaml, model: {t: 1}}, x: 1}\n",
+        ),
+        # a multi-line string in flow context is double-quoted (step-1 rule)
+        (
+            "agents: {coder: file:agents/coder.yaml}\n",
+            ("prompt",),
+            "a\nb",
+            'agents: {coder: {$ref: file:agents/coder.yaml, prompt: "a\\nb"}}\n',
+        ),
+    ],
+)
+def test_convert_include_in_flow_mapping_writes_flow_mapping_form(
+    make_theatre: MakeTheatre, before: str, keys: tuple[str, ...], value: Value, expected: str
+) -> None:
+    after = _convert(make_theatre, before, "agents", "coder", keys=keys, value=value)
+    assert after == expected
+
+
+def test_convert_include_in_flow_list_writes_flow_mapping_item(make_theatre: MakeTheatre) -> None:
+    after = _convert(
+        make_theatre, "list: [file:agents/a.yaml, x]\n", "list", 0, keys=("k",), value=1
+    )
+    assert after == "list: [{$ref: file:agents/a.yaml, k: 1}, x]\n"
+
+
+@pytest.mark.parametrize(
+    ("before", "expected"),
+    [
+        (
+            "list:\n  - file:agents/a.yaml  # c\n  - plain\n",
+            "list:\n  - $ref: file:agents/a.yaml  # c\n    k: 1\n  - plain\n",
+        ),
+        ("list:\n- file:agents/a.yaml\n", "list:\n- $ref: file:agents/a.yaml\n  k: 1\n"),
+        (
+            "list:\n  -   file:agents/a.yaml\n",
+            "list:\n  -   $ref: file:agents/a.yaml\n      k: 1\n",
+        ),
+    ],
+)
+def test_convert_block_list_item_include(
+    make_theatre: MakeTheatre, before: str, expected: str
+) -> None:
+    assert _convert(make_theatre, before, "list", 0, keys=("k",), value=1) == expected
+
+
+@pytest.mark.parametrize(
+    ("before", "expected"),
+    [
+        ("file:agents/coder.yaml\n", "$ref: file:agents/coder.yaml\ntemperature: 0.3\n"),
+        # a leading BOM is not a column: the overrides still start at column 0
+        (
+            "\ufefffile:agents/coder.yaml  # c\n",
+            "\ufeff$ref: file:agents/coder.yaml  # c\ntemperature: 0.3\n",
+        ),
+    ],
+)
+def test_convert_document_root_include(
+    make_theatre: MakeTheatre, before: str, expected: str
+) -> None:
+    assert _convert(make_theatre, before, keys=("temperature",), value=0.3) == expected
+
+
+@pytest.mark.parametrize("written", ['"file:agents/coder.yaml"', "'file:agents/coder.yaml'"])
+def test_convert_keeps_quoted_include_bytes_verbatim(
+    make_theatre: MakeTheatre, written: str
+) -> None:
+    before = f"coder: {written}  # c\n"
+    after = _convert(make_theatre, before, "coder", keys=("temperature",), value=0.3)
+    assert after == f"coder:  # c\n  $ref: {written}\n  temperature: 0.3\n"
+
+
+def test_convert_crlf_file_keeps_crlf(make_theatre: MakeTheatre) -> None:
+    before = "name: t\r\ncoder: file:agents/coder.yaml  # c\r\nother: 1\r\n"
+    after = _convert(make_theatre, before, "coder", keys=("model", "t"), value=1)
+    assert after == (
+        "name: t\r\ncoder:  # c\r\n  $ref: file:agents/coder.yaml\r\n"
+        "  model:\r\n    t: 1\r\nother: 1\r\n"
+    )
+
+
+@pytest.mark.parametrize(
+    "before",
+    [
+        # a double-quoted string wrapped with an escaped line break reads file:agents/coder.yaml
+        'name: t\ncoder: "file:agents/\\\n  coder.yaml"\n',
+        "name: t\ncoder: |-\n  file:agents/coder.yaml\n",
+    ],
+)
+def test_convert_multiline_include_string_is_refused(
+    make_theatre: MakeTheatre, before: str
+) -> None:
+    with pytest.raises(WriteRefused) as refused:
+        _convert(make_theatre, before, "coder", keys=("temperature",), value=0.3)
+    assert refused.value.exit_code == 3
+    config = make_theatre({}) / ".troupe" / "troupe.yml"
+    assert refused.value.message == (
+        f"coder.temperature: the include at {config.resolve()} line 2 spans several lines;"
+        " cannot convert it to mapping form without rewriting it; no file changed"
+    )
+
+
+def test_convert_changes_no_other_line(make_theatre: MakeTheatre) -> None:
+    before = (
+        "# team file\nname: t  # n\n\ncoder: file:agents/coder.yaml  # c\n"
+        "# about other\nother:\n  x: 1\n"
+    )
+    after = _convert(make_theatre, before, "coder", keys=("temperature",), value=0.3)
+    old = before.splitlines(keepends=True)
+    changed = old.index("coder: file:agents/coder.yaml  # c\n")
+    assert after.splitlines(keepends=True) == [
+        *old[:changed],
+        "coder:  # c\n",
+        "  $ref: file:agents/coder.yaml\n",
+        "  temperature: 0.3\n",
+        *old[changed + 1 :],
+    ]

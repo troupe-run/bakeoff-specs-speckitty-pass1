@@ -1,0 +1,139 @@
+{
+  "mission_slug": "troupe-config-include-overrides-01M46FY4",
+  "mission_number": "",
+  "mission_type": "software-dev",
+  "overall_verdict": "pass",
+  "criteria": [
+    {
+      "criterion_id": "FR-001",
+      "description": "Verify FR-001 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_loading_ref.py::test_ref_alone_reads_like_scalar_form_yaml_include, test_ref_alone_of_text_file_is_its_text, test_quoted_ref_key_is_recognised \u2014 full suite 1848 passed on lane-e (all WP01-WP05 code, a80c8fe) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-05T20:06:56.417591+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-002",
+      "description": "Verify FR-002 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/unit/test_merge.py::test_nested_mappings_merge_recursively_with_both_sides_kept, test_override_list_replaces_included_list_entirely, test_merged_keys_are_included_order_then_override_only_keys; tests/integration/test_reads_overrides.py::test_show_of_overridden_list_prints_only_override_items \u2014 full suite 1848 passed on lane-e (all WP01-WP05 code, a80c8fe) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-05T20:06:59.560948+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-003",
+      "description": "Verify FR-003 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_loading_ref.py::test_ref_value_not_an_include_string_exits_4_naming_file_and_path, test_ref_with_siblings_on_text_target_exits_4_naming_file, test_overrides_on_list_or_scalar_content_exit_4_naming_target, test_cycle_through_ref_exits_4; tests/integration/test_overrides_acceptance.py::test_malformed_ref_makes_every_command_exit_4 \u2014 full suite 1848 passed on lane-e (all WP01-WP05 code, a80c8fe) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-05T20:07:02.689433+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-004",
+      "description": "Verify FR-004 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_reads_overrides.py::test_get_returns_override_where_present_else_included_value, test_show_prints_merged_mapping_without_ref, test_show_sources_names_including_file_for_overrides, test_first_command_imports_merged_leaves \u2014 full suite 1848 passed on lane-e (all WP01-WP05 code, a80c8fe) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-05T20:07:05.829847+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-005",
+      "description": "Verify FR-005 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_set_overrides.py::test_contract_example_converts_include_and_keeps_comment, test_new_nested_key_creates_override_mapping_and_keeps_included_siblings; tests/integration/test_overrides_acceptance.py::test_nested_include_override_lands_in_nearest_including_file \u2014 full suite 1848 passed on lane-e (all WP01-WP05 code, a80c8fe) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-05T20:07:08.957397+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-006",
+      "description": "Verify FR-006 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_set_overrides.py::test_contract_example_converts_include_and_keeps_comment; tests/integration/test_overrides_acceptance.py::test_four_space_file_converts_with_four_space_indentation, test_flow_parent_include_converts_in_flow_style, test_list_item_include_converts_in_place, test_crlf_including_file_keeps_crlf_after_conversion \u2014 full suite 1848 passed on lane-e (all WP01-WP05 code, a80c8fe) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-05T20:07:12.098152+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-007",
+      "description": "Verify FR-007 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_set_overrides.py::test_new_key_after_existing_overrides_needs_no_conversion, test_new_nested_key_under_mapping_form_with_overrides_extends_the_holder \u2014 full suite 1848 passed on lane-e (all WP01-WP05 code, a80c8fe) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-05T20:07:15.267217+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-008",
+      "description": "Verify FR-008 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_set_overrides.py::test_overridden_value_changes_only_the_override, test_not_overridden_value_changes_the_included_file \u2014 full suite 1848 passed on lane-e (all WP01-WP05 code, a80c8fe) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-05T20:07:18.431168+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-009",
+      "description": "Verify FR-009 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_set_overrides.py::test_append_to_included_list_goes_to_included_file, test_new_key_inside_included_list_item_goes_to_included_file, test_append_to_override_list_goes_to_including_file \u2014 full suite 1848 passed on lane-e (all WP01-WP05 code, a80c8fe) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-05T20:07:21.621872+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-010",
+      "description": "Verify FR-010 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_set_in_include.py::test_in_include_appends_new_key_to_included_file, test_in_include_nested_writes_innermost_file, test_in_include_on_overridden_existing_value_changes_override, test_quickstart_runs_end_to_end; tests/integration/test_overrides_acceptance.py::test_in_include_under_chained_mapping_form_includes_writes_innermost_file \u2014 full suite 1848 passed on lane-e (all WP01-WP05 code, a80c8fe) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-05T20:07:24.753008+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-011",
+      "description": "Verify FR-011 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_set_in_include.py::test_in_include_is_rejected_by_other_subcommands, test_in_include_with_reason_records_lineage, test_in_include_flag_position_is_free \u2014 full suite 1848 passed on lane-e (all WP01-WP05 code, a80c8fe) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-05T20:07:27.916458+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-012",
+      "description": "Verify FR-012 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_set_overrides.py::test_replacing_whole_include_in_either_form_exits_3_and_changes_nothing; tests/integration/test_overrides_acceptance.py::test_ref_segment_in_path_is_refused, test_replacing_partly_overridden_mapping_is_refused, test_multiline_include_string_conversion_is_refused \u2014 full suite 1848 passed on lane-e (all WP01-WP05 code, a80c8fe) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-05T20:07:31.056702+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-013",
+      "description": "Verify FR-013 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_overrides_acceptance.py::test_override_set_records_exactly_one_event_with_cli_lineage, test_hand_written_conversion_without_value_change_records_nothing, test_watch_records_set_written_override_once \u2014 full suite 1848 passed on lane-e (all WP01-WP05 code, a80c8fe) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-05T20:07:34.160988+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    }
+  ],
+  "negative_invariants": []
+}

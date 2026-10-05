@@ -140,6 +140,7 @@ When a new setting really belongs to every project using the shared file, the ow
 - `$ref` target missing, or an include cycle through `$ref` → exit 4 (step-1 rule, both forms).
 - An empty included file with overrides is an empty mapping merged with the overrides (D-7).
 - Replacing a mapping defined by both the included file and an override exits 3 (D-10); converting an include written as a multi-line string exits 3 (D-11).
+- An include written with a YAML anchor or tag (`coder: &a file:x.yaml`) never reaches conversion: the configuration cannot be loaded (exit 4, unchanged from step 1). Should text other than blanks or comments ever precede an include string being converted, the `set` exits 3 and changes no file, so no bytes are dropped (TROUPE-001).
 - Overrides may themselves contain includes (scalar or mapping form); they resolve as usual.
 - An override whose value is a mapping where the included value is a scalar (or vice versa) replaces it (D-7).
 - A hand edit that converts an include to mapping form without changing any merged leaf records nothing at reconcile; a hand edit adding an override records the changed leaves as `set` events (step 2).

@@ -4,12 +4,12 @@ artifact_type: spec-kitty.analysis-report
 command: /spec-kitty.analyze
 mission_slug: troupe-config-include-overrides-01M46FY4
 mission_id: 01M46FY4WYKMK8GW2V0RC8QQQ7
-generated_at: '2026-10-05T17:17:03.408370+00:00'
+generated_at: '2026-10-05T19:09:14.211354+00:00'
 analyzer_agent: unknown
 input_artifacts:
   spec.md:
     path: kitty-specs/troupe-config-include-overrides-01M46FY4/spec.md
-    sha256: 62138923fa9f7bd2db9921d2dcef3e8e976f8f3bf852ebd5dfbe883b25eac83d
+    sha256: b623c7ecbe21b6c12728f35613299b53082642ce6c22baa2da02a19268ec46e9
   plan.md:
     path: kitty-specs/troupe-config-include-overrides-01M46FY4/plan.md
     sha256: 292003ed5339740da5807fe37136edbfc55553b8f3bce1e00fdb546d7943d904
@@ -21,10 +21,10 @@ input_artifacts:
     sha256: a48e59b0f9fb45472e8fd41c29f431bdb475a6b0598bd083c88c6017f4b0ab03
 verdict: ready
 issue_counts:
-  low: 5
+  high: 0
   critical: 0
   medium: 2
-  high: 0
+  low: 5
   info: 0
 findings:
 - id: I1
@@ -46,7 +46,7 @@ findings:
 - id: I2
   severity: low
   category: inconsistency
-  summary: Spec D-5 says the gap before the comment is kept; WP02 applies the step-1 FR-020 column rule for flow and list-item conversions (value changed in place). Different on purpose but the spec wording reads as universal.
+  summary: Spec D-5 says the gap before the comment is kept; WP02 kept the gap for block-mapping, list-item, next-line and document-root conversions and the comment column only for flow parents. Spec wording should name the flow exception.
 - id: I3
   severity: low
   category: inconsistency
@@ -65,7 +65,7 @@ findings:
 | O1 | Ownership | MEDIUM | tasks/WP03 DoD; tasks/WP04 T021 | WP03 must mark two WP04-owned tests `xfail(strict=True)` to keep the suite green; WP04 removes them. | Accept as a declared, one-line out-of-map edit; WP03 reviewer checks only the marker changed. |
 | C1 | Coverage | LOW | spec.md NFR-001..004; WP frontmatter | NFRs not traced in `requirement_refs`. | Covered by WP04/WP05 snapshot + event-count assertions; WP05 T027 FR/D→test table should include NFRs. |
 | U1 | Underspecification | LOW | tasks/WP02 T008 (case 2), T010 (document root) | Two conversion shapes not named in spec. | Both are the contract rule applied to other layouts; record them in the spec Agent choices at acceptance if kept. |
-| I2 | Inconsistency | LOW | spec.md D-5; tasks/WP02 T009/T010 | Gap rule vs column rule for comments. | Clarify D-5 to "block-mapping key line" during WP05 agreement check. |
+| I2 | Inconsistency | LOW | spec.md D-5; tasks/WP02 T009/T010 | Gap kept except for flow parents (column kept). | Clarify D-5 to "block-mapping key line" during WP05 agreement check. |
 | I3 | Inconsistency | LOW | plan.md Project Structure; tasks.md WP01 | Test file layout differs. | Tasks are authoritative; no action needed. |
 | O2 | Ownership | LOW | tasks/WP05 T027 | quickstart.md correction outside owned files. | Allowed with rationale. |
 
@@ -108,3 +108,6 @@ findings:
 
 - No CRITICAL/HIGH findings: implementation may proceed.
 - I1 and O1 are handled by following the WP prompts as written; tidy data-model wording (I1) and D-5 wording (I2), and record U1 shapes, in the WP05 agreement step.
+
+
+_Re-recorded on 2026-10-05 after spec commit fbf4436 (edge case: anchors/tags never reach conversion). Findings unchanged; I2 wording updated to WP02 as implemented._

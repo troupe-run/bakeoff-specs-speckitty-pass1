@@ -10,6 +10,9 @@ requirement_refs:
 planning_base_branch: feat/troupe-config-include-overrides
 merge_target_branch: feat/troupe-config-include-overrides
 branch_strategy: Planning artifacts for this mission were generated on feat/troupe-config-include-overrides. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/troupe-config-include-overrides unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-troupe-config-include-overrides-01M46FY4
+base_commit: 308ce6cc279992754fd5200ee2261413b47a7781
+created_at: '2026-10-05T17:17:33.524575+00:00'
 subtasks:
 - T001
 - T002
@@ -19,6 +22,7 @@ subtasks:
 - T006
 - T007
 phase: Phase 1 - Foundations
+agent: claude
 history:
 - at: '2026-10-05T17:30:00Z'
   actor: system
@@ -31,6 +35,7 @@ create_intent:
 - tests/integration/test_loading_ref.py
 - tests/integration/test_reads_overrides.py
 execution_mode: code_change
+model: ''
 owned_files:
 - src/troupe/tree.py
 - src/troupe/merge.py
@@ -41,8 +46,6 @@ owned_files:
 - tests/integration/test_loading_ref.py
 - tests/integration/test_reads_overrides.py
 role: implementer
-agent: claude
-model: ''
 tags: []
 task_type: implement
 tracker_refs: []

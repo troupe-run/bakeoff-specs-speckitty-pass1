@@ -72,6 +72,30 @@
       "status": "canceled",
       "step_id": null,
       "summary_json": null
+    },
+    {
+      "created_at": "2026-10-05T17:05:26.730109Z",
+      "decision_id": "01M46GE1PATR2GJF9SGQ9NAWQ1",
+      "final_answer": "Approve. Spec additions D-7 correction, D-10, D-11 are out-of-contract agent choices, recorded in the spec with reasons.",
+      "input_key": "merged_tree_architecture",
+      "mission_id": "01M46FY4WYKMK8GW2V0RC8QQQ7",
+      "mission_slug": "troupe-config-include-overrides-01M46FY4",
+      "opened_by": "cli",
+      "options": [
+        "Approve",
+        "Approve with changes",
+        "Other"
+      ],
+      "origin_flow": "plan",
+      "other_answer": false,
+      "question": "Approve the engineering alignment: merged-view tree (MergedMapping subclass of MappingNode, YamlInclude.holder), one placement module deciding override vs step-1 target, verification extended for scalar->mapping-form conversion, plus spec additions D-10 (replacing a merged collection exits 3), D-11 (multi-line include string conversion exits 3) and the D-7 fix (empty target stays an empty mapping)?",
+      "rationale": null,
+      "resolved_at": "2026-10-05T17:06:16.272553Z",
+      "resolved_by": null,
+      "slot_key": "plan.architecture.merged-tree",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
     }
   ],
   "mission_id": "01M46FY4WYKMK8GW2V0RC8QQQ7",

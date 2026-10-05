@@ -11,5 +11,7 @@
   "purpose_tldr": "Adding a new setting under an included section writes an override in the including file instead of modifying the shared include.",
   "slug": "troupe-config-include-overrides-01M46FY4",
   "target_branch": "feat/troupe-config-include-overrides",
-  "topology": "coord"
+  "topology": "coord",
+  "vcs": "git",
+  "vcs_locked_at": "2026-10-05T17:17:28.216809+00:00"
 }

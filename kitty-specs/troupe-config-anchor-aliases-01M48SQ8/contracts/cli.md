@@ -17,7 +17,7 @@ troupe config set [--reason TEXT] [--in-include] [--expand-alias] PATH VALUE
 |---|---|
 | 0 | Value set (or already equal: nothing written, nothing recorded). |
 | 2 | Usage error: including `--expand-alias` on `get`/`show`/`history`/`watch` (C10), and an anchor, alias or tag in VALUE (C14). |
-| 3 | Refused, no file changed: through an alias without `--expand-alias`; through `<<`, a new `<<` key, replacing a mapping holding `<<`, a copy containing `<<` (A-0); expansion impossible (C9: flow parent, comment on the alias line, alias off its key line, `|+` copy, redefined anchor in copy, expansion and key in different files); anchor not on key line on replacement (C5, R-9). |
+| 3 | Refused, no file changed: through an alias without `--expand-alias`; through `<<`, a new `<<` key, replacing a mapping holding `<<`, a copy containing `<<` (A-0); expansion impossible (C9: flow parent, comment on the alias line, alias off its key line, `\|+` copy, redefined anchor in copy, expansion and key in different files); anchor not on key line on replacement (C5, R-9). |
 | 4 | Configuration not loadable: tags (C2), anchors on includes or keys (C3), undefined/recursive alias, bad `<<` value, `<<` beside `$ref` (C13). |
 | 5 | Path errors, unchanged from step 1. |
 

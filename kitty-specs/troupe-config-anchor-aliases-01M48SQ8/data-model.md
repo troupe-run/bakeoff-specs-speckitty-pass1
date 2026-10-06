@@ -46,7 +46,7 @@
 | Alias to expand in a flow collection; alias line has an end-of-line comment; alias not on its key/dash line | C9 |
 | Replacing an anchored collection whose anchor is not on the key's line | R-9 |
 | New key named `<<`; replacing a whole mapping holding `<<`; copy that would contain `<<` | A-0 |
-| Copy ending in a keep-chomping block (`|+`) followed by lines; anchor redefined inside the copy; expansion and new key in different files | C9 |
+| Copy ending in a keep-chomping block (`\|+`) followed by lines; anchor redefined inside the copy; expansion and new key in different files | C9 |
 
 ## State and events
 

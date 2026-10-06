@@ -1,0 +1,31 @@
+{
+  "entries": [
+    {
+      "created_at": "2026-10-06T14:26:33.931221Z",
+      "decision_id": "01M48SQVABR08ZCXGCZD5S8GXV",
+      "final_answer": "Agent choice (product owner: out of contract beyond 'merge keys are never written' and 'through an alias -> exit 3, stderr mentions --expand-alias'). Option A: read << with standard YAML merge semantics (keys written in the mapping win; for << [*a, *b] earlier sources win). A value arriving through << is reached through an alias: set exits 3 and stderr mentions --expand-alias; set --expand-alias on it also exits 3 because expanding would mean writing a merge key; stderr says so. Adding a key that does not exist yet directly under the mapping holding << is an ordinary write (no << written). Why: refusing cannot lose data (TROUPE-002), never writes <<, and keeps the reporter's requirement that nobody else changes silently; option B would override a shared value without the explicit opt-in the reporter asked for.",
+      "input_key": "merge_keys_read",
+      "mission_id": "01M48SQ8Y9ZZP8E3FPNYGSFB8N",
+      "mission_slug": "troupe-config-anchor-aliases-01M48SQ8",
+      "opened_by": "cli",
+      "options": [
+        "Read with YAML merge semantics (local keys win); set of a merged-in value exits 3 like any alias; --expand-alias on it exits 3 (would need to rewrite <<)",
+        "Read with merge semantics; set of a merged-in value adds a local key beside << (no << written, nobody else changes)",
+        "Refuse files containing << at load (exit 4)",
+        "Other"
+      ],
+      "origin_flow": "specify",
+      "other_answer": false,
+      "question": "Files may contain YAML merge keys (coder: {<<: *d, model: x}). How should troupe read them, and what should set do for a value that arrives through <<?",
+      "rationale": null,
+      "resolved_at": "2026-10-06T14:27:52.051461Z",
+      "resolved_by": null,
+      "slot_key": "specify.aliases.merge-keys",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
+    }
+  ],
+  "mission_id": "01M48SQ8Y9ZZP8E3FPNYGSFB8N",
+  "version": 1
+}

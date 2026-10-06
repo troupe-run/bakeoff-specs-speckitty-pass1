@@ -11,5 +11,7 @@
   "purpose_tldr": "Setting a value reached through a YAML alias is refused instead of silently changing every agent that shares the anchor; an explicit flag expands the alias so the value can be overridden.",
   "slug": "troupe-config-anchor-aliases-01M48SQ8",
   "target_branch": "fix/troupe-config-anchor-aliases",
-  "topology": "coord"
+  "topology": "coord",
+  "vcs": "git",
+  "vcs_locked_at": "2026-10-06T14:46:20.154902+00:00"
 }

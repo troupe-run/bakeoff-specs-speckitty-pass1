@@ -8,12 +8,16 @@ requirement_refs:
 planning_base_branch: fix/troupe-config-anchor-aliases
 merge_target_branch: fix/troupe-config-anchor-aliases
 branch_strategy: Planning artifacts for this mission were generated on fix/troupe-config-anchor-aliases. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into fix/troupe-config-anchor-aliases unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-troupe-config-anchor-aliases-01M48SQ8
+base_commit: 21d40b4f0765325c7599d39cccb04362b51f4500
+created_at: '2026-10-06T14:46:24.953803+00:00'
 subtasks:
 - T001
 - T002
 - T003
 - T004
 phase: Phase 1 - Parsing
+agent: claude
 history:
 - at: '2026-10-06T15:00:00Z'
   actor: system
@@ -22,13 +26,12 @@ agent_profile: python-pedro
 authoritative_surface: src/troupe/yamlcore.py
 create_intent: []
 execution_mode: code_change
+model: ''
 owned_files:
 - src/troupe/yamlcore.py
 - tests/unit/test_yamlcore.py
 - tests/unit/test_values.py
 role: implementer
-agent: claude
-model: ''
 tags: []
 task_type: implement
 tracker_refs:

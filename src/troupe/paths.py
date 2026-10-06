@@ -1,18 +1,22 @@
 """Configuration paths (FR-003): ``.``-separated segments; a digit-only segment indexes a list.
 
-Walking is include-aware: a ``YamlInclude`` is transparent and the walk continues at its
-``root``. ``Walk.nodes`` deliberately holds the node *as found* at each step (not unwrapped), so
-a caller can tell that the whole value at a path comes from a YAML include
-(``isinstance(walk.nodes[-1], YamlInclude)``); use ``unwrap`` to get the embedded content.
+Walking is include- and alias-aware: a ``YamlInclude`` is transparent and the walk continues at
+its ``root``; an ``AliasNode`` (a written alias or a value merged in through ``<<``) is
+transparent too and the walk continues at its ``target``, so reads resolve aliases (spec C1,
+A-0). ``Walk.nodes`` deliberately holds the node *as found* at each step (not unwrapped), so a
+caller can tell that the whole value at a path comes from a YAML include
+(``isinstance(walk.nodes[-1], YamlInclude)``) or is reached through an alias (an ``AliasNode``
+among the nodes, which placement relies on); use ``unwrap`` to get the content.
 
 Mapping-form includes need nothing here (FR-004): a ``MergedMapping`` is a ``MappingNode``, so
-``walk`` reads its merged view (no ``$ref`` key), and ``unwrap`` never needs to unwrap one.
+``walk`` reads its merged view (no ``$ref`` key), and ``unwrap`` never needs to unwrap one. The
+same holds for a ``MergeKeyMapping`` (merge key ``<<``): ``walk`` reads its view.
 """
 
 from dataclasses import dataclass
 
 from troupe.errors import PathError, UsageError
-from troupe.tree import MappingNode, Node, SequenceNode, YamlInclude
+from troupe.tree import AliasNode, MappingNode, Node, SequenceNode, YamlInclude
 
 
 def parse_path(text: str) -> list[str]:
@@ -33,9 +37,12 @@ def is_index(segment: str) -> bool:
 
 
 def unwrap(node: Node) -> Node:
-    """Return the content of ``node``: the (innermost) root of a ``YamlInclude``, else ``node``."""
-    while isinstance(node, YamlInclude):
-        node = node.root
+    """Return the content of ``node``: follow ``YamlInclude.root`` and ``AliasNode.target``.
+
+    The result is never a ``YamlInclude`` or an ``AliasNode`` (spec C1).
+    """
+    while isinstance(node, YamlInclude | AliasNode):
+        node = node.root if isinstance(node, YamlInclude) else node.target
     return node
 
 
@@ -45,7 +52,7 @@ class Walk:
 
     Attributes:
         nodes: ``nodes[0]`` is the root; ``nodes[i]`` is the node reached after ``i`` segments,
-            as found (a ``YamlInclude`` is not unwrapped; see ``unwrap``).
+            as found (a ``YamlInclude`` or ``AliasNode`` is not unwrapped; see ``unwrap``).
         remaining: Segments not consumed; empty when the whole path exists. The walk stops at a
             missing mapping key or at a list index ``>= len(list)``.
     """

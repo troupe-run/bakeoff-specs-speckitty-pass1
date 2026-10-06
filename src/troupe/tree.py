@@ -4,6 +4,18 @@ The tree is rebuilt from the files on disk by ``troupe.loader.load`` for every c
 carries an ``Origin``: the ``SourceFile`` that contains its bytes and the code-point span
 ``file.text[start:end]`` it was parsed from. A node reached through a YAML include belongs to the
 included file. This module is stdlib-only so that every other module can depend on it.
+
+Anchors, aliases and merge keys (spec A-0, C1; research R-3, R-4):
+
+- An anchored scalar, mapping or list is one ordinary node with ``anchor`` set (the ``&name``
+  token and the merged path where it is loaded). It is converted once and shared: every alias of
+  it refers to that same object, so writers and the verifier may compare it with ``is``.
+- ``AliasNode`` stands where an alias is written (``*name``), or where a value arrives through a
+  merge key ``<<`` (``merge=True``). It is transparent to readers (``paths.unwrap`` follows
+  ``target``) and is never a concrete container: writers never look inside it.
+- ``MergeKeyMapping`` is a mapping holding ``<<``: ``entries`` is the merged view (written keys
+  plus merged-in keys, each wrapped in a merge-derived ``AliasNode``); ``written`` is the
+  concrete mapping as written, ``<<`` entry included. Writers only ever receive ``written``.
 """
 
 from dataclasses import dataclass, field
@@ -46,6 +58,21 @@ class Origin:
         return self.file.text[self.start : self.end]
 
 
+@dataclass(frozen=True)
+class Anchor:
+    """An anchor written on a node (spec C1; research R-3).
+
+    Attributes:
+        name: The anchor name, without ``&``.
+        origin: Exactly the ``&name`` token.
+        path: The merged path where the anchored node is loaded (the verifier's identity rule).
+    """
+
+    name: str
+    origin: Origin
+    path: tuple[str, ...]
+
+
 @dataclass
 class ScalarNode:
     """A scalar; ``value`` is resolved per the YAML 1.2 core schema (plain) or a string."""
@@ -53,6 +80,7 @@ class ScalarNode:
     origin: Origin
     value: Scalar
     style: ScalarStyle
+    anchor: Anchor | None = field(default=None, kw_only=True)
 
 
 @dataclass
@@ -72,6 +100,7 @@ class MappingNode:
     origin: Origin
     flow: bool
     entries: list[MappingEntry]
+    anchor: Anchor | None = field(default=None, kw_only=True)
 
     def get(self, key: str) -> MappingEntry | None:
         """Return the entry whose key is ``key``, or ``None``."""
@@ -85,6 +114,7 @@ class SequenceNode:
     origin: Origin
     flow: bool
     items: list["Node"]
+    anchor: Anchor | None = field(default=None, kw_only=True)
 
 
 @dataclass
@@ -136,6 +166,48 @@ class MergedMapping(MappingNode):
     ref: "YamlInclude | None"
 
 
+@dataclass(kw_only=True)
+class MergeKeyMapping(MappingNode):
+    """A mapping holding a merge key ``<<`` (spec A-0; research R-4; built by ``merge.merge_keys``).
+
+    ``entries`` is the view: ``written``'s entries in order, with the ``<<`` entry replaced in
+    place by the merged-in entries no written key (and no earlier source) shadows; each merged-in
+    value is a merge-derived ``AliasNode``. ``written`` is the concrete mapping as written,
+    including its ``<<`` entry; ``origin`` and ``flow`` are ``written``'s.
+    Never write through the view: writers resolve to ``written``. Construct with keywords only.
+    """
+
+    written: MappingNode
+
+
+@dataclass(eq=False)
+class AliasNode:
+    """A value reached through an alias: a written ``*name``, or a merge key ``<<`` (R-3).
+
+    Transparent to readers (``paths.unwrap`` follows ``target``); never a concrete container,
+    so writers never look inside it. Identity semantics, like ``SourceFile``.
+
+    Attributes:
+        origin: The ``*name`` token. For a merge-derived node: the alias token inside the ``<<``
+            value, or the ``<<`` key's span for an inline ``<<`` mapping.
+        name: The alias name (without ``*``); ``None`` only for an inline ``<<`` mapping.
+        target: The node reached. For a written alias the anchored node itself
+            (``target is anchored``); for a merge-derived one the merged-in entry's value.
+        anchored: The anchored node; ``None`` for an inline ``<<`` mapping.
+        merge: ``True`` when reached through ``<<`` (never expanded).
+        written: For a merge-derived node, the written alias inside the ``<<`` value it comes
+            from, if any; ``None`` for a written alias.
+    """
+
+    origin: Origin
+    name: str | None
+    target: "Node"
+    anchored: "Node | None"
+    merge: bool = False
+    written: "AliasNode | None" = None
+
+
 # A plain union (not a ``type`` alias) so that ``isinstance(x, Node)`` works. ``MergedMapping`` is
-# a ``MappingNode`` subclass, so it is already covered and needs no member of its own (R-1).
-Node = ScalarNode | MappingNode | SequenceNode | YamlInclude | TextInclude
+# a ``MappingNode`` subclass, so it is already covered and needs no member of its own (R-1);
+# so is ``MergeKeyMapping`` (R-4).
+Node = ScalarNode | MappingNode | SequenceNode | YamlInclude | TextInclude | AliasNode

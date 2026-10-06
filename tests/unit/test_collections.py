@@ -14,7 +14,16 @@ from conftest import MakeTheatre
 from troupe import yamlcore
 from troupe.errors import WriteRefused
 from troupe.loader import load
-from troupe.tree import MappingNode, Node, ScalarNode, SequenceNode, TextInclude, YamlInclude
+from troupe.paths import unwrap
+from troupe.tree import (
+    MappingEntry,
+    MappingNode,
+    Node,
+    ScalarNode,
+    SequenceNode,
+    TextInclude,
+    YamlInclude,
+)
 from troupe.writeback import TextEdit, apply_edits
 from troupe.writeback.collections import (
     Value,
@@ -1241,3 +1250,123 @@ def test_convert_changes_no_other_line(make_theatre: MakeTheatre) -> None:
         "  temperature: 0.3\n",
         *old[changed + 1 :],
     ]
+
+
+# --- WP05 T022: anchors kept on kind-changing replacement (R-9, C5); indentation with anchors ---
+
+
+@pytest.mark.parametrize(
+    ("before", "value", "after", "resolved"),
+    [
+        (  # scalar -> mapping
+            "model: &m opus\nx: *m\n",
+            {"a": 1},
+            "model: &m\n  a: 1\nx: *m\n",
+            {"model": {"a": 1}, "x": {"a": 1}},
+        ),
+        (  # mapping -> scalar
+            "d: &d\n  model: opus\nx: *d\n",
+            5,
+            "d: &d 5\nx: *d\n",
+            {"d": 5, "x": 5},
+        ),
+        (  # block mapping -> empty mapping (flow form)
+            "d: &d\n  model: opus\nx: *d\n",
+            {},
+            "d: &d {}\nx: *d\n",
+            {"d": {}, "x": {}},
+        ),
+        (  # block mapping -> block list, comment on the key's line kept
+            "d: &d  # shared\n  model: opus\nx: *d\n",
+            ["a", "b"],
+            "d: &d  # shared\n  - a\n  - b\nx: *d\n",
+            {"d": ["a", "b"], "x": ["a", "b"]},
+        ),
+        (  # anchored empty value -> mapping
+            "d: &d\nx: *d\n",
+            {"m": 1},
+            "d: &d\n  m: 1\nx: *d\n",
+            {"d": {"m": 1}, "x": {"m": 1}},
+        ),
+    ],
+    ids=["scalar-to-mapping", "mapping-to-scalar", "mapping-to-empty", "mapping-to-list", "empty"],
+)
+def test_kind_change_keeps_anchor_on_key_line(
+    before: str, value: Value, after: str, resolved: Value
+) -> None:
+    root = _load(before)
+    key = before.split(":", 1)[0]
+    edits = replace_value_edits(root.origin.file, root, key, _map(root, key), value, 2, path=key)
+    text = apply_edits(before, edits)
+    assert text == after
+    assert _resolved(_load(text)) == resolved
+
+
+def test_kind_change_keeps_anchor_on_dash_line() -> None:
+    before = "l:\n  - &a\n    k: v\nx: *a\n"
+    root = _load(before)
+    seq = _seq(root, "l")
+    edits = replace_value_edits(root.origin.file, seq, 0, seq.items[0], 7, 2, path="l.0")
+    assert apply_edits(before, edits) == "l:\n  - &a 7\nx: *a\n"
+
+
+def test_flow_replacement_keeps_anchor_before_the_value() -> None:
+    before = "f: {a: &a [1, 2], b: 2}\nx: *a\n"
+    root = _load(before)
+    flow = _mapping(root, "f")
+    edits = replace_value_edits(
+        root.origin.file, flow, "a", _map(root, "f", "a"), {"k": 1}, 2, path="f.a"
+    )
+    text = apply_edits(before, edits)
+    assert text == "f: {a: &a {k: 1}, b: 2}\nx: *a\n"
+    assert _resolved(_load(text)) == {"f": {"a": {"k": 1}, "b": 2}, "x": {"k": 1}}
+
+
+@pytest.mark.parametrize(
+    "before",
+    ["model:\n  &m opus\nx: *m\n", "d:\n  &d\n  model: opus\nx: *d\n"],
+    ids=["scalar", "mapping"],
+)
+def test_kind_change_refuses_anchor_on_its_own_line(before: str) -> None:
+    root = _load(before)
+    key = "model" if before.startswith("model") else "d"
+    with pytest.raises(WriteRefused) as err:
+        replace_value_edits(root.origin.file, root, key, _map(root, key), [1], 2, path=key)
+    message = str(err.value)
+    assert message.startswith(f"{key}: the anchor &")
+    assert "not on its key's line" in message and "no file changed" in message
+
+
+def test_detect_indent_reads_files_with_anchors() -> None:
+    assert detect_indent("defaults: &d\n    model: opus\ncoder:\n    settings: *d\n") == 4
+    assert detect_indent("a: *x\n") == 2  # undefined alias: unreadable, default step
+    assert detect_indent("x: &x 1\nalias: *x\nb:\n   c: 1\n") == 3
+
+
+def _resolved(node: Node) -> Value:
+    """Like ``_plain``, following aliases."""
+    return _plain(_unaliased(node))
+
+
+def _unaliased(node: Node) -> Node:
+    node = unwrap(node)
+    if isinstance(node, MappingNode):
+        entries = [
+            MappingEntry(e.key, e.key_origin, e.key_style, _unaliased(e.value))
+            for e in node.entries
+        ]
+        return MappingNode(node.origin, node.flow, entries)
+    if isinstance(node, SequenceNode):
+        return SequenceNode(node.origin, node.flow, [_unaliased(item) for item in node.items])
+    return node
+
+
+def test_open_end_check_reads_files_with_anchors() -> None:
+    refused = "a: &a 1\nb: *a\ns: |\n  x"
+    root = _load(refused)
+    with pytest.raises(WriteRefused, match="ends inside a block scalar"):
+        new_key_edits(root.origin.file, root, ["t"], 1, 2, path="t")
+    written = "a: &a 1\nb: *a\ns: |-\n  x"
+    root = _load(written)
+    edits = new_key_edits(root.origin.file, root, ["t"], 1, 2, path="t")
+    assert apply_edits(written, edits) == written + "\nt: 1"

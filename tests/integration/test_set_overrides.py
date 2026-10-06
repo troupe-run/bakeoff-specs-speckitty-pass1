@@ -307,12 +307,21 @@ def test_set_same_value_into_new_override_path_is_not_a_noop_but_existing_overri
     assert len(_own_events(theatre, imported)) == 1
 
 
-# --- Agent choice (bead crs, D-12 pending): an include with an anchor or tag is not converted ---
+# --- Spec C2/C3: an include with an anchor or tag is not converted (the file does not load) ---
 
 
-@pytest.mark.parametrize("prop", ["&a ", "!t "], ids=["anchor", "tag"])
-def test_include_with_anchor_or_tag_is_not_converted(make_theatre: MakeTheatre, prop: str) -> None:
-    # Through the CLI the loader already rejects anchors and tags (exit 4, out of contract),
+@pytest.mark.parametrize(
+    ("prop", "message"),
+    [
+        ("&a ", "anchor &a at line 1 is on an include reference"),
+        ("!t ", "tags are not supported at line 1"),
+    ],
+    ids=["anchor", "tag"],
+)
+def test_include_with_anchor_or_tag_is_not_converted(
+    make_theatre: MakeTheatre, prop: str, message: str
+) -> None:
+    # Through the CLI the loader rejects an anchored include (C3) and any tag (C2) with exit 4,
     # so no file can change.
     files: Files = {"troupe.yml": f"coder: {prop}file:agents/coder.yaml\n", CODER: "model: gpt\n"}
     theatre = make_theatre(files)
@@ -320,7 +329,7 @@ def test_include_with_anchor_or_tag_is_not_converted(make_theatre: MakeTheatre, 
     result = _set(theatre, "coder.temperature", "0.3")
 
     assert (result.code, result.out) == (4, "")
-    assert "anchors and tags are not supported" in result.err
+    assert message in result.err
     assert snapshot(theatre) == _bytes(files)
 
 

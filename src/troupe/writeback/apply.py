@@ -40,6 +40,25 @@ How an existing scalar is written (``ReplaceScalar``):
 - a collection value, a value for an empty (zero-width) null, and a non-string value replacing a
   block scalar are kind changes (``collections.replace_value_edits``).
 
+Anchors and aliases (step 6; spec FR-003-FR-005, C5, C7, C8, C11; research R-8):
+
+- ``placement.place`` decides whether PATH is reached through an alias; without
+  ``expand_alias`` that is a refusal (exit 3) before any rendering. A set at the anchored node
+  is an ordinary write, so every alias of it sees the new value.
+- Expand loop (``set --expand-alias``): while ``place`` returns ``ExpandAlias`` (outermost alias
+  first, C7), ``aliases.expand_edits`` replaces that alias with its copy in the current text,
+  and the configuration is re-loaded in memory from the texts so far (keyed by path: every load
+  makes new ``SourceFile`` objects). At most ``MAX_EXPANSIONS`` rounds. The ordinary placement
+  is then rendered against the expanded text; all edits land in one file (anchors are per file,
+  C-005), written once. An unchanged VALUE is checked first and expands nothing (no-op).
+- Verification runs once against the *original* tree, so expansion and set are verified (and
+  recorded, C11) together. ``_same_outside`` has three alias rules: (1) an alias stays the same
+  alias (name, merge flag, anchored node's path) and is not descended into, since its anchored
+  node is compared at its own place; (2) with ``expand_alias`` a written alias on the route may
+  become a copy, compared value by value with the anchored content and differing only at PATH;
+  (3) anchor names are kept everywhere outside a copy, including on the value at PATH (C5), and
+  a merge-key mapping stays one.
+
 Text includes follow research R-16 (revised): with a CRLF target VALUE must be a string, written
 with CRLF line endings (else exit 3); with an LF or break-free target a string is written as
 parsed and any non-string VALUE (scalar, mapping or list) as the VALUE argument exactly as typed.
@@ -55,6 +74,7 @@ Choices made where the contract is silent (TROUPE-002, TROUPE-008):
   configuration means the same either way.
 """
 
+import re
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -66,8 +86,11 @@ from troupe.leaves import same
 from troupe.loader import load
 from troupe.paths import unwrap, walk
 from troupe.tree import (
+    AliasNode,
+    Anchor,
     MappingNode,
     MergedMapping,
+    MergeKeyMapping,
     Node,
     ScalarNode,
     SequenceNode,
@@ -77,6 +100,7 @@ from troupe.tree import (
 )
 from troupe.values import Value
 from troupe.writeback import TextEdit, apply_edits
+from troupe.writeback.aliases import COMMENT, expand_edits
 from troupe.writeback.blocks import can_block, parse_block, replace_block, replace_with_multiline
 from troupe.writeback.collections import (
     convert_include_edits,
@@ -92,6 +116,7 @@ from troupe.writeback.placement import (
     AddKeys,
     AppendItem,
     ConvertInclude,
+    ExpandAlias,
     Placement,
     ReplaceCollection,
     ReplaceScalar,
@@ -101,6 +126,13 @@ from troupe.writeback.placement import (
 from troupe.writeback.scalars import QuoteStyle, render_scalar, render_string
 
 _QUOTE_STYLES: dict[str, QuoteStyle] = {"plain": "plain", "single": "single", "double": "double"}
+
+MAX_EXPANSIONS = 64
+"""Upper bound on aliases expanded by one ``set --expand-alias`` (R-8).
+
+Each expansion removes one alias from PATH's route, so the loop ends after as many rounds as
+PATH has aliases; the bound only guards against a placement bug looping forever.
+"""
 
 
 @dataclass(frozen=True)
@@ -125,6 +157,7 @@ def apply_set(
     raw_value: str,
     *,
     in_include: bool = False,
+    expand_alias: bool = False,
 ) -> WritePlan:
     """Plan ``set dotted VALUE`` on the configuration ``root`` loaded from disk.
 
@@ -136,20 +169,28 @@ def apply_set(
         raw_value: The VALUE argument exactly as typed (text includes, research R-16).
         in_include: ``set --in-include``: a new key goes into the included file instead of
             becoming an override in the including file (FR-010).
+        expand_alias: ``set --expand-alias``: every alias on PATH is expanded into a copy of its
+            anchored node, then VALUE is set in the copy (FR-005, C7); one write, one
+            verification. Without it a PATH reached through an alias is refused (FR-004).
 
     Returns:
         The new file texts and the re-loaded tree, verified; no files for a no-op.
 
     Raises:
         WriteRefused: Exit 3; nothing may be written (include replacement, CRLF text include with
-            a non-string VALUE, a renderer refusal, or a failed verification).
+            a non-string VALUE, a path through an alias or merge key, an expansion refusal, a
+            renderer refusal, or a failed verification).
         PathError: Exit 5 (see ``placement.place``).
     """
-    placement = place(root, segments, dotted, in_include=in_include)
+    placement = place(root, segments, dotted, in_include=in_include, expand_alias=expand_alias)
     if isinstance(placement, ReplaceText):
         return _plan_text(root, segments, dotted, placement.node, value, raw_value)
     if isinstance(placement, ReplaceScalar | ReplaceCollection) and _matches(placement.node, value):
         return WritePlan({}, None)
+    if isinstance(placement, ExpandAlias):
+        if _unchanged(root, segments, value):  # no-op first: nothing written, nothing expanded
+            return WritePlan({}, None)
+        return _plan_expansion(root, segments, dotted, value, placement, in_include=in_include)
     file, edits = _edits(placement, dotted, value)
     new_text = apply_edits(file.text, edits)
     if new_text == file.text:
@@ -157,6 +198,102 @@ def apply_set(
     files = {file: new_text}
     tree = _verify(root, segments, dotted, files, lambda node: _matches(node, value))
     return WritePlan(files, tree)
+
+
+# --- Expanding aliases on PATH (R-8) ------------------------------------------------------------
+
+
+def _unchanged(root: Node, segments: list[str], value: Value) -> bool:
+    """Whether PATH exists and its resolved value already equals ``value``."""
+    found = walk(root, segments)
+    return not found.remaining and _matches(found.nodes[-1], value)
+
+
+def _plan_expansion(
+    root: Node,
+    segments: list[str],
+    dotted: str,
+    value: Value,
+    first: ExpandAlias,
+    *,
+    in_include: bool,
+) -> WritePlan:
+    """Expand every alias on PATH (outermost first, C7), then set VALUE in the copy.
+
+    Each round splices one alias's copy into the file's text and re-loads the configuration in
+    memory from the texts so far; placement then sees the copy and reports the next alias, or
+    the ordinary placement of VALUE, which is rendered against the expanded text. The texts are
+    keyed by path because each in-memory load creates new ``SourceFile`` objects. Anchors are per
+    file (C-005), so every edit lands in the file of the outermost alias: one file, one write.
+    A new key that step 5 would then write as an override in an including file (the alias is in
+    an included file and ``in_include`` is not set) would make a second file: refused (exit 3).
+    The result is verified once, against the original tree (expansion and set together).
+    """
+    original = first.alias.origin.file  # a ``SourceFile`` of ``root``: what ``write_files`` diffs
+    config_file = root.origin.file.path
+    texts: dict[Path, str] = {}
+    comment_lines: list[tuple[int, str]] = []  # (line start, alias name) of each expansion
+    current, placement = root, first
+    for _ in range(MAX_EXPANSIONS):
+        file = placement.alias.origin.file
+        edits = expand_edits(
+            file,
+            placement.alias,
+            placement.parent,
+            placement.slot,
+            detect_indent(file.text),
+            path=dotted,
+        )
+        alias_start = placement.alias.origin.start
+        comment_lines.append((file.text.rfind("\n", 0, alias_start) + 1, str(placement.alias.name)))
+        texts[file.path] = apply_edits(file.text, edits)
+        try:
+            current = load(config_file, overrides=texts)
+        except LoadError:
+            _refuse(dotted)
+        found = place(current, segments, dotted, in_include=in_include, expand_alias=True)
+        if not isinstance(found, ExpandAlias):
+            break
+        placement = found
+    else:
+        raise WriteRefused(f"{dotted}: too many aliases to expand; no file changed")
+    assert not isinstance(found, ReplaceText), "an anchored node never holds an include (C3)"
+    file, edits = _edits(found, dotted, value)
+    assert set(texts) == {original.path}, "anchors are per file: every copy in one file"
+    if file.path != original.path:  # a new key that becomes an override in an including file
+        raise WriteRefused(
+            f"{dotted}: the alias *{first.alias.name} is expanded in {original.path}, but the new"
+            f" key would be written as an override in {file.path}; an expansion and its set are"
+            " one write of one file (use --in-include to add it to the copy); no file changed"
+        )
+    text = apply_edits(file.text, edits)
+    for line_start, name in reversed(comment_lines):  # last line first: earlier starts hold
+        text = _respace_comment(text, line_start, name, dotted)
+    files = {original: text}
+    tree = _verify(
+        root, segments, dotted, files, lambda node: _matches(node, value), expand_alias=True
+    )
+    return WritePlan(files, tree)
+
+
+def _respace_comment(text: str, line_start: int, name: str, dotted: str) -> str:
+    """Put exactly the contract's two spaces before troupe's comment on an expanded line.
+
+    Setting the value on the line that already carries the comment (a scalar alias at PATH, or a
+    collection copy replaced by a scalar) keeps the comment's column, as for any comment
+    (FR-020); the contract fixes the spacing of this one instead. Edits made after an expansion
+    never start before its line, so ``line_start`` is still the start of that line.
+    """
+    line_end = text.find("\n", line_start)
+    line_end = len(text) if line_end < 0 else line_end
+    if line_end > line_start and text[line_end - 1] == "\r":
+        line_end -= 1
+    line = text[line_start:line_end]
+    match = re.search(rf"[ \t]*# expanded from \*{re.escape(name)} by troupe$", line)
+    if match is None:  # pragma: no cover - the comment is written on this line by expand_edits
+        _refuse(dotted)
+    respaced = line[: match.start()] + COMMENT.format(name=name)
+    return text[:line_start] + respaced + text[line_end:]
 
 
 # --- Text includes (R-16) -----------------------------------------------------------------------
@@ -296,8 +433,11 @@ def _matches(node: Node, value: Value) -> bool:
     """Whether ``node`` holds ``value`` as written: deep, type-aware, key order ignored.
 
     An include node holds the include string it was written as (``file:...``), so writing that
-    string again is recognised as unchanged.
+    string again is recognised as unchanged. Aliases are compared through (``unwrap``): an
+    alias holds the value it resolves to.
     """
+    node = _through_aliases(node)
+    assert not isinstance(node, AliasNode)  # ``_through_aliases`` follows every alias
     if isinstance(node, ScalarNode):
         return not isinstance(value, dict | list) and same(node.value, value)
     if isinstance(node, YamlInclude | TextInclude):
@@ -316,6 +456,13 @@ def _matches(node: Node, value: Value) -> bool:
     )
 
 
+def _through_aliases(node: Node) -> Node:
+    """Follow ``AliasNode.target`` (unlike ``unwrap``, an include stays an include)."""
+    while isinstance(node, AliasNode):
+        node = node.target
+    return node
+
+
 def _include_string(node: YamlInclude | TextInclude) -> str | None:
     """The string an include node was written as (``file:...``), or ``None`` if unreadable."""
     try:
@@ -331,15 +478,21 @@ def _verify(
     dotted: str,
     files: Mapping[SourceFile, str],
     reads_back: Callable[[Node], bool],
+    *,
+    expand_alias: bool = False,
 ) -> Node:
     """Re-load the configuration from the new texts and check the change is exactly the one asked.
+
+    ``expand_alias`` allows the aliases on the route to PATH to have become copies (R-8 rule 2).
+    A value at PATH that was anchored (and not reached through an alias) must keep its anchor
+    name (C5).
 
     Returns:
         The re-loaded tree.
 
     Raises:
-        WriteRefused: If the new texts do not load, the value at PATH does not read back, or
-            anything outside PATH differs.
+        WriteRefused: If the new texts do not load, the value at PATH does not read back or lost
+            its anchor, or anything outside PATH differs.
     """
     config_file = root.origin.file.path
     overrides: dict[Path, str] = {file.path: text for file, text in files.items()}
@@ -350,16 +503,75 @@ def _verify(
         _refuse(dotted)
     if found.remaining or not reads_back(found.nodes[-1]):
         _refuse(dotted)
-    if not _same_outside(root, new_root, [], segments):
+    if _anchor_name(_target_anchor(root, segments)) != _anchor_name(
+        _target_anchor(new_root, segments)
+    ):
+        _refuse(dotted)
+    if not _same_outside(root, new_root, [], segments, expand_alias=expand_alias):
         _refuse(dotted)
     return new_root
+
+
+def _target_anchor(root: Node, segments: list[str]) -> Anchor | None:
+    """The anchor on the value at PATH, unless PATH is new or reached through an alias.
+
+    Through an alias the value at PATH is either refused or written in a copy, which carries no
+    anchors (C8), so there is nothing to keep.
+    """
+    found = walk(root, segments)
+    if found.remaining or any(isinstance(node, AliasNode) for node in found.nodes):
+        return None
+    node = found.nodes[-1]
+    return node.anchor if isinstance(node, ScalarNode | MappingNode | SequenceNode) else None
+
+
+def _anchor_name(anchor: Anchor | None) -> str | None:
+    return None if anchor is None else anchor.name
+
+
+def _anchor_path(alias: AliasNode) -> tuple[str, ...] | None:
+    """Where the anchored node an alias refers to is loaded (its identity, R-8 rule 1)."""
+    anchored = alias.anchored
+    if not isinstance(anchored, ScalarNode | MappingNode | SequenceNode):
+        return None
+    return None if anchored.anchor is None else anchored.anchor.path
+
+
+def _same_alias(
+    old: AliasNode, new: Node, here: list[str], target: list[str], *, expand_alias: bool
+) -> bool:
+    """R-8 rule 1: an alias stays the same alias of the same anchored node.
+
+    The anchored node is compared at its own place, so this does not descend: a change at the
+    anchor is not a change at every alias of it. A merge-derived value from an inline ``<<``
+    mapping has no anchored node to be compared elsewhere, so its value is compared here.
+    """
+    if not (
+        isinstance(new, AliasNode)
+        and new.name == old.name
+        and new.merge == old.merge
+        and _anchor_path(new) == _anchor_path(old)
+        and (new.written is None) == (old.written is None)
+    ):
+        return False
+    if old.anchored is None:
+        return _same_outside(old.target, new.target, here, target, expand_alias=expand_alias)
+    return True
 
 
 def _refuse(dotted: str) -> NoReturn:
     raise WriteRefused(f"{dotted}: cannot write this change byte-surgically; no file changed")
 
 
-def _same_outside(old: Node, new: Node, here: list[str], target: list[str]) -> bool:
+def _same_outside(
+    old: Node,
+    new: Node,
+    here: list[str],
+    target: list[str],
+    *,
+    expand_alias: bool,
+    in_copy: bool = False,
+) -> bool:
     """Whether ``old`` and ``new`` are identical except at ``target`` and below.
 
     Kinds, flow flags, keys and their order, scalar values (type-aware) and styles, include
@@ -368,19 +580,55 @@ def _same_outside(old: Node, new: Node, here: list[str], target: list[str]) -> b
     ``set`` adds, and a mapping may become a merged view that
     gains its first override there (``_gains_override``, research R-5). A merged view must stay
     a merged view of the same ``$ref`` target (or of none) everywhere.
+
+    Aliases and anchors (R-8):
+
+    1. An alias outside the route, on it without ``expand_alias``, or merge-derived, must stay
+       the same alias of the same anchored node (``_same_alias``), without descending.
+    2. With ``expand_alias``, a written alias on the route may have become a copy: its anchored
+       content is compared with the copy (``in_copy``), which may differ only at PATH.
+    3. Anchor names on scalars, mappings and lists must be equal, except inside a copy, which
+       has none (C8). A merge-key mapping must stay one.
+
+    A copy is written in block style and its scalars may change their written form (C8), so
+    inside a copy flow flags and scalar styles are not compared; values, keys and their order
+    are.
     """
     if here == target:
         return True
     on_route = here == target[: len(here)]  # a strict prefix: ``here == target`` returned
+    if isinstance(old, AliasNode):
+        if on_route and expand_alias and not old.merge and not isinstance(new, AliasNode):
+            content = _through_aliases(old)
+            return _same_outside(
+                content, new, here, target, expand_alias=expand_alias, in_copy=True
+            )
+        return _same_alias(old, new, here, target, expand_alias=expand_alias)
+    if isinstance(new, AliasNode):
+        return False
+    if (
+        isinstance(old, ScalarNode | MappingNode | SequenceNode)
+        and isinstance(new, ScalarNode | MappingNode | SequenceNode)
+        and not in_copy
+        and _anchor_name(old.anchor) != _anchor_name(new.anchor)
+    ):
+        return False
+    if isinstance(old, MergeKeyMapping) != isinstance(new, MergeKeyMapping):
+        return False
     if isinstance(new, MergedMapping) and not isinstance(old, MergedMapping):
         if not (on_route and _gains_override(old, new)):
             return False
         old = unwrap(old)
+        assert not isinstance(old, AliasNode)  # ``unwrap`` follows aliases
     elif isinstance(old, MergedMapping):
         if not isinstance(new, MergedMapping) or _ref_path(new) != _ref_path(old):
             return False
     if isinstance(old, ScalarNode):
-        return isinstance(new, ScalarNode) and new.style == old.style and same(old.value, new.value)
+        return (
+            isinstance(new, ScalarNode)
+            and (in_copy or new.style == old.style)
+            and same(old.value, new.value)
+        )
     if isinstance(old, TextInclude):
         return (
             isinstance(new, TextInclude)
@@ -393,10 +641,10 @@ def _same_outside(old: Node, new: Node, here: list[str], target: list[str]) -> b
             isinstance(new, YamlInclude)
             and (new.holder is None) == (old.holder is None)
             and new.target.path == old.target.path
-            and _same_outside(old.root, new.root, here, target)
+            and _same_outside(old.root, new.root, here, target, expand_alias=expand_alias)
         )
     if isinstance(old, MappingNode):
-        if not isinstance(new, MappingNode) or new.flow != old.flow:
+        if not isinstance(new, MappingNode) or (new.flow != old.flow and not in_copy):
             return False
         old_keys = [entry.key for entry in old.entries]
         new_keys = [entry.key for entry in new.entries]
@@ -407,17 +655,31 @@ def _same_outside(old: Node, new: Node, here: list[str], target: list[str]) -> b
         # Paired by key: the added key may sit before old keys in a merged view (``_orders``).
         new_values = {entry.key: entry.value for entry in new.entries}
         return all(
-            _same_outside(entry.value, new_values[entry.key], [*here, entry.key], target)
+            _same_outside(
+                entry.value,
+                new_values[entry.key],
+                [*here, entry.key],
+                target,
+                expand_alias=expand_alias,
+                in_copy=in_copy,
+            )
             for entry in old.entries
         )
-    if not isinstance(new, SequenceNode) or new.flow != old.flow:
+    if not isinstance(new, SequenceNode) or (new.flow != old.flow and not in_copy):
         return False
     if len(new.items) != len(old.items):
         appended = on_route and target[len(here)] == str(len(old.items))
         if not appended or len(new.items) != len(old.items) + 1:
             return False
     return all(
-        _same_outside(item, new.items[index], [*here, str(index)], target)
+        _same_outside(
+            item,
+            new.items[index],
+            [*here, str(index)],
+            target,
+            expand_alias=expand_alias,
+            in_copy=in_copy,
+        )
         for index, item in enumerate(old.items)
     )
 

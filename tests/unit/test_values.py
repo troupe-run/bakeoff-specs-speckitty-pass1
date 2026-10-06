@@ -101,6 +101,24 @@ def test_parse_value_rejects_unparsable_text_with_usage_error_naming_value(text:
     assert repr(text) in info.value.message
 
 
+@pytest.mark.parametrize(
+    ("text", "problem"),
+    [
+        # A lone alias has no anchor before it: unchanged from before anchors were composed.
+        ("*d", "found undefined alias 'd' at line 1"),
+        ("&a 1", "anchors and tags are not supported at line 1"),
+        ("[&a 1, *a]", "anchors and tags are not supported at line 1"),
+        ("!t x", "anchors and tags are not supported at line 1"),
+    ],
+)
+def test_parse_value_rejects_anchor_alias_and_tag_with_usage_error(text: str, problem: str) -> None:
+    with pytest.raises(UsageError) as info:
+        parse_value(text)
+
+    assert info.value.exit_code == 2
+    assert info.value.message == f"cannot parse VALUE {text!r}: {problem}"
+
+
 @pytest.mark.parametrize("text", ["{a: 1, a: 2}", "{[a]: 1}"])
 def test_parse_value_rejects_ambiguous_mapping_keys(text: str) -> None:
     with pytest.raises(UsageError) as info:

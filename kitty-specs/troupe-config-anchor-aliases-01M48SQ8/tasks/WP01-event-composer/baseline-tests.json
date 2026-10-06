@@ -1,0 +1,19 @@
+{
+  "wp_id": "WP01",
+  "captured_at": "2026-10-06T14:51:31Z",
+  "base_branch": "fix/troupe-config-anchor-aliases",
+  "base_commit": "8f59671ada0b06e7a7c33be7a9783ca5d284ddbf",
+  "test_runner": "pytest",
+  "total": 1,
+  "passed": 0,
+  "failed": 1,
+  "skipped": 0,
+  "failures": [
+    {
+      "test": "<gate-coverage-junit>",
+      "error": "no JUnit XML artifact produced by the scoped run",
+      "file": "unknown"
+    }
+  ],
+  "source_identity": "GateCoverageScopeSource/junit_xml"
+}

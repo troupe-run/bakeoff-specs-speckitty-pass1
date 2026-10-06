@@ -1,0 +1,109 @@
+{
+  "mission_slug": "troupe-config-anchor-aliases-01M48SQ8",
+  "mission_number": "",
+  "mission_type": "software-dev",
+  "overall_verdict": "pass",
+  "criteria": [
+    {
+      "criterion_id": "FR-001",
+      "description": "Verify FR-001 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_aliases_read.py::test_get_through_alias_prints_anchored_value, test_show_prints_resolved_values_without_anchor_alias_or_merge_syntax, test_history_import_records_resolved_alias_leaves \u2014 full suite 2135 passed on lane-f (all WP01-WP06 code, c6b26f0) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-06T17:39:52.787495+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-002",
+      "description": "Verify FR-002 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_aliases_read.py::test_unsupported_anchor_uses_make_every_command_exit_4; tests/integration/test_aliases_acceptance.py::test_undefined_alias_and_alias_before_anchor_exit_4, test_recursive_alias_exits_4 \u2014 full suite 2135 passed on lane-f (all WP01-WP06 code, c6b26f0) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-06T17:39:56.120336+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-003",
+      "description": "Verify FR-003 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_set_aliases.py::test_set_at_anchor_changes_it_for_every_alias, test_replacing_anchored_collection_keeps_anchor, test_new_key_under_anchor_appears_through_aliases \u2014 full suite 2135 passed on lane-f (all WP01-WP06 code, c6b26f0) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-06T17:39:59.310148+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-004",
+      "description": "Verify FR-004 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_set_aliases.py::test_set_through_alias_exits_3_mentions_expand_alias_and_changes_nothing, test_scalar_alias_path_is_refused, test_new_key_below_alias_is_refused \u2014 full suite 2135 passed on lane-f (all WP01-WP06 code, c6b26f0) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-06T17:40:02.463157+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-005",
+      "description": "Verify FR-005 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_set_expand_alias.py::test_worked_example_is_reproduced_byte_for_byte, test_nested_aliases_on_path_are_each_expanded_with_their_comment \u2014 full suite 2135 passed on lane-f (all WP01-WP06 code, c6b26f0) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-06T17:40:05.626994+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-006",
+      "description": "Verify FR-006 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_set_expand_alias.py::test_expansion_refusals_change_nothing; tests/integration/test_set_aliases.py::test_merged_value_is_refused_with_and_without_expand_alias \u2014 full suite 2135 passed on lane-f (all WP01-WP06 code, c6b26f0) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-06T17:40:08.793991+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-007",
+      "description": "Verify FR-007 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_set_aliases.py::test_new_key_beside_merge_key_is_written_and_merge_line_unchanged; tests/integration/test_aliases_acceptance.py::test_merge_keys_are_never_written \u2014 full suite 2135 passed on lane-f (all WP01-WP06 code, c6b26f0) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-06T17:40:11.961332+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-008",
+      "description": "Verify FR-008 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_set_expand_alias.py::test_expand_alias_is_rejected_by_other_subcommands, test_expand_alias_without_alias_on_path_equals_plain_set, test_expand_alias_combines_with_in_include_in_any_order \u2014 full suite 2135 passed on lane-f (all WP01-WP06 code, c6b26f0) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-06T17:40:15.108678+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-009",
+      "description": "Verify FR-009 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_set_aliases.py::test_set_at_anchor_changes_it_for_every_alias; tests/integration/test_aliases_acceptance.py::test_hand_edit_of_anchored_value_records_every_alias_leaf, test_watch_records_set_at_anchor_once_per_leaf \u2014 full suite 2135 passed on lane-f (all WP01-WP06 code, c6b26f0) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-06T17:40:18.232776+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-010",
+      "description": "Verify FR-010 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_aliases_acceptance.py::test_anchor_alias_or_tag_in_value_exits_2 \u2014 full suite 2135 passed on lane-f (all WP01-WP06 code, c6b26f0) + mypy --strict, ruff check, ruff format --check clean",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator; per-WP independent reviews by reviewer-renata)",
+      "verified_at": "2026-10-06T17:40:21.425833+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    }
+  ],
+  "negative_invariants": []
+}

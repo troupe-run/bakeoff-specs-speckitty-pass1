@@ -3,15 +3,92 @@
 A mapping-form include (``coder: {$ref: file:agents/coder.yaml, temperature: 0.3}``) reads as
 the included content with the holder's other keys (*overrides*) deep-merged over it. This module
 is pure: it builds a ``MergedMapping`` view from two already-loaded sides and reads no files.
-``troupe.loader`` recognises ``$ref`` and calls ``deep_merge``; nothing else merges.
+``troupe.loader`` recognises ``$ref`` and calls ``deep_merge``.
+
+The YAML merge key ``<<`` (spec A-0; research R-4) is decided here too, by ``merge_keys``: keys
+written in the mapping win, and among several sources earlier ones win. The loader recognises
+``<<`` (plain style only), checks its value and refuses ``<<`` beside ``$ref`` (C13); nothing
+else merges.
 """
 
 from typing import Final
 
 from troupe.paths import unwrap
-from troupe.tree import MappingEntry, MappingNode, MergedMapping, Node, Origin, YamlInclude
+from troupe.tree import (
+    AliasNode,
+    MappingEntry,
+    MappingNode,
+    MergedMapping,
+    MergeKeyMapping,
+    Node,
+    Origin,
+    YamlInclude,
+)
 
 REF_KEY: Final = "$ref"
+MERGE_KEY: Final = "<<"
+
+type MergeSource = tuple[AliasNode | None, MappingNode, Origin]
+"""One ``<<`` source: (the written alias or ``None``, its mapping unwrapped, the derived origin)."""
+
+
+def is_merge_entry(entry: MappingEntry) -> bool:
+    """Whether ``entry`` is a merge key: ``<<`` written plain (a quoted ``'<<'`` is data)."""
+    return entry.key == MERGE_KEY and entry.key_style == "plain"
+
+
+def merge_keys(written: MappingNode, sources: list[MergeSource]) -> MergeKeyMapping:
+    """Build the view of ``written``, a mapping holding ``<<``, merging in ``sources`` (A-0, R-4).
+
+    Rules (YAML 1.1 merge type):
+
+    - The view's entries are ``written``'s entries in order, with the ``<<`` entry replaced in
+      place by the merged-in entries.
+    - A merged-in key is skipped if ``written`` has a key of that name, or if an earlier source
+      already supplied it.
+    - Each merged-in entry is a new ``MappingEntry`` with the source entry's key fields; its value
+      is a merge-derived ``AliasNode`` whose ``target`` is the source entry's value.
+    - A source that is itself a ``MergeKeyMapping`` contributes its view entries.
+
+    Args:
+        written: The concrete mapping as written, including its ``<<`` entry.
+        sources: Each ``(written alias or None, source mapping, origin)`` in ``<<`` order: the
+            alias written inside the ``<<`` value (``None`` for an inline mapping), the source
+            mapping unwrapped, and the origin of the derived ``AliasNode`` values.
+    """
+    written_keys = {entry.key for entry in written.entries if not is_merge_entry(entry)}
+    merged: list[MappingEntry] = []
+    supplied: set[str] = set()
+    for alias, mapping, origin in sources:
+        for entry in mapping.entries:
+            if entry.key in written_keys or entry.key in supplied:
+                continue
+            supplied.add(entry.key)
+            value = AliasNode(
+                origin=origin,
+                name=None if alias is None else alias.name,
+                target=entry.value,
+                anchored=None if alias is None else alias.anchored,
+                merge=True,
+                written=alias,
+            )
+            merged.append(
+                MappingEntry(
+                    key=entry.key,
+                    key_origin=entry.key_origin,
+                    key_style=entry.key_style,
+                    value=value,
+                )
+            )
+    entries: list[MappingEntry] = []
+    for entry in written.entries:
+        if is_merge_entry(entry):
+            entries.extend(merged)
+        else:
+            entries.append(entry)
+    return MergeKeyMapping(
+        origin=written.origin, flow=written.flow, entries=entries, written=written
+    )
 
 
 def deep_merge(

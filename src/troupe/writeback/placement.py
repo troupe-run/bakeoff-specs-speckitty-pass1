@@ -47,17 +47,49 @@ Choices made where the contract is silent (TROUPE-002, TROUPE-008):
 - Missing segments are only ever created as mapping keys. A digit-only missing segment below a
   mapping would need either a mapping with a digit-only key (out of contract, C-004) or a new
   list, which the contract does not describe, so it exits 5.
+
+Anchors, aliases and merge keys (step 6; spec FR-003, FR-004, FR-007, A-0, C4, C6; research
+R-4, R-6). "Reached through an alias" is decided here and nowhere else:
+
+- An anchored node reached directly (``defaults.model`` under ``defaults: &d``) is an ordinary
+  node: the rules above apply, and the write lands at the anchor (FR-003).
+- The route scan (``_route_aliases``) finds the first, i.e. outermost, ``AliasNode`` on the
+  concrete route to PATH's value (or, for a new key, to its deepest existing ancestor). It is
+  the first ``AliasNode`` among ``walk``'s nodes, plus aliases hidden as a side of a step-5
+  merged view when that side is the one the route actually takes. This covers PATH itself
+  being an alias (C4), an alias above PATH, a new key whose deepest existing ancestor is or lies
+  below an alias (C6) and values that come through a merge key ``<<``.
+- The write-side scan: a new key written on a side that is not on the route (the override or
+  base side of a merged view, or the ``route`` inside an include's holder mapping) is decided
+  the same way when that side is or passes an alias (``_on_side``, ``_on_base``).
+- One decision (``_through_alias``) for both scans: through ``<<`` is refused (exit 3) with or
+  without ``expand_alias``, since merge keys are never written; through a written alias it is
+  refused (exit 3, the message mentions ``--expand-alias``) unless ``expand_alias`` is set, in
+  which case the placement is ``ExpandAlias`` for that outermost written alias (C7).
+- Merge keys are never written (A-0, FR-007): replacing a whole mapping that holds ``<<`` is
+  refused (exit 3), and so is creating a new key named ``<<``. A new key beside a ``<<`` goes into
+  the written mapping (``MergeKeyMapping.written``), after its last written entry, so the
+  ``<<`` line is untouched. Writers never receive a merge-key view (R-4).
+- Refusal ordering: after the D-6 ``$ref`` refusal and ``walk``'s path errors, the alias
+  decision comes before every other rule, and before ``apply``'s no-op check: a ``set`` through
+  an alias whose VALUE equals the current value is still refused (exit 3), because the user
+  asked to change a shared path. With ``expand_alias`` and an equal value, ``ExpandAlias`` is
+  returned and the applier's no-op check (research R-8) writes nothing.
+- An include reference is never inside an anchored node (C3, enforced by the loader), so no
+  include reference is reachable only through an alias; ``_peel`` does not descend aliases.
 """
 
 from collections.abc import Iterator
 from dataclasses import dataclass
 
 from troupe.errors import PathError, WriteRefused
-from troupe.merge import REF_KEY
+from troupe.merge import MERGE_KEY, REF_KEY
 from troupe.paths import Walk, is_index, unwrap, walk
 from troupe.tree import (
+    AliasNode,
     MappingNode,
     MergedMapping,
+    MergeKeyMapping,
     Node,
     ScalarNode,
     SequenceNode,
@@ -140,10 +172,40 @@ class ConvertInclude:
     keys: list[str]
 
 
-Placement = ReplaceScalar | ReplaceText | ReplaceCollection | AddKeys | AppendItem | ConvertInclude
+@dataclass(frozen=True)
+class ExpandAlias:
+    """Replace the written alias ``alias`` (at ``slot`` of ``parent``) by a copy of its anchor.
+
+    Returned only with ``expand_alias``, for the outermost alias on the route or write side
+    (C7). The alias is always a written ``*name`` (never merge-derived: those are refused) and
+    ``parent`` is the concrete collection holding it, in ``alias.origin.file``. Whether the copy
+    can be written (flow parent, comment, line position; C9) is the text writer's decision.
+    """
+
+    alias: AliasNode
+    parent: Collection
+    slot: str | int
 
 
-def place(root: Node, segments: list[str], dotted: str, *, in_include: bool = False) -> Placement:
+Placement = (
+    ReplaceScalar
+    | ReplaceText
+    | ReplaceCollection
+    | AddKeys
+    | AppendItem
+    | ConvertInclude
+    | ExpandAlias
+)
+
+
+def place(
+    root: Node,
+    segments: list[str],
+    dotted: str,
+    *,
+    in_include: bool = False,
+    expand_alias: bool = False,
+) -> Placement:
     """Decide where ``set dotted VALUE`` is written.
 
     Args:
@@ -152,10 +214,14 @@ def place(root: Node, segments: list[str], dotted: str, *, in_include: bool = Fa
         dotted: PATH as the user wrote it, for messages.
         in_include: ``set --in-include``: a new key goes into the included file (contract
             *In-include*). It has no effect on existing values, list appends or refusals (D-9).
+        expand_alias: ``set --expand-alias``: a route through a written alias gives
+            ``ExpandAlias`` instead of a refusal (R-6). Merge keys are refused either way.
 
     Raises:
-        WriteRefused: If PATH has a ``$ref`` segment (D-6), the whole value at PATH comes from a
-            YAML include, or PATH names a mapping both an include and an override define (D-10);
+        WriteRefused: If PATH has a ``$ref`` segment (D-6), is reached through an alias without
+            ``expand_alias`` or through a merge key ``<<`` (R-6), names a mapping holding ``<<``
+            or would create a key ``<<`` (A-0), the whole value at PATH comes from a YAML
+            include, or PATH names a mapping both an include and an override define (D-10);
             exit 3.
         PathError: If PATH runs through a scalar, null or text include, uses a non-index segment
             on a list, uses an index larger than the list's length, or needs a missing segment
@@ -166,11 +232,17 @@ def place(root: Node, segments: list[str], dotted: str, *, in_include: bool = Fa
             f"{dotted}: '{REF_KEY}' is not a setting; it names an include (no file changed)"
         )
     found = walk(root, segments)
+    consumed = segments[: len(found.nodes) - 1]
+    through = _route_aliases(found, consumed)
+    if through is not None:
+        alias, depth = through
+        return _through_alias(root, alias, _dotted(segments[:depth]), dotted, expand_alias)
+    request = _Request(root, dotted, expand_alias)
     if not found.remaining:
         return _existing(root, found.nodes[-1], dotted)
     deepest = unwrap(found.nodes[-1])
     remaining = found.remaining
-    prefix = ".".join(segments[: len(segments) - len(remaining)]) or "(root)"
+    prefix = _dotted(consumed)
     if isinstance(deepest, SequenceNode):
         # ``walk`` only stops at a list on an index >= its length.
         index = int(remaining[0])
@@ -190,23 +262,28 @@ def place(root: Node, segments: list[str], dotted: str, *, in_include: bool = Fa
             f"path not found: {dotted} (no {prefix}.{remaining[0]}; a missing list index"
             f" '{digit}' cannot be created)"
         )
+    if MERGE_KEY in remaining:
+        raise WriteRefused(
+            f"{dotted}: '{MERGE_KEY}' is the merge key; troupe never writes merge keys;"
+            " no file changed"
+        )
     keys = list(remaining)
     if isinstance(deepest, MergedMapping):  # D-8
         if in_include:
-            return _on_base(deepest.base, keys)
-        return _on_side(root, deepest.override, [], keys)
+            return _on_base(request, deepest.base, prefix, keys)
+        return _on_side(request, deepest.override, prefix, [], keys)
     if in_include:
-        return AddKeys(deepest, keys)
+        return AddKeys(_written(deepest), keys)
     reference = _include_ref(found, deepest)
     if reference is None:
-        return AddKeys(deepest, keys)
+        return AddKeys(_written(deepest), keys)
     include, depth = reference
     route = segments[depth : len(found.nodes) - 1]
     if include.holder is not None:
         # Mapping form. With overrides ``include`` is the ``ref`` of a ``MergedMapping`` whose
         # ``override`` is this same holder, so both cases extend the holder along ``route``,
         # inside the override mappings that already exist there.
-        return _on_side(root, include.holder, route, keys)
+        return _on_side(request, include.holder, _dotted(segments[:depth]), route, keys)
     return _convert(root, include, route + keys)
 
 
@@ -214,9 +291,11 @@ def concrete_parent(root: Node, node: Node) -> tuple[Collection, str | int] | No
     """Return the concrete collection holding ``node`` and its slot, found by identity.
 
     Searches depth-first through concrete containers only: plain mappings' entries, sequences'
-    items, included roots, and both sides of a ``MergedMapping`` *as found* (never its merged
-    ``entries``, whose origin may be another file). Returns ``None`` if ``node`` is not a value
-    inside any collection (it is the root of a document).
+    items, included roots, both sides of a ``MergedMapping`` *as found* (never its merged
+    ``entries``, whose origin may be another file) and the ``written`` mapping of a
+    ``MergeKeyMapping`` (never its view). Aliases are values, never containers, so an anchored
+    node and everything in it are found at the anchor (R-6). Returns ``None`` if ``node`` is not
+    a value inside any collection (it is the root of a document).
     """
     for parent, slot, value in _children(root):
         if value is node:
@@ -228,10 +307,16 @@ def concrete_parent(root: Node, node: Node) -> tuple[Collection, str | int] | No
 
 
 def _children(node: Node) -> Iterator[tuple[Collection, str | int, Node]]:
-    """Yield ``(collection, slot, value)`` for the values directly below ``node``, concretely."""
+    """Yield ``(collection, slot, value)`` for the values directly below ``node``, concretely.
+
+    An ``AliasNode`` yields nothing. The subclass checks come before the ``MappingNode`` one.
+    """
     if isinstance(node, MergedMapping):
         for side in (node.base, node.override):
             yield from _children(side)
+    elif isinstance(node, MergeKeyMapping):
+        # The concrete entries, the ``<<`` entry included (R-4).
+        yield from _children(node.written)
     elif isinstance(node, MappingNode):
         for entry in node.entries:
             yield node, entry.key, entry.value
@@ -242,8 +327,123 @@ def _children(node: Node) -> Iterator[tuple[Collection, str | int, Node]]:
         yield from _children(node.root)
 
 
+@dataclass(frozen=True)
+class _Request:
+    """What the write-side scan needs to decide an alias it meets (``_through_alias``)."""
+
+    root: Node
+    dotted: str
+    expand_alias: bool
+
+
+def _dotted(segments: list[str]) -> str:
+    return ".".join(segments) or "(root)"
+
+
+def _written(mapping: MappingNode) -> MappingNode:
+    """The concrete mapping new keys go into: ``written`` for a merge-key view (R-4, FR-007)."""
+    return mapping.written if isinstance(mapping, MergeKeyMapping) else mapping
+
+
+def _route_aliases(found: Walk, consumed: list[str]) -> tuple[AliasNode, int] | None:
+    """Return the outermost alias on the route to ``found.nodes[-1]`` and its depth, if any.
+
+    The depth ``i`` is the number of segments that lead to the alias (its prefix is
+    ``consumed[:i]``). Without merged views on the route this is the first ``AliasNode`` among
+    ``found.nodes[1:]``. A step-5 merged view keeps the sides as found, so an alias written as
+    one side (``settings: *d`` beside an include) is not among ``found.nodes``; it counts only
+    when the route really goes through that side (identity search, ``_aliases_to``).
+    """
+    aliases = _aliases_to(found.nodes[0], consumed, found.nodes[-1], 0)
+    if aliases is None:  # pragma: no cover - the walked node is always on its route
+        aliases = [
+            (node, depth)
+            for depth, node in enumerate(found.nodes[1:], start=1)
+            if isinstance(node, AliasNode)
+        ]
+    return aliases[0] if aliases else None
+
+
+def _aliases_to(
+    node: Node, segments: list[str], target: Node, depth: int
+) -> list[tuple[AliasNode, int]] | None:
+    """Aliases met, outermost first, going from ``node`` (at ``depth``) down to ``target``.
+
+    ``node`` and ``target`` are as found. Merged views are crossed through their nested views
+    when the next value is one, else through whichever side (override first) leads to
+    ``target``. Returns ``None`` if ``target`` is not reached along ``segments``.
+    """
+    if isinstance(node, AliasNode):
+        if node is target:
+            return [(node, depth)]
+        below = _aliases_to(node.target, segments, target, depth)
+        return None if below is None else [(node, depth), *below]
+    if node is target:
+        return []
+    if isinstance(node, YamlInclude):
+        return _aliases_to(node.root, segments, target, depth)
+    if not segments:
+        return None
+    if isinstance(node, MergedMapping):
+        entry = node.get(segments[0])
+        if entry is not None and isinstance(entry.value, MergedMapping):
+            return _aliases_to(entry.value, segments[1:], target, depth + 1)
+        for side in (node.override, node.base):
+            below = _aliases_to(side, segments, target, depth)
+            if below is not None:
+                return below
+        return None
+    if isinstance(node, MappingNode):
+        entry = node.get(segments[0])
+        if entry is None:
+            return None
+        return _aliases_to(entry.value, segments[1:], target, depth + 1)
+    if isinstance(node, SequenceNode) and is_index(segments[0]):
+        index = int(segments[0])
+        if index >= len(node.items):
+            return None
+        return _aliases_to(node.items[index], segments[1:], target, depth + 1)
+    return None
+
+
+def _through_alias(
+    root: Node, alias: AliasNode, prefix: str, dotted: str, expand_alias: bool
+) -> ExpandAlias:
+    """Decide a write reached through ``alias`` at ``prefix`` (R-6): expand it or refuse.
+
+    Raises:
+        WriteRefused: Through a merge key ``<<`` (always), or through a written alias without
+            ``expand_alias``; exit 3, messages as in ``contracts/cli.md``.
+    """
+    if alias.merge:
+        source = "an inline mapping" if alias.name is None else f"*{alias.name}"
+        lead = f"{dotted}: {prefix} comes through the merge key '{MERGE_KEY}' (from {source})"
+        if expand_alias:
+            raise WriteRefused(
+                f"{lead}; merge keys are never written, so it cannot be expanded; no file changed"
+            )
+        raise WriteRefused(
+            f"{lead}; refusing to change a shared value (use --expand-alias to give it its own"
+            " copy); no file changed"
+        )
+    if not expand_alias:
+        file = alias.origin.file
+        line = file.text.count("\n", 0, alias.origin.start) + 1
+        raise WriteRefused(
+            f"{dotted}: {prefix} is the alias *{alias.name} in {file.path} line {line}, shared"
+            f" with its anchor &{alias.name}; refusing to change it for every user (use"
+            " --expand-alias to give this path its own copy); no file changed"
+        )
+    found = concrete_parent(root, alias)
+    if found is None:  # pragma: no cover - a written alias is always a value in a collection
+        raise PathError(f"{dotted}: parent of the alias *{alias.name} is not a collection")
+    parent, slot = found
+    return ExpandAlias(alias, parent, slot)
+
+
 def _existing(root: Node, node: Node, dotted: str) -> Placement:
-    """Placement for a PATH that exists; ``node`` is the value as found."""
+    """Placement for a PATH that exists; ``node`` is the value as found (never an alias)."""
+    assert not isinstance(node, AliasNode)  # decided by ``_through_alias`` first
     if isinstance(node, YamlInclude):
         raise WriteRefused(
             f"{dotted}: value comes from include {node.target.path}; refusing to replace it"
@@ -260,6 +460,11 @@ def _existing(root: Node, node: Node, dotted: str) -> Placement:
         raise WriteRefused(
             f"{dotted}: this mapping is defined both by {base_file} and by overrides in"
             f" {override_file}; replacing it as a whole is refused; no file changed"
+        )
+    if isinstance(node, MergeKeyMapping):  # A-0, FR-007
+        raise WriteRefused(
+            f"{dotted}: this mapping uses the merge key '{MERGE_KEY}'; replacing it as a whole"
+            " would rewrite the merge key, which troupe never writes; no file changed"
         )
     if isinstance(node, TextInclude):
         return ReplaceText(node)
@@ -286,6 +491,8 @@ def _include_ref(found: Walk, deepest: MappingNode) -> tuple[YamlInclude, int] |
     the loader shares one ``SourceFile`` per path). The deepest one wins; at the same depth the
     innermost of a chain. Returns ``None`` when there is none (``deepest`` is in the root file)
     or when a list lies between it and ``deepest`` (list rule: the key stays in that file).
+    Aliases are not peeled: an include reference is never inside an anchored node (C3), so
+    none is reachable only through an alias.
     """
     file = deepest.origin.file
     k = len(found.nodes) - 1
@@ -303,7 +510,10 @@ def _include_ref(found: Walk, deepest: MappingNode) -> tuple[YamlInclude, int] |
 
 
 def _peel(node: Node) -> Iterator[Node]:
-    """Yield ``node`` and what it is made of: include chain links and merged sides, outer first."""
+    """Yield ``node`` and what it is made of: include chain links and merged sides, outer first.
+
+    An ``AliasNode`` is yielded but not descended: aliases are not include chains (C3).
+    """
     yield node
     if isinstance(node, YamlInclude):
         yield from _peel(node.root)
@@ -312,33 +522,45 @@ def _peel(node: Node) -> Iterator[Node]:
         yield from _peel(node.override)
 
 
-def _on_side(root: Node, node: Node, route: list[str], keys: list[str]) -> Placement:
+def _on_side(
+    request: _Request, node: Node, at: str, route: list[str], keys: list[str]
+) -> Placement:
     """Add ``route + keys`` on the override side ``node``, inside overrides that already exist.
 
-    ``node`` is an override value as found: a plain mapping (gets the keys), a ``MergedMapping``
-    (its override side), a mapping-form include (its holder) or a scalar-form include (converted).
-    While the next ``route`` key already exists in the override mapping, descend into it.
+    ``node`` is an override value as found, at the dotted prefix ``at``: a plain mapping (gets
+    the keys), a ``MergedMapping`` (its override side), a mapping-form include (its holder), a
+    scalar-form include (converted) or an alias (the write would land in the anchored node, so
+    ``_through_alias`` decides). While the next ``route`` key already exists in the override
+    mapping, descend into it.
     """
+    if isinstance(node, AliasNode):
+        return _through_alias(request.root, node, at, request.dotted, request.expand_alias)
     if isinstance(node, MergedMapping):
-        return _on_side(root, node.override, route, keys)
+        return _on_side(request, node.override, at, route, keys)
     if isinstance(node, YamlInclude):
         if node.holder is None:
-            return _convert(root, node, route + keys)
+            return _convert(request.root, node, route + keys)
         node = node.holder
     assert isinstance(node, MappingNode)  # an override side always unwraps to a mapping
     entry = node.get(route[0]) if route else None
     if entry is None:
-        return AddKeys(node, route + keys)
-    return _on_side(root, entry.value, route[1:], keys)
+        return AddKeys(_written(node), route + keys)
+    return _on_side(request, entry.value, f"{at}.{route[0]}", route[1:], keys)
 
 
-def _on_base(node: Node, keys: list[str]) -> Placement:
-    """``in_include`` under a merged mapping: the innermost included file that defines it (D-8)."""
-    content = unwrap(node)
-    if isinstance(content, MergedMapping):
-        return _on_base(content.base, keys)
-    assert isinstance(content, MappingNode)  # a base side always unwraps to a mapping
-    return AddKeys(content, keys)
+def _on_base(request: _Request, node: Node, at: str, keys: list[str]) -> Placement:
+    """``in_include`` under a merged mapping: the innermost included file that defines it (D-8).
+
+    A base side that is an alias would put the key into the anchored node: ``_through_alias``.
+    """
+    if isinstance(node, AliasNode):
+        return _through_alias(request.root, node, at, request.dotted, request.expand_alias)
+    if isinstance(node, YamlInclude):
+        return _on_base(request, node.root, at, keys)
+    if isinstance(node, MergedMapping):
+        return _on_base(request, node.base, at, keys)
+    assert isinstance(node, MappingNode)  # a base side always unwraps to a mapping
+    return AddKeys(_written(node), keys)
 
 
 def _convert(root: Node, include: YamlInclude, keys: list[str]) -> ConvertInclude:

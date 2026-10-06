@@ -55,11 +55,21 @@ Choices made where the contract is silent (TROUPE-002, TROUPE-008):
   comment after a value that does not start on the key's line.
 - Kind-changing replacement of a block collection by another block collection writes the new
   top-level entries at the old entries' column when that column is valid for the new kind.
+
+Anchors and aliases (step 6; spec C5, research R-9):
+
+- Replacing an anchored value keeps its anchor (C5): when the ``&name`` token is on the key's
+  (or dash's) line, the new inline value or block lines follow it (``defaults: &d`` then the
+  new block, ``x: &m [a, b]``, ``d: &d 5``). An anchor elsewhere (``defaults:`` with ``&d``
+  alone on the next line) would have to move, so the replacement is refused (``WriteRefused``,
+  exit 3). Scalars replaced in place and flow values keep it anyway: their spans exclude it.
+- The indentation step and the open-end check parse with anchors and aliases allowed, so files
+  using them are measured like any other; an alias gives no indentation information.
 """
 
 import re
 from collections.abc import Iterator
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import TypeGuard
 
 from troupe import yamlcore
@@ -91,7 +101,7 @@ from troupe.writeback.blocks import (
 from troupe.writeback.comments import find_comment_start, replace_in_line
 from troupe.writeback.fileio import detect_newline
 from troupe.writeback.scalars import QuoteStyle, choose_style, render_scalar, render_string
-from troupe.yamlcore import RawMapping, RawNode, RawSequence
+from troupe.yamlcore import RawAlias, RawMapping, RawNode, RawSequence
 
 type Value = Scalar | dict[str, Value] | list[Value]
 """A value to write: same shape as ``troupe.values.Value`` (a parsed VALUE argument)."""
@@ -183,7 +193,7 @@ def detect_indent(text: str) -> int:
     scalar bodies, flow collections and sequence items give no information.
     """
     try:
-        root = yamlcore.compose(text, "<indentation>")
+        root = yamlcore.compose(text, "<indentation>", allow_anchors=True)
     except LoadError:
         return DEFAULT_INDENT_STEP
     step = None if root is None else _first_step(text, root)
@@ -191,6 +201,7 @@ def detect_indent(text: str) -> int:
 
 
 def _first_step(text: str, node: RawNode) -> int | None:
+    """The first step found below ``node``; an alias (``RawAlias``) carries no information."""
     if isinstance(node, RawMapping) and not node.flow:
         for key, value in node.pairs:
             child = _raw_entry_start(value)
@@ -470,9 +481,9 @@ def _check_open_end(file: SourceFile, path: str) -> None:
         WriteRefused: Naming ``path`` and the file.
     """
     text = file.text
-    if _shape(yamlcore.compose(text, str(file.path))) != _shape(
-        yamlcore.compose(text + detect_newline(text), str(file.path))
-    ):
+    before = yamlcore.compose(text, str(file.path), allow_anchors=True)
+    after = yamlcore.compose(text + detect_newline(text), str(file.path), allow_anchors=True)
+    if _shape(before) != _shape(after):
         raise WriteRefused(
             f"cannot write {path} in {file.path}: the file ends inside a block scalar without a"
             " final line break, and a new line after it would change that value"
@@ -490,6 +501,8 @@ def _shape(node: RawNode | None) -> _Shape:
         return tuple((_shape(key), _shape(value)) for key, value in node.pairs)
     if isinstance(node, RawSequence):
         return tuple(_shape(item) for item in node.items)
+    if isinstance(node, RawAlias):
+        return ("*", node.name)
     return (node.style, node.text)
 
 
@@ -784,7 +797,7 @@ def replace_value_edits(
     text = file.text
     if parent.flow:
         return _replace_in_flow(text, parent, index_or_key, old, new_value)
-    anchor = _anchor(text, parent, index_or_key)
+    anchor = _past_node_anchor(file, _anchor(text, parent, index_or_key), old, path)
     if isinstance(parent, MappingNode):
         offset = _sequence_offset(text, parent, step) if seq_offset is None else seq_offset
     else:
@@ -835,6 +848,26 @@ def _anchor(text: str, parent: Collection, index_or_key: str | int) -> _Anchor:
         raise ValueError("a sequence item is addressed by index")
     dash = _dash_pos(text, parent, index_or_key)
     return _Anchor(_line_start(text, dash), _column(text, dash), dash + 1, True)
+
+
+def _past_node_anchor(file: SourceFile, head: _Anchor, old: Node, path: str) -> _Anchor:
+    """Move ``head.head_end`` past the ``&name`` of ``old`` so the new value follows it (R-9, C5).
+
+    Raises:
+        WriteRefused: If ``old``'s anchor is not on the key's (or dash's) line: the new value
+            would have to move it, which is not a byte-surgical change.
+    """
+    if not isinstance(old, ScalarNode | MappingNode | SequenceNode) or old.anchor is None:
+        return head
+    node_anchor = old.anchor
+    text = file.text
+    start = node_anchor.origin.start
+    if _line_start(text, start) != head.line_start or start < head.head_end:
+        raise WriteRefused(
+            f"{path}: the anchor &{node_anchor.name} of this value is not on its key's line;"
+            " replacing the value would move it; no file changed"
+        )
+    return replace(head, head_end=node_anchor.origin.end)
 
 
 def _new_indents(text: str, anchor: _Anchor, old: Node, step: int, offset: int) -> tuple[int, int]:

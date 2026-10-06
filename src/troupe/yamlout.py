@@ -20,7 +20,8 @@ key is indented (``key:`` then ``  - item``); list items that are mappings or li
 
 Sources (research D-7): a line holding a scalar (a one-line scalar or a literal-block header) gets
 the file of that scalar; lines that only open a collection, ``{}``/``[]`` lines and block body
-lines get none. A ``YamlInclude`` is transparent at every level (``paths.unwrap``).
+lines get none. A ``YamlInclude`` and an ``AliasNode`` are transparent at every level
+(``paths.unwrap``): an aliased scalar's source is the file holding its anchored node (spec C1).
 """
 
 import os
@@ -33,7 +34,15 @@ from typing import Final
 from ruamel.yaml import YAML
 
 from troupe.paths import unwrap
-from troupe.tree import MappingNode, Node, ScalarNode, SequenceNode, TextInclude, YamlInclude
+from troupe.tree import (
+    AliasNode,
+    MappingNode,
+    Node,
+    ScalarNode,
+    SequenceNode,
+    TextInclude,
+    YamlInclude,
+)
 from troupe.writeback import blocks, scalars
 
 INDENT_STEP: Final = 2
@@ -97,9 +106,12 @@ def source_label(path: Path, theatre_dir: Path) -> str:
 
 
 def _content(node: Node) -> MappingNode | SequenceNode | ScalarNode | TextInclude:
-    """``paths.unwrap`` narrowed for the type checker: the result is never a ``YamlInclude``."""
+    """``paths.unwrap`` narrowed for the type checker: never a ``YamlInclude`` or ``AliasNode``.
+
+    So ``show`` prints resolved values with no anchor, alias or merge-key syntax (spec C1).
+    """
     value = unwrap(node)
-    assert not isinstance(value, YamlInclude)  # unwrap loops until it is not one
+    assert not isinstance(value, YamlInclude | AliasNode)  # unwrap loops until it is neither
     return value
 
 

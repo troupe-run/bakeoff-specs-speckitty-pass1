@@ -18,8 +18,10 @@ from troupe.history import HistoryStore
 from troupe.leaves import Change, diff, flatten
 from troupe.lineage import file_lineage
 from troupe.tree import (
+    AliasNode,
     MappingNode,
     MergedMapping,
+    MergeKeyMapping,
     Node,
     SequenceNode,
     SourceFile,
@@ -47,7 +49,10 @@ def watched_files(tree: Node) -> dict[Path, bytes]:
     That is the origin file of every node plus every include target (YAML and text, any depth).
     A ``MergedMapping`` is followed through both sides as found (``base`` and ``override``), not
     through its merged ``entries``: that reaches the ``$ref`` target and every include under
-    either side, including base entries an override hides (FR-004).
+    either side, including base entries an override hides (FR-004). A ``MergeKeyMapping`` is
+    followed through ``written`` (the mapping as written, ``<<`` value included), not its view;
+    an ``AliasNode`` adds nothing and is not followed: its anchored node is collected where it is
+    written (anchors are per file).
     ``SourceFile.text`` is strict-UTF-8-decoded without newline translation, so encoding it back
     gives exactly the bytes that were read. Keyed by the resolved path: ``SourceFile`` compares
     by identity.
@@ -62,8 +67,12 @@ def _add(file: SourceFile, files: dict[Path, bytes]) -> None:
 
 
 def _collect(node: Node, files: dict[Path, bytes]) -> None:
+    if isinstance(node, AliasNode):
+        return
     _add(node.origin.file, files)
-    if isinstance(node, MergedMapping):  # before MappingNode: it is one
+    if isinstance(node, MergeKeyMapping):  # before MappingNode: it is one
+        _collect(node.written, files)
+    elif isinstance(node, MergedMapping):  # before MappingNode: it is one
         _collect(node.base, files)
         _collect(node.override, files)
     elif isinstance(node, MappingNode):

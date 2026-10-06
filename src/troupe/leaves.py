@@ -3,14 +3,24 @@
 A leaf is a scalar or a text include, addressed by its dotted path in the merged tree (research
 R-07): a YAML include is transparent, so its leaves sit at merged paths; a text include is one
 leaf whose value is the target file's exact text; list items are addressed ``list.0``,
-``list.1``. Empty mappings and lists contribute no leaves. Leaves are what history records.
+``list.1``. Aliases are resolved (spec C1, C11): an aliased value's leaves sit at every path that
+reaches it, and a mapping holding a merge key ``<<`` contributes its merged view. Empty
+mappings and lists contribute no leaves. Leaves are what history records.
 """
 
 import math
 from dataclasses import dataclass
 from typing import Literal
 
-from troupe.tree import MappingNode, Node, ScalarNode, SequenceNode, TextInclude, YamlInclude
+from troupe.tree import (
+    AliasNode,
+    MappingNode,
+    Node,
+    ScalarNode,
+    SequenceNode,
+    TextInclude,
+    YamlInclude,
+)
 
 JsonScalar = str | int | float | bool | None
 
@@ -55,7 +65,9 @@ def _collect(node: Node, prefix: str, leaves: dict[str, JsonScalar]) -> None:
         leaves[prefix] = node.target.text
     elif isinstance(node, YamlInclude):
         _collect(node.root, prefix, leaves)
-    elif isinstance(node, MappingNode):
+    elif isinstance(node, AliasNode):
+        _collect(node.target, prefix, leaves)
+    elif isinstance(node, MappingNode):  # a ``MergeKeyMapping``'s view, never its ``written``
         for entry in node.entries:
             _collect(entry.value, _join(prefix, entry.key), leaves)
     elif isinstance(node, SequenceNode):

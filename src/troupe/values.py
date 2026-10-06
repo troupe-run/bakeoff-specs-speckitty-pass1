@@ -15,7 +15,7 @@ from troupe import yamlcore
 from troupe.errors import LoadError, UsageError
 from troupe.paths import unwrap
 from troupe.tree import Node, Scalar, ScalarNode, TextInclude
-from troupe.yamlcore import RawMapping, RawNode, RawScalar
+from troupe.yamlcore import RawAlias, RawMapping, RawNode, RawScalar
 
 type Value = Scalar | dict[str, Value] | list[Value]
 
@@ -47,6 +47,7 @@ def _is_block(raw: RawNode) -> bool:
     # Only the root needs checking: YAML forbids block nodes inside flow collections.
     if isinstance(raw, RawScalar):
         return raw.style in _BLOCK_SCALAR_STYLES
+    assert not isinstance(raw, RawAlias)  # compose refuses aliases in VALUE (spec C14)
     return not raw.flow
 
 
@@ -62,6 +63,7 @@ def _convert(raw: RawNode, text: str) -> Value:
                 raise UsageError(f"VALUE has duplicate key {raw_key.text!r}: {text!r}")
             mapping[raw_key.text] = _convert(raw_value, text)
         return mapping
+    assert not isinstance(raw, RawAlias)  # compose refuses aliases in VALUE (spec C14)
     return [_convert(item, text) for item in raw.items]
 
 

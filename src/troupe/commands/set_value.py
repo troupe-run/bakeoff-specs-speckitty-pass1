@@ -5,6 +5,13 @@ included content goes into the included file instead of becoming an override in 
 file. Recording is the same with or without it (FR-013): one event per changed leaf, with the
 usual lineage; converting an include to mapping form changes no leaf, so it records nothing.
 
+``--expand-alias`` (spec FR-005, C7-C10; research R-8, R-10) is passed through to ``apply_set``:
+every alias on PATH is expanded into a copy of its anchored node and VALUE is set in the copy,
+as one write of one file and one verification. Without it a PATH reached through an alias or a
+merge key is refused (exit 3, FR-004). Recording is unchanged (C11): one event per resolved leaf
+whose value changed, so a set at an anchor records every alias path that sees it, and an
+expand-and-set normally records only PATH (the copy has the same values).
+
 Order (plan "Engineering Alignment"; research R-04, R-12, R-17):
 
 1. Parse PATH and VALUE: a usage error (exit 2) happens before anything is loaded, imported or
@@ -44,7 +51,8 @@ def run(theatre: Theatre, args: argparse.Namespace, actor: Actor) -> str:
     """Set ``args.path`` to ``args.value``; return the (empty) stdout text.
 
     The set's own events are attributed to ``actor``, via ``cli``, with ``args.reason``.
-    ``args.in_include`` selects the included file for a new key (``set --in-include``).
+    ``args.in_include`` selects the included file for a new key (``set --in-include``);
+    ``args.expand_alias`` expands the aliases on PATH before setting (``set --expand-alias``).
 
     Raises:
         UsageError: If PATH has an empty segment or VALUE is not one YAML flow node (exit 2).
@@ -56,10 +64,19 @@ def run(theatre: Theatre, args: argparse.Namespace, actor: Actor) -> str:
     raw_value: str = args.value
     reason: str | None = args.reason
     in_include: bool = args.in_include
+    expand_alias: bool = args.expand_alias
     segments = parse_path(path)
     value = parse_value(raw_value)
     with open_session(theatre, reconcile=True) as session:
-        plan = apply_set(session.tree, segments, path, value, raw_value, in_include=in_include)
+        plan = apply_set(
+            session.tree,
+            segments,
+            path,
+            value,
+            raw_value,
+            in_include=in_include,
+            expand_alias=expand_alias,
+        )
         if plan.tree is None:
             return ""
         changes = diff(flatten(session.tree), flatten(plan.tree))

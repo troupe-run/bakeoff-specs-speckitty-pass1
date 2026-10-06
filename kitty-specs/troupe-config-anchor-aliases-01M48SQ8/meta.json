@@ -14,9 +14,8 @@
   "accepted_by": "system",
   "accepted_from_commit": "9d744483fb243812ea189cfdcd995dfd77f60105",
   "baseline_merge_commit": "ec4e8350fdc3abbf4fa2e11234579c4348ff922a",
-  "coordination_branch": "kitty/mission-troupe-config-anchor-aliases-01M48SQ8",
   "created_at": "2026-10-06T14:26:15.181694+00:00",
-  "flattened": false,
+  "flattened": true,
   "friendly_name": "troupe configuration: anchors and aliases stay honest",
   "mission_id": "01M48SQ8Y9ZZP8E3FPNYGSFB8N",
   "mission_number": null,
@@ -27,7 +26,6 @@
   "slug": "troupe-config-anchor-aliases-01M48SQ8",
   "status_phase": "1",
   "target_branch": "fix/troupe-config-anchor-aliases",
-  "topology": "coord",
   "vcs": "git",
   "vcs_locked_at": "2026-10-06T14:46:20.154902+00:00"
 }

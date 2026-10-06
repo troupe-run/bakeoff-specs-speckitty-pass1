@@ -2,9 +2,9 @@
   "event_count": 42,
   "last_event_id": "01M494WJ7MMCAHV4EX98JFYG1A",
   "materialized_at": "2026-10-06T17:41:22.804143+00:00",
-  "mission_number": "1",
+  "mission_number": "",
   "mission_slug": "troupe-config-anchor-aliases-01M48SQ8",
-  "mission_type": "software-dev",
+  "mission_type": "",
   "summary": {
     "approved": 0,
     "blocked": 0,
@@ -20,193 +20,98 @@
     "WP01": {
       "actor": "merge",
       "agent": "claude",
-      "agent_profile": "__resolved_profile_absent__",
-      "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01M494WG4XRNEMC9JDEX8JMW5P",
       "last_transition_at": "2026-10-06T17:41:20.669932+00:00",
-      "model": "__resolved_model_absent__",
-      "notes": [
-        "Ready for review: event composer, R-2 spans, refusals; gates green (1922 passed, mypy/ruff clean)",
-        "Review passed (reviewer-renata): default compose unchanged on 25k-input differential fuzz; R-2 spans and refusals verified; gates green. Nits: test name typo, anchored-key edge untested."
-      ],
-      "provider": "__resolved_provider_absent__",
       "review_result": {
         "feedback_path": "/work/bakeoff-specs-speckitty/kitty-specs/troupe-config-anchor-aliases-01M48SQ8/tasks/WP01-event-composer/review-cycle-1.md",
         "reference": "review-cycle://troupe-config-anchor-aliases-01M48SQ8/WP01-event-composer/review-cycle-1.md",
         "reviewer": "user",
         "verdict": "approved"
       },
-      "role": "reviewer",
-      "shell_pid": 2467,
-      "shell_pid_created_at": "1791300239.98",
-      "subtasks": {
-        "T001": "done",
-        "T002": "done",
-        "T003": "done",
-        "T004": "done"
-      }
+      "shell_pid": 226,
+      "shell_pid_created_at": "1791297976.14"
     },
     "WP02": {
       "actor": "merge",
       "agent": "claude",
-      "agent_profile": "__resolved_profile_absent__",
-      "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01M494WGK1SV7AXM764JC7RFRF",
       "last_transition_at": "2026-10-06T17:41:21.121547+00:00",
-      "model": "__resolved_model_absent__",
-      "notes": [
-        "Ready for review: aliases/merge keys load, reads resolve; gates green (1993 passed)",
-        "Review passed (reviewer-renata): reporter scenario reads resolve; C2/C3/C13 load errors; merge semantics; interim writeback guards refuse-only. Nits: command-matrix test checks file not line; Anchor.path inside << has '<<' segment (WP05)."
-      ],
-      "provider": "__resolved_provider_absent__",
       "review_result": {
         "feedback_path": "/work/bakeoff-specs-speckitty/kitty-specs/troupe-config-anchor-aliases-01M48SQ8/tasks/WP02-alias-tree-and-reads/review-cycle-1.md",
         "reference": "review-cycle://troupe-config-anchor-aliases-01M48SQ8/WP02-alias-tree-and-reads/review-cycle-1.md",
         "reviewer": "user",
         "verdict": "approved"
       },
-      "role": "reviewer",
-      "shell_pid": 8127,
-      "shell_pid_created_at": "1791301664.26",
-      "subtasks": {
-        "T005": "done",
-        "T006": "done",
-        "T007": "done",
-        "T008": "done",
-        "T009": "done",
-        "T010": "done"
-      }
+      "shell_pid": 3678,
+      "shell_pid_created_at": "1791300475.33"
     },
     "WP03": {
       "actor": "merge",
       "agent": "claude",
-      "agent_profile": "__resolved_profile_absent__",
-      "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01M494WH07P9W6QCWF59GFBW5Q",
       "last_transition_at": "2026-10-06T17:41:21.543369+00:00",
-      "model": "__resolved_model_absent__",
-      "notes": [
-        "Ready for review: through-alias placement, ExpandAlias, merge-key refusals; gates green (2017 passed)",
-        "Review passed (reviewer-renata): one decision fn for route/write-side, outermost first, merge refusals, no over-refusal; extra '<<' new-key refusal consistent with FR-007 (to record in spec, WP06)."
-      ],
-      "provider": "__resolved_provider_absent__",
       "review_result": {
         "feedback_path": "/work/bakeoff-specs-speckitty/kitty-specs/troupe-config-anchor-aliases-01M48SQ8/tasks/WP03-placement-through-alias/review-cycle-1.md",
         "reference": "review-cycle://troupe-config-anchor-aliases-01M48SQ8/WP03-placement-through-alias/review-cycle-1.md",
         "reviewer": "user",
         "verdict": "approved"
       },
-      "role": "reviewer",
-      "shell_pid": 17728,
-      "shell_pid_created_at": "1791303612.94",
-      "subtasks": {
-        "T011": "done",
-        "T012": "done",
-        "T013": "done",
-        "T014": "done",
-        "T015": "done"
-      }
+      "shell_pid": 10020,
+      "shell_pid_created_at": "1791301883.33"
     },
     "WP04": {
       "actor": "merge",
       "agent": "claude",
-      "agent_profile": "__resolved_profile_absent__",
-      "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01M494WHDPHAEG9XCY2Z7NW288",
       "last_transition_at": "2026-10-06T17:41:21.974956+00:00",
-      "model": "__resolved_model_absent__",
-      "notes": [
-        "Ready for review: expand_edits (C7-C9, << refusal); gates green",
-        "Review passed (reviewer-renata): worked example exact, C7-C9 + << refusal, 16 adversarial inputs reload-equal. Notes for WP05: |+ refusal message format, step from detect_indent."
-      ],
-      "provider": "__resolved_provider_absent__",
       "review_result": {
         "feedback_path": "/work/bakeoff-specs-speckitty/kitty-specs/troupe-config-anchor-aliases-01M48SQ8/tasks/WP04-alias-expansion-edits/review-cycle-1.md",
         "reference": "review-cycle://troupe-config-anchor-aliases-01M48SQ8/WP04-alias-expansion-edits/review-cycle-1.md",
         "reviewer": "user",
         "verdict": "approved"
       },
-      "role": "reviewer",
-      "shell_pid": 19173,
-      "shell_pid_created_at": "1791303743.45",
-      "subtasks": {
-        "T016": "done",
-        "T017": "done",
-        "T018": "done",
-        "T019": "done"
-      }
+      "shell_pid": 11643,
+      "shell_pid_created_at": "1791302195.91"
     },
     "WP05": {
       "actor": "merge",
       "agent": "claude",
-      "agent_profile": "__resolved_profile_absent__",
-      "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01M494WHTSVDXV0MB14KT460GT",
       "last_transition_at": "2026-10-06T17:41:22.393590+00:00",
-      "model": "__resolved_model_absent__",
-      "notes": [
-        "Ready for review: expand loop, verifier alias/anchor rules, anchors kept, --expand-alias; reporter scenario verified via CLI",
-        "Review passed (reviewer-renata): reporter scenario verified via CLI (exit 3 + --expand-alias; anchor set 3 events; worked example byte-exact, 1 event); full suite 2104 passed; deviations a-e acceptable."
-      ],
-      "provider": "__resolved_provider_absent__",
       "review_result": {
         "feedback_path": "/work/bakeoff-specs-speckitty/kitty-specs/troupe-config-anchor-aliases-01M48SQ8/tasks/WP05-set-wiring-and-stories/review-cycle-1.md",
         "reference": "review-cycle://troupe-config-anchor-aliases-01M48SQ8/WP05-set-wiring-and-stories/review-cycle-1.md",
         "reviewer": "user",
         "verdict": "approved"
       },
-      "role": "reviewer",
-      "shell_pid": 26190,
-      "shell_pid_created_at": "1791305391.62",
-      "subtasks": {
-        "T020": "done",
-        "T021": "done",
-        "T022": "done",
-        "T023": "done",
-        "T024": "done",
-        "T025": "done"
-      }
+      "shell_pid": 20398,
+      "shell_pid_created_at": "1791303892.61"
     },
     "WP06": {
       "actor": "merge",
       "agent": "claude",
-      "agent_profile": "__resolved_profile_absent__",
-      "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01M494WJ7MMCAHV4EX98JFYG1A",
       "last_transition_at": "2026-10-06T17:41:22.804143+00:00",
-      "model": "__resolved_model_absent__",
-      "notes": [
-        "Ready for review: acceptance suite (31 tests), one-file fix for expansion in included file; gates green (2135 passed)",
-        "Review passed (reviewer-renata): one-file refusal fix correct and pre-write; acceptance tests exact; refusals match contracts/cli.md; full suite 2135 passed."
-      ],
-      "provider": "__resolved_provider_absent__",
       "review_result": {
         "feedback_path": "/work/bakeoff-specs-speckitty/kitty-specs/troupe-config-anchor-aliases-01M48SQ8/tasks/WP06-aliases-acceptance/review-cycle-1.md",
         "reference": "review-cycle://troupe-config-anchor-aliases-01M48SQ8/WP06-aliases-acceptance/review-cycle-1.md",
         "reviewer": "user",
         "verdict": "approved"
       },
-      "role": "reviewer",
-      "shell_pid": 35192,
-      "shell_pid_created_at": "1791307803.19",
-      "subtasks": {
-        "T026": "done",
-        "T027": "done",
-        "T028": "done",
-        "T029": "done"
-      }
+      "shell_pid": 29629,
+      "shell_pid_created_at": "1791305949.22"
     }
   }
 }

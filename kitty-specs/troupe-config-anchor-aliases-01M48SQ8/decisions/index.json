@@ -24,6 +24,30 @@
       "status": "resolved",
       "step_id": null,
       "summary_json": null
+    },
+    {
+      "created_at": "2026-10-06T14:34:14.536673Z",
+      "decision_id": "01M48T5X483RCHEXYJ60R4N35P",
+      "final_answer": "Approved by the product owner: alignment matches the Aliases contract, byte-surgical set and per-leaf history. Spec additions are agent choices to record with reasons: << beside $ref -> exit 4 (C13); --expand-alias exits 3 when the alias is not on its key's or dash's line (C9); anchors/aliases in a set VALUE -> exit 2 (C14).",
+      "input_key": "engineering_alignment",
+      "mission_id": "01M48SQ8Y9ZZP8E3FPNYGSFB8N",
+      "mission_slug": "troupe-config-anchor-aliases-01M48SQ8",
+      "opened_by": "cli",
+      "options": [
+        "Approve",
+        "Approve with changes",
+        "Other"
+      ],
+      "origin_flow": "plan",
+      "other_answer": false,
+      "question": "Confirm the engineering alignment for step 6 aliases (own event-based composer in yamlcore; transparent AliasNode in the tree; merge-key view; through-alias detection only in placement; expand-then-set loop in apply with one verification), including two small spec additions (<< beside $ref -> exit 4; alias not on its key's/dash's line -> --expand-alias exits 3).",
+      "rationale": null,
+      "resolved_at": "2026-10-06T14:35:23.544846Z",
+      "resolved_by": null,
+      "slot_key": "plan.architecture.engineering-alignment",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
     }
   ],
   "mission_id": "01M48SQ8Y9ZZP8E3FPNYGSFB8N",

@@ -1,0 +1,15 @@
+{
+  "coordination_branch": "kitty/mission-troupe-config-anchor-aliases-01M48SQ8",
+  "created_at": "2026-10-06T14:26:15.181694+00:00",
+  "flattened": false,
+  "friendly_name": "troupe configuration: anchors and aliases stay honest",
+  "mission_id": "01M48SQ8Y9ZZP8E3FPNYGSFB8N",
+  "mission_number": null,
+  "mission_slug": "troupe-config-anchor-aliases-01M48SQ8",
+  "mission_type": "software-dev",
+  "purpose_context": "Step 6 (bug bakeoff-specs-speckitty-qht) adds the Aliases contract section. Theatre owners share settings between agents with YAML anchors and aliases. Changing the anchored value must change it everywhere, while changing a value reached through an alias must be refused unless the owner asks for that alias to be expanded into its own copy.",
+  "purpose_tldr": "Setting a value reached through a YAML alias is refused instead of silently changing every agent that shares the anchor; an explicit flag expands the alias so the value can be overridden.",
+  "slug": "troupe-config-anchor-aliases-01M48SQ8",
+  "target_branch": "fix/troupe-config-anchor-aliases",
+  "topology": "coord"
+}

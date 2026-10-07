@@ -24,6 +24,30 @@
       "status": "resolved",
       "step_id": null,
       "summary_json": null
+    },
+    {
+      "created_at": "2026-10-07T17:00:02.361856Z",
+      "decision_id": "01M4BMXJXSNEY2QMXYA1W16W04",
+      "final_answer": "Agent decision (product owner 2026-10-07: brief silent, take the safest assumption): add jsonschema as a runtime dependency and validate with Draft202012Validator, checking the schema against the 2020-12 meta-schema, with a referencing registry that resolves no remote references and format not asserted. Reason: a hand-written validator that is subtly wrong would wrongly accept or refuse configurations, contradicting the contract's validate rule; the reference implementation passes the official test suite.",
+      "input_key": "schema_validator",
+      "mission_id": "01M4BMJ55Q91FZYFPD9AG3AEWN",
+      "mission_slug": "troupe-config-remote-includes-01M4BMJ5",
+      "opened_by": "cli",
+      "options": [
+        "Add jsonschema (Draft202012Validator, meta-schema check) as a runtime dependency",
+        "Hand-write a validator for the 2020-12 vocabulary",
+        "Other"
+      ],
+      "origin_flow": "plan",
+      "other_answer": false,
+      "question": "How should the configuration be validated against JSON Schema 2020-12: add the jsonschema package (pulls in attrs, referencing, rpds-py, jsonschema-specifications) or hand-write a validator?",
+      "rationale": null,
+      "resolved_at": "2026-10-07T17:03:09.960268Z",
+      "resolved_by": null,
+      "slot_key": "plan.dependencies.schema-validator",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
     }
   ],
   "mission_id": "01M4BMJ55Q91FZYFPD9AG3AEWN",

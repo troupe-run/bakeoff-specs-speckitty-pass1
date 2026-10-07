@@ -2,9 +2,9 @@
   "event_count": 91,
   "last_event_id": "01M4CCFRYHGPGNNE8FER9A15QE",
   "materialized_at": "2026-10-07T23:51:55.601300+00:00",
-  "mission_number": "1",
+  "mission_number": "",
   "mission_slug": "troupe-config-remote-includes-01M4BMJ5",
-  "mission_type": "software-dev",
+  "mission_type": "",
   "summary": {
     "approved": 0,
     "blocked": 0,
@@ -20,327 +20,162 @@
     "WP01": {
       "actor": "merge",
       "agent": "claude",
-      "agent_profile": "__resolved_profile_absent__",
-      "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 1,
       "lane": "done",
       "last_event_id": "01M4CCFMMETMA8C6ECKNQPTBNQ",
       "last_transition_at": "2026-10-07T23:51:51.182857+00:00",
-      "model": "__resolved_model_absent__",
-      "notes": [
-        "Implemented; full suite and mypy/ruff clean",
-        "Cycle 1 fix: deadline bounds DNS, each connect, TLS handshake; reason rstrip; tests added",
-        "Review passed (cycle 2, reviewer-renata): deadline bounds DNS/connect/TLS/proxy; 10 break attempts held; full suite 2158 passed"
-      ],
-      "provider": "__resolved_provider_absent__",
-      "review": null,
       "review_result": {
         "feedback_path": "/work/bakeoff-specs-speckitty/kitty-specs/troupe-config-remote-includes-01M4BMJ5/tasks/WP01-locations-fetch-harness/review-cycle-2.md",
         "reference": "review-cycle://troupe-config-remote-includes-01M4BMJ5/WP01-locations-fetch-harness/review-cycle-2.md",
         "reviewer": "user",
         "verdict": "approved"
       },
-      "role": "reviewer",
-      "shell_pid": 15835,
-      "shell_pid_created_at": "1791398631.84",
-      "subtasks": {
-        "T001": "done",
-        "T002": "done",
-        "T003": "done",
-        "T004": "done",
-        "T005": "done"
-      }
+      "shell_pid": 14494,
+      "shell_pid_created_at": "1791398188.68"
     },
     "WP02": {
       "actor": "merge",
       "agent": "claude",
-      "agent_profile": "__resolved_profile_absent__",
-      "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01M4CCFN3963022WKS8Q092GYD",
       "last_transition_at": "2026-10-07T23:51:51.657146+00:00",
-      "model": "__resolved_model_absent__",
-      "notes": [
-        "Implemented; full suite and mypy/ruff clean",
-        "Review passed (reviewer-renata): T006-T009 met; spans verified on adversarial inputs; untagged spans unchanged. Non-blocking: RawTag docstring wording for empty-value-with-anchor case"
-      ],
-      "provider": "__resolved_provider_absent__",
       "review_result": {
         "feedback_path": "/work/bakeoff-specs-speckitty/kitty-specs/troupe-config-remote-includes-01M4BMJ5/tasks/WP02-literal-tag-composer/review-cycle-1.md",
         "reference": "review-cycle://troupe-config-remote-includes-01M4BMJ5/WP02-literal-tag-composer/review-cycle-1.md",
         "reviewer": "user",
         "verdict": "approved"
       },
-      "role": "reviewer",
-      "shell_pid": 13137,
-      "shell_pid_created_at": "1791397918.12",
-      "subtasks": {
-        "T006": "done",
-        "T007": "done",
-        "T008": "done",
-        "T009": "done"
-      }
+      "shell_pid": 3191,
+      "shell_pid_created_at": "1791394421.54"
     },
     "WP03": {
       "actor": "merge",
       "agent": "claude",
-      "agent_profile": "__resolved_profile_absent__",
-      "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 1,
       "lane": "done",
       "last_event_id": "01M4CCFNHR2YS4026XTEF1Q5S2",
       "last_transition_at": "2026-10-07T23:51:52.120320+00:00",
-      "model": "__resolved_model_absent__",
-      "notes": [
-        "Schema module + jsonschema dependency; full suite 2190 passed; mypy/ruff clean",
-        "Cycle 1 fix: Unresolvable reasons never empty (#anchor), tests added; 57 schema tests, mypy/ruff clean",
-        "Review passed (cycle 2, reviewer-renata): T010-T014 met; Unresolvable reasons fixed; full suite 2192 passed"
-      ],
-      "provider": "__resolved_provider_absent__",
-      "review": null,
       "review_result": {
         "feedback_path": "/work/bakeoff-specs-speckitty/kitty-specs/troupe-config-remote-includes-01M4BMJ5/tasks/WP03-schema-module/review-cycle-2.md",
         "reference": "review-cycle://troupe-config-remote-includes-01M4BMJ5/WP03-schema-module/review-cycle-2.md",
         "reviewer": "user",
         "verdict": "approved"
       },
-      "role": "reviewer",
-      "shell_pid": 6234,
-      "shell_pid_created_at": "1791397167.01",
-      "subtasks": {
-        "T010": "done",
-        "T011": "done",
-        "T012": "done",
-        "T013": "done",
-        "T014": "done"
-      }
+      "shell_pid": 4736,
+      "shell_pid_created_at": "1791397070.96"
     },
     "WP04": {
       "actor": "merge",
       "agent": "claude",
-      "agent_profile": "__resolved_profile_absent__",
-      "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01M4CCFP1R1PCN6T79DKJM9GJ3",
       "last_transition_at": "2026-10-07T23:51:52.632191+00:00",
-      "model": "__resolved_model_absent__",
-      "notes": [
-        "includes.py + tests; unit suite 1633 passed; mypy/ruff clean",
-        "Review passed (reviewer-renata): T015-T018 met; escapes refused (A-3). Note for WP08: run place() before mark_literals so an invalid PATH exits 5"
-      ],
-      "provider": "__resolved_provider_absent__",
       "review_result": {
         "feedback_path": "/work/bakeoff-specs-speckitty/kitty-specs/troupe-config-remote-includes-01M4BMJ5/tasks/WP04-include-rule-module/review-cycle-1.md",
         "reference": "review-cycle://troupe-config-remote-includes-01M4BMJ5/WP04-include-rule-module/review-cycle-1.md",
         "reviewer": "user",
         "verdict": "approved"
       },
-      "role": "reviewer",
-      "shell_pid": 22010,
-      "shell_pid_created_at": "1791400143.2",
-      "subtasks": {
-        "T015": "done",
-        "T016": "done",
-        "T017": "done",
-        "T018": "done"
-      }
+      "shell_pid": 19412,
+      "shell_pid_created_at": "1791399632.16"
     },
     "WP05": {
       "actor": "merge",
       "agent": "claude",
-      "agent_profile": "__resolved_profile_absent__",
-      "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 1,
       "lane": "done",
       "last_event_id": "01M4CCFPHZY261C2D7YMH62K30",
       "last_transition_at": "2026-10-07T23:51:53.151445+00:00",
-      "model": "__resolved_model_absent__",
-      "notes": [
-        "Tree retype + loader remote/literals; full suite 2376 passed; mypy/ruff clean. Out-of-map: annotation-only apply.py + type-only asserts in 4 test files (accepted by orchestrator: forced by R-1 retype)",
-        "Cycle 1 fix: separate anchor identity path from schema steps under inline <<; regression test",
-        "Review passed (cycle 2, reviewer-renata): anchor identity restored under inline <<; full suite 2378 passed. Accepted out-of-map: annotation-only apply.py, type-only asserts in 4 test files (forced by R-1)"
-      ],
-      "provider": "__resolved_provider_absent__",
-      "review": null,
       "review_result": {
         "feedback_path": "/work/bakeoff-specs-speckitty/kitty-specs/troupe-config-remote-includes-01M4BMJ5/tasks/WP05-tree-loader-remote-literals/review-cycle-2.md",
         "reference": "review-cycle://troupe-config-remote-includes-01M4BMJ5/WP05-tree-loader-remote-literals/review-cycle-2.md",
         "reviewer": "user",
         "verdict": "approved"
       },
-      "role": "reviewer",
-      "shell_pid": 32171,
-      "shell_pid_created_at": "1791403283.55",
-      "subtasks": {
-        "T019": "done",
-        "T020": "done",
-        "T021": "done",
-        "T022": "done",
-        "T023": "done"
-      }
+      "shell_pid": 30579,
+      "shell_pid_created_at": "1791402925.91"
     },
     "WP06": {
       "actor": "merge",
       "agent": "claude",
-      "agent_profile": "__resolved_profile_absent__",
-      "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01M4CCFQ1CH08GA9ZAY4YKBZS2",
       "last_transition_at": "2026-10-07T23:51:53.644597+00:00",
-      "model": "__resolved_model_absent__",
-      "notes": [
-        "load_configuration, sessions, watch, read stories; full suite 2489 passed",
-        "Review passed (reviewer-renata): T024-T029 met; full suite 2489 passed"
-      ],
-      "provider": "__resolved_provider_absent__",
       "review_result": {
         "feedback_path": "/work/bakeoff-specs-speckitty/kitty-specs/troupe-config-remote-includes-01M4BMJ5/tasks/WP06-configuration-sessions-watch/review-cycle-1.md",
         "reference": "review-cycle://troupe-config-remote-includes-01M4BMJ5/WP06-configuration-sessions-watch/review-cycle-1.md",
         "reviewer": "user",
         "verdict": "approved"
       },
-      "role": "reviewer",
-      "shell_pid": 6442,
-      "shell_pid_created_at": "1791407474.79",
-      "subtasks": {
-        "T024": "done",
-        "T025": "done",
-        "T026": "done",
-        "T027": "done",
-        "T028": "done",
-        "T029": "done"
-      }
+      "shell_pid": 35759,
+      "shell_pid_created_at": "1791404113.08"
     },
     "WP07": {
       "actor": "merge",
       "agent": "claude",
-      "agent_profile": "__resolved_profile_absent__",
-      "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01M4CCFQGYY2VY40QVZQS5T8GF",
       "last_transition_at": "2026-10-07T23:51:54.142951+00:00",
-      "model": "__resolved_model_absent__",
-      "notes": [
-        "Literal rendering; full suite 2448 passed; mypy/ruff clean",
-        "Review passed (reviewer-renata): T030-T033 met. Handoff to WP08: replace_value_edits drops the tag for scalar->scalar fallbacks (empty tagged value, non-block-able block) — WP08 must keep the tag per S-11"
-      ],
-      "provider": "__resolved_provider_absent__",
       "review_result": {
         "feedback_path": "/work/bakeoff-specs-speckitty/kitty-specs/troupe-config-remote-includes-01M4BMJ5/tasks/WP07-literal-rendering/review-cycle-1.md",
         "reference": "review-cycle://troupe-config-remote-includes-01M4BMJ5/WP07-literal-rendering/review-cycle-1.md",
         "reviewer": "user",
         "verdict": "approved"
       },
-      "role": "reviewer",
-      "shell_pid": 4909,
-      "shell_pid_created_at": "1791407286.19",
-      "subtasks": {
-        "T030": "done",
-        "T031": "done",
-        "T032": "done",
-        "T033": "done"
-      }
+      "shell_pid": 38062,
+      "shell_pid_created_at": "1791404460.98"
     },
     "WP08": {
       "actor": "merge",
       "agent": "claude",
-      "agent_profile": "__resolved_profile_absent__",
-      "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 2,
       "lane": "done",
       "last_event_id": "01M4CCFR0RS9RVAYRADPGHW04J",
       "last_transition_at": "2026-10-07T23:51:54.648035+00:00",
-      "model": "__resolved_model_absent__",
-      "notes": [
-        "set pipeline: remote read-only, schema-verified reloads, literals/--include; targeted suites green; full suite running",
-        "Cycle 1 fix: remote check on the placement's file before rendering; regression tests",
-        "Review passed (cycle 2, reviewer-renata): remote check before rendering; full suite 2623 passed; static gates clean"
-      ],
-      "provider": "__resolved_provider_absent__",
-      "review": null,
       "review_result": {
         "feedback_path": "/work/bakeoff-specs-speckitty/kitty-specs/troupe-config-remote-includes-01M4BMJ5/tasks/WP08-set-readonly-verify/review-cycle-2.md",
         "reference": "review-cycle://troupe-config-remote-includes-01M4BMJ5/WP08-set-readonly-verify/review-cycle-2.md",
         "reviewer": "user",
         "verdict": "approved"
       },
-      "role": "reviewer",
-      "shell_pid": 22457,
-      "shell_pid_created_at": "1791410728.29",
-      "subtasks": {
-        "T034": "done",
-        "T035": "done",
-        "T036": "done",
-        "T037": "done",
-        "T038": "done",
-        "T039": "done",
-        "T040": "done",
-        "T041": "done"
-      }
+      "shell_pid": 18912,
+      "shell_pid_created_at": "1791410129.4"
     },
     "WP09": {
       "actor": "merge",
       "agent": "claude",
-      "agent_profile": "__resolved_profile_absent__",
-      "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01M4CCFRFMZSR5BJ8S1WPWKXSG",
       "last_transition_at": "2026-10-07T23:51:55.124516+00:00",
-      "model": "__resolved_model_absent__",
-      "notes": [
-        "US6 + --include remote story tests; 118 targeted passed; no bugs found",
-        "Review passed (reviewer-renata): US6 + --include remote stories; full suite 2649 passed"
-      ],
-      "provider": "__resolved_provider_absent__",
       "review_result": {
         "feedback_path": "/work/bakeoff-specs-speckitty/kitty-specs/troupe-config-remote-includes-01M4BMJ5/tasks/WP09-set-include-literal-writes/review-cycle-1.md",
         "reference": "review-cycle://troupe-config-remote-includes-01M4BMJ5/WP09-set-include-literal-writes/review-cycle-1.md",
         "reviewer": "user",
         "verdict": "approved"
       },
-      "role": "reviewer",
-      "shell_pid": 30277,
-      "shell_pid_created_at": "1791413250.65",
-      "subtasks": {
-        "T042": "done",
-        "T043": "done",
-        "T044": "done"
-      }
+      "shell_pid": 27186,
+      "shell_pid_created_at": "1791412396.7"
     },
     "WP10": {
       "actor": "merge",
       "agent": "claude",
-      "agent_profile": "__resolved_profile_absent__",
-      "agent_profile_version": "__resolved_profile_version_absent__",
       "force_count": 0,
       "lane": "done",
       "last_event_id": "01M4CCFRYHGPGNNE8FER9A15QE",
       "last_transition_at": "2026-10-07T23:51:55.601300+00:00",
-      "model": "__resolved_model_absent__",
-      "notes": [
-        "Acceptance tests (25), quickstart verified, docstring sync; full suite 2674 passed, 0 skipped; doc drift applied on planning branch (ca25bba); follow-up beads filed",
-        "Review passed (reviewer-renata): acceptance tests NFR-001..003, edge cases, lineage, S-1 CLI; doc sync verified"
-      ],
-      "provider": "__resolved_provider_absent__",
       "review_result": {
         "feedback_path": "/work/bakeoff-specs-speckitty/kitty-specs/troupe-config-remote-includes-01M4BMJ5/tasks/WP10-acceptance/review-cycle-1.md",
         "reference": "review-cycle://troupe-config-remote-includes-01M4BMJ5/WP10-acceptance/review-cycle-1.md",
         "reviewer": "user",
         "verdict": "approved"
       },
-      "role": "reviewer",
-      "shell_pid": 41820,
-      "shell_pid_created_at": "1791416700.03",
-      "subtasks": {
-        "T045": "done",
-        "T046": "done",
-        "T047": "done"
-      }
+      "shell_pid": 34693,
+      "shell_pid_created_at": "1791414682.39"
     }
   }
 }

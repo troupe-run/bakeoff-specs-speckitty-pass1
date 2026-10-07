@@ -9,6 +9,9 @@ requirement_refs:
 planning_base_branch: feat/troupe-config-remote-includes
 merge_target_branch: feat/troupe-config-remote-includes
 branch_strategy: Planning artifacts for this mission were generated on feat/troupe-config-remote-includes. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/troupe-config-remote-includes unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-troupe-config-remote-includes-01M4BMJ5
+base_commit: 57473eb47477c8b970a3f185d3a634ab7ef970ee
+created_at: '2026-10-07T17:25:31.444885+00:00'
 subtasks:
 - T001
 - T002

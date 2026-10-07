@@ -10,7 +10,7 @@
   - where it points: `file:` resolves against the containing file or URL (S-1);
   - whether it is YAML or text;
   - whether a string is a literal instead (`!literal`, or the schema marks its path `format: uri`).
-- **Fetching.** A source location becomes `Path | Url`. Remote documents are fetched by `troupe/remote.py`, which uses only the standard library: a 10 s total deadline, redirects to http(s) only, verified TLS, strict UTF-8 (S-2). Each URL is fetched once per command and reused by every reload during that command.
+- **Fetching.** A source location (`SourceFile.path`) becomes `Path | Url`. Remote documents are fetched by `troupe/remote.py`, which uses only the standard library: a 10 s total deadline, redirects to http(s) only, verified TLS, strict UTF-8 (S-2). Each URL is fetched once per command and reused by every reload during that command.
 - **Schema.** `troupe/schema.py` loads and checks `.troupe/troupe.schema.json` and does the S-7 `format: uri` lookup. It validates the resolved configuration with `jsonschema`'s 2020-12 validator, the one new dependency (DM 01M4BMXJXSNEY2QMXYA1W16W04). `troupe/configuration.py` is the single "load and validate" entry point:
   - a failure at load exits 4;
   - a failure in a `set`'s in-memory verification exits 3.
@@ -24,7 +24,7 @@
 
 The product owner directed on 2026-10-07: "The brief doesn't cover this. Make the safest assumption …, record it as a decision with your reason, and carry on." That answered the only open planning question (the validator dependency, DM 01M4BMXJXSNEY2QMXYA1W16W04). All other design decisions are implementation choices made inside the confirmed spec (S-1 to S-13) and are recorded as R-1 to R-13 in [research.md](research.md). How they map to the spec:
 
-1. **Source locations** (R-1). `SourceFile.location: Path | Url`. The type change lets mypy find every disk-only use.
+1. **Source locations** (R-1). `SourceFile.path: Path | Url` (`Url` in the new `location.py`). The type change lets mypy find every disk-only use.
 2. **Fetching** (R-2). `remote.fetch` is the only network access. Each failure is a `FetchError` (exit 4) naming the URL, the including file and the path.
 3. **Include rule** (R-3). `includes.py` covers S-1, S-2 and S-3. Cycle detection works on resolved locations.
 4. **`!literal`** (R-4, R-5). Tag spans are recorded in the composer. `ScalarNode.literal` holds the tag span. `$ref` values are always includes. Other tags still exit 4, and every tag in VALUE still exits 2.
@@ -69,7 +69,7 @@ flowchart TD
 - remote content is never written (NFR-001);
 - writes are atomic (C-005);
 - tests run offline (C-006).
-**Scale/Scope**: 4 modules added (`includes.py`, `remote.py`, `schema.py`, `configuration.py`); about 14 modules changed; about 8 test files added and a few updated.
+**Scale/Scope**: 5 modules added (`location.py`, `includes.py`, `remote.py`, `schema.py`, `configuration.py`); about 14 modules changed; about 8 test files added and a few updated.
 
 ## Charter Check
 
@@ -108,19 +108,20 @@ kitty-specs/troupe-config-remote-includes-01M4BMJ5/
 ```
 pyproject.toml / uv.lock     # + jsonschema>=4.26,<5; [tool.uv] no-build-package = ["rpds-py"]
 src/troupe/
-├── includes.py              # NEW: include_kind, resolve_target, is_yaml_target, is_literal, LiteralStr, mark_literals
+├── location.py              # NEW: Url, Location = Path | Url
+├── includes.py              # NEW: include_kind, resolve_target, is_yaml_target, reads_as_include, path_steps, LiteralStr, mark_literals
 ├── remote.py                # NEW: fetch(url) — deadline, redirects, TLS, UTF-8; FetchError
 ├── schema.py                # NEW: load_schema, Schema.uri_at, Schema.validate, Violation
 ├── configuration.py         # NEW: load_configuration(theatre, overrides, fetched) -> Loaded
 ├── errors.py                # + FetchError(LoadError)
-├── tree.py                  # + Url, Location; SourceFile.location; ScalarNode.literal
+├── tree.py                  # SourceFile.path: Location; ScalarNode.literal
 ├── yamlcore.py              # RawTag; '!literal' on scalars in file mode; content-start spans after tags
 ├── loader.py                # uses includes.*; remote targets via fetch (+ fetched cache); schema-driven literals; $ref rules
 ├── session.py               # load via configuration.load_configuration; exposes schema + fetched
 ├── reconcile.py             # watched_files skips remote sources
 ├── commands/watch.py        # baseline adds troupe.schema.json; loads via configuration
 ├── commands/show.py, yamlout.py   # Line.source: Location; source_label prints URLs verbatim
-├── commands/set_value.py    # --include passed; write-failure message uses location
+├── commands/set_value.py    # --include passed; write-failure message (location prints as path or URL)
 ├── cli.py                   # set --include
 ├── writeback/placement.py   # remote_refusal (checkpoint 1)
 ├── writeback/apply.py       # mark_literals, checkpoint 2, _matches include vs literal, _verify via configuration (exit 3 on schema / new-include failure), fetched cache
@@ -132,7 +133,7 @@ src/troupe/
 tests/
 ├── remote_server.py                          # NEW: threaded HTTP server, routes, request log, hang/trickle
 ├── conftest.py                               # + remote fixture, https fixture (openssl, skip with reason)
-├── unit/test_includes.py                     # NEW: kind, resolve_target (urljoin), yaml target by URL path, is_literal, mark_literals
+├── unit/test_includes.py                     # NEW: kind, resolve_target (urljoin), yaml target by URL path, reads_as_include, mark_literals
 ├── unit/test_remote_fetch.py                 # NEW: status, deadline, redirect scheme, UTF-8, BOM
 ├── unit/test_schema.py                       # NEW: load checks, uri_at walk, validate first violation
 ├── unit/test_yamlcore.py                     # + !literal spans, tag order with anchors, refusals
@@ -153,7 +154,7 @@ tests/
 
 | ID | Concern | Spec | Notes |
 |---|---|---|---|
-| IC-01 | Locations and fetching | FR-001, FR-003, S-2, NFR-004 | `tree.Url/Location`, `SourceFile.location` sweep (mypy-driven), `remote.py`, `FetchError`, `fileio` assertion, `yamlout`/`reconcile`/`watch` location handling. |
+| IC-01 | Locations and fetching | FR-001, FR-003, S-2, NFR-004 | `location.Url/Location`, `SourceFile.path` retype (mypy-driven), `remote.py`, `FetchError`, `fileio` assertion, `yamlout`/`reconcile`/`watch` location handling. |
 | IC-02 | Include rule and remote loading | FR-001, FR-002, S-1, S-3 | `includes.py` (kind, resolve, YAML/text), loader using it for scalar and `$ref` forms, URL cycles, fetched cache. |
 | IC-03 | `!literal` in the composer and tree | FR-008, S-10 | `yamlcore` `RawTag` and spans, `ScalarNode.literal`, other tags and collection tags refused, `$ref` + `!literal` refused. |
 | IC-04 | Schema load, literal lookup, validation | FR-007, FR-009, S-7, S-8 | `schema.py`, `configuration.py`, `jsonschema` dependency and lock, session/watch use, schema in watch baseline. |
@@ -165,7 +166,7 @@ Dependencies: IC-07 (harness) and IC-01 → IC-02. IC-03 → IC-02 (literal stri
 
 ## Risks
 
-- **`SourceFile.path` → `location` sweep.** The change touches many modules. Mitigation: mypy strict lists every site; the step 1–6 suite must pass unchanged apart from the S-13 test.
+- **`SourceFile.path` retype.** The change reaches several modules. Mitigation: mypy strict lists every site; the step 1–6 suite must pass unchanged apart from the S-13 test.
 - **Tag spans.** Moving tagged scalars' `start` could shift writers. Mitigation: R-4 mirrors the step-6 anchor treatment. Unit tests pin spans for tag/anchor orders and all scalar styles, including block scalars.
 - **Order of refusals.** Remote content reached through an alias must report the remote include rather than `--expand-alias`. Mitigation: `remote_refusal` runs before alias routing, with explicit tests.
 - **Slow tests.** The deadline and trickle tests take about 10 s each. They are accepted and kept to two tests.

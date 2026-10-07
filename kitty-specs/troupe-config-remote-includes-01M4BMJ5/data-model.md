@@ -6,9 +6,9 @@ Changes to the in-memory model only. The history event schema and the on-disk fi
 
 | Type | Module | Fields / meaning | Invariants |
 |---|---|---|---|
-| `Url` (new) | `tree.py` | `text: str`, the absolute URL (`https://…` or `http://…`) as written, or resolved with `urljoin` (S-1) | frozen; equality is by text |
-| `Location` (new alias) | `tree.py` | `Path \| Url` | a `Path` is absolute and resolved |
-| `SourceFile` (changed) | `tree.py` | `location: Location` (was `path: Path`), `text: str`; property `remote` | one object per location per load; a remote `SourceFile` is never in a `WritePlan` |
+| `Url` (new) | `location.py` | `text: str`, the absolute URL (`https://…` or `http://…`) as written, or resolved with `urljoin` (S-1) | frozen; equality is by text |
+| `Location` (new alias) | `location.py` | `Path \| Url` | a `Path` is absolute and resolved |
+| `SourceFile` (changed) | `tree.py` | `path: Location` (was `Path`; name kept, R-1), `text: str`; property `remote` | one object per location per load; a remote `SourceFile` is never in a `WritePlan` |
 | `RawTag` (new) | `yamlcore.py` | span of the `!literal` token and its trailing whitespace | only on `RawScalar`, only in file mode |
 | `RawScalar` (changed) | `yamlcore.py` | `+ tag: RawTag \| None`; `start` is the content start (after any tag and anchor) | |
 | `ScalarNode` (changed) | `tree.py` | `+ literal: Origin \| None`, the span of the `!literal` tag | `value` is a `str` when `literal` is set |
@@ -17,6 +17,7 @@ Changes to the in-memory model only. The history event schema and the on-disk fi
 | `Violation` (new) | `schema.py` | `path: str` (dotted or `(root)`), `message: str` | the first violation in JSON-path order |
 | `Loaded` (new) | `configuration.py` | `tree: Node`, `schema: Schema \| None`, `fetched: dict[Url, str]` | `tree` validates against `schema` |
 | `LiteralStr` (new) | `includes.py` | a `str` subclass marking a VALUE string to be written `!literal` | only created by `mark_literals` |
+| `IncludeStr` (new) | `includes.py` | a `str` subclass marking a VALUE string `set --include` writes as an include | only created by `mark_literals` |
 | `FetchError` (new) | `errors.py` | a `LoadError` (exit 4) | its message names the URL; the loader adds the including file and the path |
 
 ## Decision functions (one place each)
@@ -26,10 +27,11 @@ Changes to the in-memory model only. The history event schema and the on-disk fi
 | `include_kind(text)` | `includes.py` | `file` / `remote` / none, by prefix |
 | `resolve_target(text, containing)` | `includes.py` | the target `Location` (S-1) |
 | `is_yaml_target(location)` | `includes.py` | YAML vs text by suffix of the path, or of the URL path (S-2) |
-| `is_literal(text, tagged, uri)` | `includes.py` | literal vs include (S-7, S-10) |
+| `reads_as_include(text, tagged=, uri=)` | `includes.py` | literal vs include (S-7, S-10) |
+| `path_steps(root, segments)` | `includes.py` | key/index kind of each PATH segment, for schema lookups |
 | `mark_literals(value, segments, schema, include)` | `includes.py` | which VALUE strings are written `!literal`, and the `--include` + `uri` refusal (S-11, S-12) |
 | `fetch(url)` | `remote.py` | the only network access (S-2) |
-| `Schema.uri_at(segments, kinds)` | `schema.py` | the schema `format: uri` lookup (S-7) |
+| `Schema.uri_at(steps)` | `schema.py` | the schema `format: uri` lookup (S-7) |
 | `Schema.validate(tree)` | `schema.py` | validity (S-8) |
 | `load_configuration(...)` | `configuration.py` | "loaded and valid" (S-8, S-9) |
 | `remote_refusal(found, dotted)` | `writeback/placement.py` | read-only refusal and its message (S-4) |

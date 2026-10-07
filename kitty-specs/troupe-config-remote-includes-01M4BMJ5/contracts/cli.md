@@ -36,7 +36,7 @@ troupe config set [--reason TEXT] [--in-include] [--expand-alias] [--include] PA
 | Invalid result (`set`) | `<PATH>: the change would not match schema <schema file> at <path>: <validator message>; no file changed` |
 | `--include` on a `uri` path | `<PATH>: schema <schema file> marks <path> as format uri, so it cannot be an include; no file changed` |
 | `--include` target unreadable | `<PATH>: <load error naming the include target or URL>; no file changed` |
-| Bad tag | `cannot parse <file>: <tag> is not supported (only !literal on a scalar) at line N`, and `!literal` on a `$ref` value: `cannot load <file>: <path>.$ref must be an include string, not !literal` |
+| Bad tag | other tags keep the step-6 message `cannot parse <file>: tags are not supported at line N`; `!literal` on a mapping or list: `cannot parse <file>: !literal applies only to scalars at line N`; `!literal` on a `$ref` value: `cannot load <file>: <path>.$ref must be an include string, not !literal (line N)` |
 
 ## Agent choices
 

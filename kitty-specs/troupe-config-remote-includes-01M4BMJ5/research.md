@@ -4,9 +4,10 @@ Phase 0 of [plan.md](plan.md). Each entry gives the **decision**, the **rational
 
 ## R-1 Where a source lives: `Location = Path | Url`
 
-- **Decision**: `tree.SourceFile.path: Path` becomes `SourceFile.location: Location`, where `Location = Path | Url`. `Url` is a new frozen dataclass in `tree.py` holding the absolute URL text. `SourceFile.remote` is `isinstance(location, Url)`. The loader cache (`_files`), the in-memory override map, the cycle stack and `load(..., overrides=...)` are all keyed by `Location`. Each remote document gets exactly one `SourceFile` per load, as files already do, so `placement._include_ref` keeps working by object identity.
-- **Rationale**: The type change makes `mypy --strict` flag every place that assumes a file on disk: `atomic_write`, `watched_files`, `watch._read`, `source_label`, the `.parent` use in `_include`, `set_value`'s write-failure message, and `apply._ref_path`. Each of those then has to decide explicitly what to do with a URL. Read-only safety (S-4) gets a compile-time backstop on top of the runtime guard in R-7.
+- **Decision**: a new dependency-free module `troupe/location.py` defines `Url`, a frozen dataclass holding the absolute URL text, whose `__str__` is that text, and `Location = Path | Url`. `tree.SourceFile.path` keeps its name, but its type becomes `Location`; `SourceFile.remote` is `isinstance(path, Url)`. The loader cache (`_files`), the in-memory override map, the cycle stack and `load(..., overrides=...)` are all keyed by `Location`. Each remote document gets exactly one `SourceFile` per load, as files already do, so `placement._include_ref` keeps working by object identity.
+- **Rationale**: Retyping the field makes `mypy --strict` flag every place that needs a file on disk: `atomic_write`, `watched_files`, `watch`'s baseline, `yamlout.Line.source`/`source_label`, `_include`'s `.parent`, and the `dict[Path, str]` override maps in `apply.py`. Each of those then has to decide explicitly what to do with a URL. Messages that only format the location in an f-string print the URL unchanged and need no edit. Read-only safety (S-4) gets a compile-time backstop on top of the runtime guard in R-7. Keeping the field name keeps the change local (DIRECTIVE_024): a rename would touch about 10 modules owned by different work packages, for no gain in safety.
 - **Alternatives**:
+  - Rename the field to `location`. Rejected during task planning: same safety, about 40 more edited lines.
   - Add a separate `url: str | None` field next to `path`. Rejected: every existing `.path` caller would silently keep working on a meaningless path.
   - Fake a `Path` for URLs. Rejected: one of them could end up in `atomic_write`.
 
@@ -34,7 +35,7 @@ Phase 0 of [plan.md](plan.md). Each entry gives the **decision**, the **rational
     - `file:` inside remote content → `Url(urljoin(containing.text, rest))` (S-1).
     - A remote string → `Url(text)`, used as written.
   - **`is_yaml_target(location)`**: for a `Path`, the suffix is `.yml`/`.yaml`, as today. For a `Url`, the same test is applied to `urlsplit(url).path`, so query and fragment are ignored (S-2).
-  - **`is_literal(...)`**: the S-7/S-10 rule. A string is an include only if `include_kind` is not `None`, it is not tagged `!literal`, and the schema does not mark its path `format: uri`. A `$ref` value is always an include string (S-3).
+  - **`reads_as_include(text, tagged=, uri=)`**: the S-7/S-10 rule. A string is an include only if `include_kind` is not `None`, it is not tagged `!literal`, and the schema does not mark its path `format: uri`. A `$ref` value is always an include string (S-3).
 
   Cycle detection keys on the resolved `Location`. For URLs that is the `urljoin` result. A cycle message lists the locations as written.
 - **Rationale**: TROUPE-007 (one decision, one place). S-1 and S-7 both change what an include is, and three copies of that rule would drift.
@@ -59,7 +60,7 @@ Phase 0 of [plan.md](plan.md). Each entry gives the **decision**, the **rational
 ## R-5 Literal strings in the tree
 
 - **Decision**: `ScalarNode` gains `literal: Origin | None`, the span of the `!literal` token and the whitespace after it.
-  - The loader builds a `ScalarNode` (never an include) when `includes.is_literal` says so. The value is the scalar's text as a string; for a plain scalar that is the text unresolved, so `!literal 5` is `'5'`.
+  - The loader builds a `ScalarNode` (never an include) when `includes.reads_as_include` says it is not an include. The value is the scalar's text as a string; for a plain scalar that is the text unresolved, so `!literal 5` is `'5'`.
   - `!literal` on a `$ref` value → exit 4 (S-3).
   - Reads (`get`, `show`, history leaves) see an ordinary string. `yamlout` never prints the tag (S-10).
   - C3 (no anchors on include references) applies only to strings that are includes. A literal may carry an anchor (S-10).
@@ -75,7 +76,7 @@ Phase 0 of [plan.md](plan.md). Each entry gives the **decision**, the **rational
     - Every `$ref`/`$dynamicRef` value anywhere in the document must start with `#`.
 
     Any failure is a `LoadError` naming the schema file (S-8).
-  - **`Schema.uri_at(segments: tuple[str, ...], kinds) -> bool`** is the S-7 walk. A mapping key `k` goes to `properties[k]` when present, otherwise to `additionalProperties` when it is an object. A list index goes to `items` when that is an object. The answer is `True` only if the final schema is an object with `"format": "uri"`. Boolean subschemas, `$ref`, combinators, `patternProperties` and `prefixItems` are never followed. The caller passes each segment's container kind (mapping or list), because a segment like `"0"` could be either.
+  - **`Schema.uri_at(steps) -> bool`** is the S-7 walk; each step is `("key", name)` or `("index", n)`. A mapping key `k` goes to `properties[k]` when present, otherwise to `additionalProperties` when it is an object. A list index goes to `items` when that is an object. The answer is `True` only if the final schema is an object with `"format": "uri"`. Boolean subschemas, `$ref`, combinators, `patternProperties` and `prefixItems` are never followed. Each step carries its container kind (mapping or list), because a segment like `"0"` could be either.
   - **`Schema.validate(tree) -> Violation | None`** converts the resolved tree (via `leaves`/`paths.unwrap`; text includes as strings, `!literal` strings as strings) to plain JSON data. It runs `Draft202012Validator(schema, registry=Registry())` with no `format_checker`, so `format` is an annotation only (S-8). An empty `Registry` resolves nothing outside the document. The first violation is the one with the smallest JSON path in document order, which makes it deterministic; its dotted path and message are used. An `Unresolvable` raised during validation is a `LoadError` naming the schema file.
 - **Dependency decision**: DM 01M4BMXJXSNEY2QMXYA1W16W04. The product owner asked for the safest assumption. The plan adds `jsonschema>=4.26,<5` as a runtime dependency, locked in `uv.lock`.
 - **Rationale**: A hand-written 2020-12 validator that is subtly wrong would accept or refuse configurations against the contract. The reference implementation passes the official JSON-Schema-Test-Suite.
@@ -104,21 +105,26 @@ Phase 0 of [plan.md](plan.md). Each entry gives the **decision**, the **rational
 
 - **Decision**: after `parse_value`, `apply_set` calls `includes.mark_literals(value, segments, schema, include_flag)`. It walks VALUE, and every include-looking string whose resulting path the schema does not mark `uri` becomes a `LiteralStr`, a `str` subclass used only as a marker (S-11, S-13). With `--include`, nothing is marked. In that case, if any include-looking string's path is marked `uri`, the `set` is refused with exit 3 (S-12).
 
-  Renderers:
-  - `scalars.render_scalar`, the shared single-line renderer, writes `!literal ` before a `LiteralStr`'s rendered scalar.
-  - The block renderers (`blocks.render_new_multiline`, `replace_with_multiline`, `replace_block`) write `!literal ` before the `|`/`>` indicator.
+  With `--include`, include-looking strings become `IncludeStr` instead (a second marker), so a later no-op check can tell an include from a literal (R-9).
 
-  Replacing an existing scalar:
-  - Its span is the content only (R-4), so a `literal` tag already there is kept automatically. No second tag is added.
-  - When the new value is not a string, the edit also removes the `literal` span (S-11).
-  - Text-include writes (`_plan_text`) write file text, so a `LiteralStr` is written untagged.
+  Renderers (WP07):
+  - `scalars.render_scalar`, the shared single-line renderer for **new** values, writes `!literal ` before a `LiteralStr`. `render_string`, which also renders keys, never does.
+  - `blocks.render_new_multiline` writes `!literal ` before the `|`/`>` indicator, or before the double-quoted string in flow context.
+  - Alias copies (`aliases.py`) keep the `!literal` tag on copied scalars; otherwise a copy of a literal would become an include.
+  - Kind-changing replacement (`collections.replace_value_edits`) removes the tag when a tagged scalar becomes a collection.
+
+  Replacing an existing scalar by a scalar (WP08, `apply._scalar_edits`): the value is rendered as a plain `str`, and the tag is a separate edit next to the content. Its span starts at the content (R-4).
+  - `LiteralStr` and no tag → insert `!literal ` at the content start.
+  - Existing tag and new value a `LiteralStr` or plain `str` → keep (S-11).
+  - Existing tag and new value an `IncludeStr` or non-string → remove the tag span.
+  - Text-include writes (`_plan_text`) write file text, so the markers are dropped.
 - **Rationale**: A `str` subclass travels unchanged through every existing renderer, comparison and verification. Only the two choke points learn about it.
 - **Alternatives**:
   - Pass a per-path predicate down every renderer. Rejected: it changes about 15 signatures.
 
 ## R-9 No-op and read-back: include vs literal
 
-- **Decision**: `apply._matches` treats an include node as matching only when VALUE is the same include string and it will be written as an include (not a `LiteralStr`). A literal `ScalarNode` matches a string with the same value only when the result is still a literal. `_include_string` reads the include string from the tree node (`origin.source` decoded through the loader), not from composing in VALUE mode.
+- **Decision**: `apply._matches` compares strings with the markers from R-8. An include node matches only an `IncludeStr` equal to its written include string. A `ScalarNode` (including a literal) matches a `str` with the same value only when it is not an `IncludeStr`. `_include_string` keeps reading the include string from the node's source text; includes are never tagged, so VALUE-mode composing still works.
 - **Rationale**: Without this rule, `set b file:p.md` on an existing include `b: file:p.md` would be a no-op, although S-13 says it writes `b: !literal file:p.md`. Likewise, `set --include b file:x` on `b: !literal file:x` must write.
 
 ## R-10 Configuration loading: one entry point with the schema

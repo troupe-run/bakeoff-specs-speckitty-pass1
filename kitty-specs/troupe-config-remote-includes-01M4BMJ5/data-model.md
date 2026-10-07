@@ -13,7 +13,7 @@ Changes to the in-memory model only. The history event schema and the on-disk fi
 | `RawScalar` (changed) | `yamlcore.py` | `+ tag: RawTag \| None`; `start` is the content start (after any tag and anchor) | |
 | `ScalarNode` (changed) | `tree.py` | `+ literal: Origin \| None`, the span of the `!literal` tag | `value` is a `str` when `literal` is set |
 | `YamlInclude` / `TextInclude` (unchanged shape) | `tree.py` | `target: SourceFile`, which may now be remote | an include whose `origin.file` is remote has a remote target (S-1) |
-| `Schema` (new) | `schema.py` | `location: Path`, `document: dict`, validator | the schema has passed the 2020-12 meta-schema check; every `$ref`/`$dynamicRef` is a `#` fragment |
+| `Schema` (new) | `schema.py` | `path: Path`, `document: dict`, validator | the schema has passed the 2020-12 meta-schema check; every `$ref`/`$dynamicRef` is a `#` fragment |
 | `Violation` (new) | `schema.py` | `path: str` (dotted or `(root)`), `message: str` | the first violation in JSON-path order |
 | `Loaded` (new) | `configuration.py` | `tree: Node`, `schema: Schema \| None`, `fetched: dict[Url, str]` | `tree` validates against `schema` |
 | `LiteralStr` (new) | `includes.py` | a `str` subclass marking a VALUE string to be written `!literal` | only created by `mark_literals` |

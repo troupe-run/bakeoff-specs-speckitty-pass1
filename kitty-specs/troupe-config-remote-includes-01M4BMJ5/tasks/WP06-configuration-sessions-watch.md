@@ -131,7 +131,7 @@ If no profile is specified, run `spec-kitty agent profile list` and select the b
 
 1. In `session.open_session`, replace `tree = load(current.config_file)` with `loaded = load_configuration(current)`. Keep the order "load before opening history", so a fetch or validation failure records nothing and leaves no history file (existing docstring promise). Add `schema` and `fetched` to `Session` and document them.
 2. In `commands/watch._reconcile_and_snapshot`, after the root candidates, add `baseline[session.theatre.state_dir / SCHEMA_FILE_NAME] = _read(...)` (absent → `None`). Comment: the schema decides what is a literal and what is valid, so editing it is a change to watch (S-6).
-3. In `watch`, while unloadable (`baseline is None`), the existing loop retries on every tick. With a failing remote include, every retry fetches again, bounded by the 10 s deadline. This is the existing step-3 behaviour. Keep it, and record in the docstring that remote content is only re-read when a reconcile runs. Do not add URL polling (S-6).
+3. In `watch`, while unloadable (`baseline is None`), the existing loop retries on every tick. With a failing remote include, every retry fetches again, bounded by the 10 s deadline. This is the existing step-3 behaviour, now stated in spec S-6 (analysis I1). Keep it, and record in the docstring that remote content is only re-read when a reconcile runs. Do not add URL polling (S-6).
 
 ### T026 — Integration US1: `tests/integration/test_remote_read.py`
 

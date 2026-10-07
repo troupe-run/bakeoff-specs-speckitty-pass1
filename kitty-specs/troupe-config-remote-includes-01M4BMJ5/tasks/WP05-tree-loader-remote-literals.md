@@ -157,6 +157,7 @@ Make the loader read remote includes and literal strings.
    - otherwise the value must have `include_kind` set (`file:`, `https://` or `http://`), regardless of the schema: a `$ref` is always an include.
    - D-1 message: change the parenthetical to `('file:...', 'https://...' or 'http://...')`. The existing test asserts only the `got …` suffix.
 5. **Other tags** are refused by `yamlcore` (WP02). Nothing to do here.
+6. **`!literal` on a mapping key** (spec S-10, analysis U1): in `_entries`, a key `RawScalar` with `tag` set → `LoadError(f"cannot load {file.path}: mapping key at line {line} under {dotted} is tagged !literal; keys are never includes")`. Add a test in `test_loader_literals.py`.
 
 ### T022 — Unit tests `tests/unit/test_loader_remote.py`
 

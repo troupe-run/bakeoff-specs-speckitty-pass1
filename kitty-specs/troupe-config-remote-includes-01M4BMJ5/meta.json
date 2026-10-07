@@ -24,6 +24,7 @@
   "purpose_context": "Step 7 adds the Remote includes and schema contract section. Teams share configuration by including it from a URL; troupe fetches it on load, refuses to change values that come from it and tells the user which include line to change instead. A JSON Schema in .troupe/troupe.schema.json describes the configuration: the loaded configuration must validate against it, settings marked format uri and values tagged !literal are taken literally rather than as includes, and set writes include-looking strings as literals unless --include is given.",
   "purpose_tldr": "Configuration can include shared team settings from https:// URLs, read-only to troupe, and a JSON Schema describes the configuration so URL settings are never mistaken for includes.",
   "slug": "troupe-config-remote-includes-01M4BMJ5",
+  "status_phase": "1",
   "target_branch": "feat/troupe-config-remote-includes",
   "topology": "coord",
   "vcs": "git",

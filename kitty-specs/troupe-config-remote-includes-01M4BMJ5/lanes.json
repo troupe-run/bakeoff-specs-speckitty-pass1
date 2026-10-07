@@ -1,0 +1,225 @@
+{
+  "version": 1,
+  "mission_slug": "troupe-config-remote-includes-01M4BMJ5",
+  "mission_id": "01M4BMJ55Q91FZYFPD9AG3AEWN",
+  "mission_branch": "kitty/mission-troupe-config-remote-includes-01M4BMJ5",
+  "target_branch": "feat/troupe-config-remote-includes",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "src/troupe/errors.py",
+        "src/troupe/location.py",
+        "src/troupe/remote.py",
+        "tests/conftest.py",
+        "tests/remote_server.py",
+        "tests/unit/test_remote_fetch.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "src/troupe/yamlcore.py",
+        "tests/unit/test_yamlcore.py"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-c",
+      "wp_ids": [
+        "WP03"
+      ],
+      "write_scope": [
+        "pyproject.toml",
+        "src/troupe/schema.py",
+        "tests/unit/test_schema.py",
+        "uv.lock"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-d",
+      "wp_ids": [
+        "WP04"
+      ],
+      "write_scope": [
+        "src/troupe/includes.py",
+        "tests/unit/test_includes.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering"
+      ],
+      "depends_on_lanes": [
+        "lane-a",
+        "lane-c"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-e",
+      "wp_ids": [
+        "WP05"
+      ],
+      "write_scope": [
+        "src/troupe/loader.py",
+        "src/troupe/reconcile.py",
+        "src/troupe/tree.py",
+        "src/troupe/writeback/fileio.py",
+        "src/troupe/yamlout.py",
+        "tests/unit/test_fileio.py",
+        "tests/unit/test_loader_literals.py",
+        "tests/unit/test_loader_remote.py",
+        "tests/unit/test_reconcile.py",
+        "tests/unit/test_yamlout.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering"
+      ],
+      "depends_on_lanes": [
+        "lane-a",
+        "lane-b",
+        "lane-d"
+      ],
+      "parallel_group": 2
+    },
+    {
+      "lane_id": "lane-f",
+      "wp_ids": [
+        "WP06"
+      ],
+      "write_scope": [
+        "src/troupe/commands/watch.py",
+        "src/troupe/configuration.py",
+        "src/troupe/session.py",
+        "tests/integration/test_literals.py",
+        "tests/integration/test_remote_read.py",
+        "tests/integration/test_schema_validation.py",
+        "tests/integration/test_watch_schema.py",
+        "tests/unit/test_configuration.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-c",
+        "lane-e"
+      ],
+      "parallel_group": 3
+    },
+    {
+      "lane_id": "lane-g",
+      "wp_ids": [
+        "WP07"
+      ],
+      "write_scope": [
+        "src/troupe/writeback/aliases.py",
+        "src/troupe/writeback/blocks.py",
+        "src/troupe/writeback/collections.py",
+        "src/troupe/writeback/scalars.py",
+        "tests/unit/test_literal_rendering.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-d",
+        "lane-e"
+      ],
+      "parallel_group": 3
+    },
+    {
+      "lane_id": "lane-h",
+      "wp_ids": [
+        "WP08"
+      ],
+      "write_scope": [
+        "src/troupe/cli.py",
+        "src/troupe/commands/set_value.py",
+        "src/troupe/writeback/apply.py",
+        "src/troupe/writeback/placement.py",
+        "tests/integration/test_remote_readonly.py",
+        "tests/integration/test_set_existing.py",
+        "tests/integration/test_set_schema.py",
+        "tests/unit/test_placement_remote.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-f",
+        "lane-g"
+      ],
+      "parallel_group": 4
+    },
+    {
+      "lane_id": "lane-i",
+      "wp_ids": [
+        "WP09"
+      ],
+      "write_scope": [
+        "tests/integration/test_set_include_remote.py",
+        "tests/integration/test_set_literal.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering"
+      ],
+      "depends_on_lanes": [
+        "lane-h"
+      ],
+      "parallel_group": 5
+    },
+    {
+      "lane_id": "lane-j",
+      "wp_ids": [
+        "WP10"
+      ],
+      "write_scope": [
+        "tests/integration/test_remote_acceptance.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [
+        "lane-i"
+      ],
+      "parallel_group": 6
+    }
+  ],
+  "computed_at": "2026-10-07T17:22:35.760443+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [],
+  "planning_commit_sha": "89927024434851effd43f26384360306b861fac0"
+}

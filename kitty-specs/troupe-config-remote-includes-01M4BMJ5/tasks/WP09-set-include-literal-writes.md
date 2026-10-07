@@ -86,7 +86,7 @@ Each test asserts the **whole file** after the write, `get` read-back, exit code
 6. `test_include_of_a_missing_url_exits_3_and_changes_nothing` (US6-6, 404)
 7. `test_include_flag_on_other_subcommands_exits_2` (US6-7). WP08 has a similar test; keep this one as the story-level proof, with every subcommand.
 8. `test_text_include_content_is_never_tagged` (US6-8): `prompt: file:sys.md`, `set prompt https://x` → `sys.md` is exactly `https://x`.
-9. `test_same_url_again_without_include_turns_an_include_into_a_literal` (S-13, R-9): `b: file:p.md` → `set b file:p.md` gives `b: !literal file:p.md`. With `--include` it is a no-op: exit 0, files unchanged, no event.
+9. `test_setting_a_text_include_to_its_own_string_keeps_the_step1_rule` (S-11, C-003; corrected after WP08 found the original expectation contradicted S-11): `b: file:p.md` (text include) → `set b file:p.md` rewrites `p.md`'s content to `file:p.md` and leaves `troupe.yml` untouched, exactly as on step-6 `main`; nothing is tagged. A YAML include in the same situation is refused as a whole replacement (exit 3, step 1).
 10. `test_literal_replaced_by_include_drops_the_tag`: `b: !literal file:p.md` → `set --include b file:p.md` gives `b: file:p.md`.
 11. `test_literal_tag_is_written_in_flow_collections_and_list_appends`: `{a: 1}` gets a new key, and a list gets an appended item.
 12. `test_quoted_include_looking_value_keeps_its_needed_quoting_after_the_tag` (a value with a space: `'file:my notes.md'`).

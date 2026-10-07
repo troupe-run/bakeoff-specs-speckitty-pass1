@@ -11,5 +11,7 @@
   "purpose_tldr": "Configuration can include shared team settings from https:// URLs, read-only to troupe, and a JSON Schema describes the configuration so URL settings are never mistaken for includes.",
   "slug": "troupe-config-remote-includes-01M4BMJ5",
   "target_branch": "feat/troupe-config-remote-includes",
-  "topology": "coord"
+  "topology": "coord",
+  "vcs": "git",
+  "vcs_locked_at": "2026-10-07T17:25:26.786338+00:00"
 }

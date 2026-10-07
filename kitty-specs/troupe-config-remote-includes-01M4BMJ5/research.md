@@ -125,7 +125,7 @@ Phase 0 of [plan.md](plan.md). Each entry gives the **decision**, the **rational
 ## R-9 No-op and read-back: include vs literal
 
 - **Decision**: `apply._matches` compares strings with the markers from R-8. An include node matches only an `IncludeStr` equal to its written include string. A `ScalarNode` (including a literal) matches a `str` with the same value only when it is not an `IncludeStr`. `_include_string` keeps reading the include string from the node's source text; includes are never tagged, so VALUE-mode composing still works.
-- **Rationale**: Without this rule, `set b file:p.md` on an existing include `b: file:p.md` would be a no-op, although S-13 says it writes `b: !literal file:p.md`. Likewise, `set --include b file:x` on `b: !literal file:x` must write.
+- **Rationale**: Without this rule, a VALUE that repeats an existing include's string inside a collection (e.g. `set agents '{coder: file:p.md}'` where `agents.coder` already is the include `file:p.md`) would be a no-op, although S-11/S-13 say the string is written `!literal file:p.md`. A scalar `set b file:p.md` on `b: file:p.md` never reaches this check: for a text include the step-1 rule rewrites `p.md`, and a YAML include cannot be replaced as a whole (exit 3). (Corrected after WP08/WP10.) Likewise, `set --include b file:x` on `b: !literal file:x` must write.
 
 ## R-10 Configuration loading: one entry point with the schema
 

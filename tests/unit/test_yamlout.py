@@ -11,8 +11,10 @@ from pathlib import Path
 import pytest
 from ruamel.yaml import YAML
 
-from conftest import MakeTheatre
+from conftest import LOCAL_NO_PROXY, MakeTheatre
+from remote_server import RemoteServer
 from troupe.loader import load
+from troupe.location import Url
 from troupe.paths import unwrap
 from troupe.theatre import locate
 from troupe.tree import MappingNode, Node, ScalarNode, SequenceNode, TextInclude
@@ -84,6 +86,30 @@ def test_source_label_outside_theatre_uses_dotdot(tmp_path: Path) -> None:
     theatre = tmp_path / "theatre"
 
     assert source_label(tmp_path / "shared" / "x.yml", theatre) == "../shared/x.yml"
+
+
+def test_source_label_of_remote_content_is_the_url_verbatim(tmp_path: Path) -> None:
+    url = "https://Cfg.example.com/a/../team.yaml?v=2#frag"
+
+    assert source_label(Url(url), tmp_path) == url
+
+
+def test_sources_of_remote_scalars_name_the_resolved_url(
+    make_theatre: MakeTheatre, remote: RemoteServer, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("NO_PROXY", LOCAL_NO_PROXY)
+    monkeypatch.setenv("no_proxy", LOCAL_NO_PROXY)
+    team = remote.serve("/a/team.yaml", "model: opus\nprompt: file:sys.md\n")
+    remote.serve("/a/sys.md", "be brief")
+    root, theatre = _load(make_theatre, {ROOT: f"team: {team}\nlocal: 1\n"})
+
+    assert to_text(render(root), theatre) == (
+        "team:\n"
+        f"  model: opus # from {team}\n"
+        f"  prompt: |- # from {remote.url('/a/sys.md')}\n"
+        "    be brief\n"
+        "local: 1 # from .troupe/troupe.yml\n"
+    )
 
 
 def test_to_text_without_root_never_adds_comments(tmp_path: Path) -> None:

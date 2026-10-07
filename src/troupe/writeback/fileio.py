@@ -11,6 +11,7 @@ import tempfile
 from collections.abc import Mapping
 from pathlib import Path
 
+from troupe.errors import WriteRefused
 from troupe.tree import SourceFile
 
 CRLF = "\r\n"
@@ -65,10 +66,25 @@ def write_files(new_texts: Mapping[SourceFile, str]) -> None:
 
     Callers pass complete new texts only after every edit has been planned and verified, so a
     refused command never reaches this point (NFR-002). Unchanged files are not touched at all.
+
+    Remote content is never written (spec S-4; research R-7). Every source is checked before any
+    file is written, so a plan holding a remote source changes no file at all. This is the last
+    safety net: the write-back refusals mean it should never fire.
+
+    Raises:
+        WriteRefused: If any source in ``new_texts`` is remote; no file changed.
     """
+    local: list[tuple[Path, str]] = []
     for source, text in new_texts.items():
+        if not isinstance(source.path, Path):
+            raise WriteRefused(
+                f"cannot write {source.path}: it is remote content, which troupe never changes;"
+                " no file changed"
+            )
         if text != source.text:
-            atomic_write(source.path, text)
+            local.append((source.path, text))
+    for path, text in local:
+        atomic_write(path, text)
 
 
 def _fsync_directory(directory: Path) -> None:

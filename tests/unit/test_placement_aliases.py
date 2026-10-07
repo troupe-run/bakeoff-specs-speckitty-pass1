@@ -13,6 +13,7 @@ import pytest
 from conftest import MakeTheatre
 from troupe.errors import WriteRefused
 from troupe.loader import load
+from troupe.location import Location
 from troupe.paths import parse_path, unwrap
 from troupe.tree import (
     AliasNode,
@@ -88,7 +89,8 @@ def _at(root: Node, *keys: str) -> Node:
     return node
 
 
-def _rel(path: Path) -> str:
+def _rel(path: Location) -> str:
+    assert isinstance(path, Path)  # these fixtures are local files
     state = next(parent for parent in path.parents if parent.name == ".troupe")
     return path.relative_to(state).as_posix()
 

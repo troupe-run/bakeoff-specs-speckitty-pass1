@@ -6,6 +6,8 @@ from pathlib import Path
 
 import pytest
 
+from conftest import LOCAL_NO_PROXY
+from remote_server import RemoteServer
 from troupe.history import HistoryRecord, HistoryStore
 from troupe.leaves import flatten
 from troupe.lineage import UNKNOWN_ACTOR, import_lineage
@@ -237,3 +239,26 @@ def test_watched_files_of_empty_root_contain_the_root(write: Write, state_dir: P
     tree = write({"troupe.yml": ""})
 
     assert watched_files(tree) == {(state_dir / "troupe.yml").resolve(): b""}
+
+
+def test_watched_files_exclude_remote_content(
+    write: Write, state_dir: Path, remote: RemoteServer, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("NO_PROXY", LOCAL_NO_PROXY)
+    monkeypatch.setenv("no_proxy", LOCAL_NO_PROXY)
+    remote.serve("/sys.md", "be brief\n")
+    team = remote.serve("/team.yaml", "prompt: file:sys.md\nmore: file:more.yaml\n")
+    remote.serve("/more.yaml", "x: 1\n")
+    tree = write(
+        {
+            "troupe.yml": f"team: {team}\nlocal: file:local.yaml\nref:\n  $ref: {team}\n  y: 2\n",
+            "local.yaml": "a: 1\n",
+        }
+    )
+
+    watched = watched_files(tree)
+
+    assert watched == {
+        (state_dir / "troupe.yml").resolve(): (state_dir / "troupe.yml").read_bytes(),
+        (state_dir / "local.yaml").resolve(): b"a: 1\n",
+    }

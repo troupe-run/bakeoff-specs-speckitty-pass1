@@ -10,15 +10,19 @@ form, because quoting them would turn them into strings.
 """
 
 import math
-from typing import Literal
+from typing import Final, Literal
 
 from troupe import yamlcore
 from troupe.errors import LoadError
+from troupe.includes import LiteralStr
 from troupe.tree import Scalar
 from troupe.yamlcore import RawMapping, RawScalar, RawSequence
 
 Context = Literal["block", "flow"]
 QuoteStyle = Literal["plain", "single", "double"]
+
+LITERAL_PREFIX: Final = "!literal "
+"""Written before a new ``LiteralStr`` value (spec S-11, S-13); the only place this text is."""
 
 _STYLE_ORDER: tuple[QuoteStyle, ...] = ("plain", "single", "double")
 # Characters that always start something other than a plain scalar.
@@ -96,7 +100,10 @@ def choose_style(s: str, preferred: QuoteStyle | None, context: Context) -> Quot
 
 
 def render_string(s: str, style: QuoteStyle) -> str:
-    """Render ``s`` in ``style``; the caller has checked that the style can represent it."""
+    """Render ``s`` in ``style``; the caller has checked that the style can represent it.
+
+    Never writes a tag, even for a ``LiteralStr``: keys use this function and are never tagged.
+    """
     if style == "plain":
         return s
     if style == "single":
@@ -128,9 +135,17 @@ def render_nonstring(v: int | float | bool | None) -> str:
 
 
 def render_scalar(v: Scalar, preferred: QuoteStyle | None, context: Context) -> str:
-    """Render any scalar: strings in the chosen quoting style, everything else plain."""
+    """Render any scalar: strings in the chosen quoting style, everything else plain.
+
+    A ``includes.LiteralStr`` gets ``LITERAL_PREFIX`` in front (spec S-11, S-13; research R-8),
+    added after the style is chosen: the style is the one a plain ``str`` would get, and the
+    round-trip checks compose untagged text. An ``IncludeStr`` or plain ``str`` is never tagged.
+    Keys (``render_string``) and replaced values never get the prefix here: callers that replace
+    an existing scalar pass a plain ``str`` and edit the tag themselves (WP08).
+    """
     if isinstance(v, str):
-        return render_string(v, choose_style(v, preferred, context))
+        rendered = render_string(v, choose_style(v, preferred, context))
+        return LITERAL_PREFIX + rendered if isinstance(v, LiteralStr) else rendered
     return render_nonstring(v)
 
 

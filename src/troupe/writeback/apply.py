@@ -59,6 +59,22 @@ Anchors and aliases (step 6; spec FR-003-FR-005, C5, C7, C8, C11; research R-8):
   (3) anchor names are kept everywhere outside a copy, including on the value at PATH (C5), and
   a merge-key mapping stays one.
 
+Remote includes, literals and the schema (step 7; spec S-4, S-9, S-11 to S-13; research R-7 to
+R-10):
+
+- Remote content is read-only: ``placement.place`` refuses an existing value from it before the
+  alias rule (checkpoint 1) and ``_refuse_remote`` refuses any plan that would write a remote
+  source (checkpoint 2); both use ``placement.remote_refusal``.
+- After ``place``, ``includes.mark_literals`` marks VALUE's include-looking strings:
+  ``LiteralStr`` (written ``!literal``) unless the schema marks the path ``format: uri``, or
+  ``IncludeStr`` (written untagged, an include) with ``include`` (``set --include``).
+- An existing scalar is replaced by a plain ``str`` and its tag is a separate decision
+  (``_scalar_edits``, ``_retag``): added for a ``LiteralStr``, kept for any other string but an
+  ``IncludeStr``, removed for an ``IncludeStr`` or a non-string.
+- Reloads (``_reload``) use the command's schema and fetched remote texts (``SetContext``); a
+  result failing the schema, or new texts that fail to load (a missing or unfetchable new
+  include), is refused with its own message (``_verify``).
+
 Text includes follow research R-16 (revised): with a CRLF target VALUE must be a string, written
 with CRLF line endings (else exit 3); with an LF or break-free target a string is written as
 parsed and any non-string VALUE (scalar, mapping or list) as the VALUE argument exactly as typed.
@@ -67,24 +83,30 @@ Choices made where the contract is silent (TROUPE-002, TROUPE-008):
 
 - A string a block scalar cannot hold (control characters other than tab) replacing a plain or
   quoted scalar in block context is written double-quoted on the scalar's line.
-- A string ``file:...`` written as a value becomes an include when the files are read again; it
-  is verified as written text (the include string), not as the included content.
+- A string written with ``set --include`` (an ``IncludeStr``) becomes an include when the files
+  are read again; it is verified as written text (the include string), not as the included
+  content.
 - Comparisons (no-op and verification) are type-aware (``leaves.same``: ``1``, ``1.0``, ``"1"``
   and ``true`` differ) and ignore mapping key order only in the no-op check, where the
   configuration means the same either way.
 """
 
 import re
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import NoReturn
 
 from troupe import yamlcore
+from troupe.configuration import violation
 from troupe.errors import LoadError, PathError, WriteRefused
+from troupe.includes import IncludeStr, LiteralStr, mark_literals, path_steps
 from troupe.leaves import same
 from troupe.loader import load
+from troupe.location import Location, Url
 from troupe.paths import unwrap, walk
+from troupe.schema import Schema
+from troupe.theatre import Theatre
 from troupe.tree import (
     AliasNode,
     Anchor,
@@ -122,8 +144,10 @@ from troupe.writeback.placement import (
     ReplaceScalar,
     ReplaceText,
     place,
+    remote_refusal,
 )
-from troupe.writeback.scalars import QuoteStyle, render_scalar, render_string
+from troupe.writeback.scalars import LITERAL_PREFIX, QuoteStyle, render_scalar, render_string
+from troupe.yamlcore import LITERAL_TAG
 
 _QUOTE_STYLES: dict[str, QuoteStyle] = {"plain": "plain", "single": "single", "double": "double"}
 
@@ -133,6 +157,24 @@ MAX_EXPANSIONS = 64
 Each expansion removes one alias from PATH's route, so the loop ends after as many rounds as
 PATH has aliases; the bound only guards against a placement bug looping forever.
 """
+
+
+@dataclass(frozen=True)
+class SetContext:
+    """What the command's own load gives ``apply_set`` for its in-memory reloads (R-10).
+
+    Attributes:
+        theatre: The theatre whose configuration is set; reloads start at its root file.
+        schema: The schema the command loaded with (``Session.schema``), or ``None``: it decides
+            which strings are literals on reload and whether the result is valid (S-9).
+        fetched: The command's remote texts by URL (``Session.fetched``), shared by every reload,
+            so a ``set`` fetches each URL once and sees one snapshot; only a URL the ``set``
+            itself introduces (``--include``) is fetched, and then added here.
+    """
+
+    theatre: Theatre
+    schema: Schema | None
+    fetched: dict[Url, str]
 
 
 @dataclass(frozen=True)
@@ -158,6 +200,8 @@ def apply_set(
     *,
     in_include: bool = False,
     expand_alias: bool = False,
+    include: bool = False,
+    context: SetContext | None = None,
 ) -> WritePlan:
     """Plan ``set dotted VALUE`` on the configuration ``root`` loaded from disk.
 
@@ -172,32 +216,78 @@ def apply_set(
         expand_alias: ``set --expand-alias``: every alias on PATH is expanded into a copy of its
             anchored node, then VALUE is set in the copy (FR-005, C7); one write, one
             verification. Without it a PATH reached through an alias is refused (FR-004).
+        include: ``set --include``: include-looking strings in VALUE are written untagged, so
+            they are includes, instead of ``!literal`` (S-12, S-13; ``includes.mark_literals``).
+        context: The command's theatre, schema and fetched remote texts (``SetContext``). Every
+            in-memory reload uses them and the result is validated against the schema (S-9).
+            ``None`` (direct callers): reload the root file with no schema and a fresh fetch.
 
     Returns:
         The new file texts and the re-loaded tree, verified; no files for a no-op.
 
     Raises:
         WriteRefused: Exit 3; nothing may be written (include replacement, CRLF text include with
-            a non-string VALUE, a path through an alias or merge key, an expansion refusal, a
-            renderer refusal, or a failed verification).
+            a non-string VALUE, a path through an alias or merge key, a change to remote content,
+            an expansion refusal, a renderer refusal, new texts that do not load, a result that
+            does not match the schema, or a failed verification).
         PathError: Exit 5 (see ``placement.place``).
     """
     placement = place(root, segments, dotted, in_include=in_include, expand_alias=expand_alias)
+    # After ``place``: a PATH it refuses (exit 3) or cannot reach (exit 5) fails as before, and
+    # ``path_steps`` only answers for the paths ``place`` accepts.
+    schema = None if context is None else context.schema
+    value = mark_literals(value, path_steps(root, segments), schema, include=include, dotted=dotted)
     if isinstance(placement, ReplaceText):
-        return _plan_text(root, segments, dotted, placement.node, value, raw_value)
+        return _plan_text(root, segments, dotted, placement.node, value, raw_value, context)
     if isinstance(placement, ReplaceScalar | ReplaceCollection) and _matches(placement.node, value):
         return WritePlan({}, None)
     if isinstance(placement, ExpandAlias):
         if _unchanged(root, segments, value):  # no-op first: nothing written, nothing expanded
             return WritePlan({}, None)
-        return _plan_expansion(root, segments, dotted, value, placement, in_include=in_include)
+        return _plan_expansion(
+            root, segments, dotted, value, placement, in_include=in_include, context=context
+        )
+    # Before rendering: a renderer's own refusal must not answer for remote content (R-7).
+    _refuse_remote(root, segments, dotted, [_planned_file(placement)])
     file, edits = _edits(placement, dotted, value)
+    _refuse_remote(root, segments, dotted, [file])  # second net: the file actually edited
     new_text = apply_edits(file.text, edits)
     if new_text == file.text:
         _refuse(dotted)
     files = {file: new_text}
-    tree = _verify(root, segments, dotted, files, lambda node: _matches(node, value))
+    tree = _verify(root, segments, dotted, files, lambda node: _matches(node, value), context)
     return WritePlan(files, tree)
+
+
+def _planned_file(
+    placement: ConvertInclude | AddKeys | AppendItem | ReplaceCollection | ReplaceScalar,
+) -> SourceFile:
+    """The file a placement is written into, known before any edit is rendered (as ``_edits``)."""
+    if isinstance(placement, ConvertInclude):
+        return placement.include.origin.file
+    if isinstance(placement, AddKeys):
+        return placement.mapping.origin.file
+    if isinstance(placement, AppendItem):
+        return placement.sequence.origin.file
+    return placement.node.origin.file
+
+
+def _refuse_remote(
+    root: Node, segments: list[str], dotted: str, files: Iterable[SourceFile]
+) -> None:
+    """Checkpoint 2 of the remote rule (S-4, R-7): no plan may write remote content.
+
+    Checkpoint 1 (``placement.place``) refused existing values from remote content; this one sees
+    the files a plan actually writes, so it also catches a list append or a key inside an item of
+    a remote list, ``--in-include`` into remote content and an ``--expand-alias`` copy there.
+    ``fileio.write_files`` refuses a remote source once more, as the last net.
+
+    Raises:
+        WriteRefused: Naming the outermost remote include on PATH's route (``remote_refusal``).
+    """
+    for file in files:
+        if file.remote:
+            raise remote_refusal(walk(root, segments), dotted, file.path)
 
 
 # --- Expanding aliases on PATH (R-8) ------------------------------------------------------------
@@ -217,6 +307,7 @@ def _plan_expansion(
     first: ExpandAlias,
     *,
     in_include: bool,
+    context: SetContext | None,
 ) -> WritePlan:
     """Expand every alias on PATH (outermost first, C7), then set VALUE in the copy.
 
@@ -230,8 +321,8 @@ def _plan_expansion(
     The result is verified once, against the original tree (expansion and set together).
     """
     original = first.alias.origin.file  # a ``SourceFile`` of ``root``: what ``write_files`` diffs
-    config_file = root.origin.file.path
-    texts: dict[Path, str] = {}
+    _refuse_remote(root, segments, dotted, [original])  # every copy is written in this file
+    texts: dict[Location, str] = {}
     comment_lines: list[tuple[int, str]] = []  # (line start, alias name) of each expansion
     current, placement = root, first
     for _ in range(MAX_EXPANSIONS):
@@ -248,7 +339,7 @@ def _plan_expansion(
         comment_lines.append((file.text.rfind("\n", 0, alias_start) + 1, str(placement.alias.name)))
         texts[file.path] = apply_edits(file.text, edits)
         try:
-            current = load(config_file, overrides=texts)
+            current = _reload(root, texts, context)
         except LoadError:
             _refuse(dotted)
         found = place(current, segments, dotted, in_include=in_include, expand_alias=True)
@@ -271,7 +362,13 @@ def _plan_expansion(
         text = _respace_comment(text, line_start, name, dotted)
     files = {original: text}
     tree = _verify(
-        root, segments, dotted, files, lambda node: _matches(node, value), expand_alias=True
+        root,
+        segments,
+        dotted,
+        files,
+        lambda node: _matches(node, value),
+        context,
+        expand_alias=True,
     )
     return WritePlan(files, tree)
 
@@ -306,8 +403,11 @@ def _plan_text(
     node: TextInclude,
     value: Value,
     raw_value: str,
+    context: SetContext | None,
 ) -> WritePlan:
     target = node.target
+    if isinstance(value, str):
+        value = str(value)  # file text, not YAML: never tagged, no marker (S-11)
     if uses_crlf(target.text):
         if not isinstance(value, str):
             raise WriteRefused(
@@ -319,12 +419,13 @@ def _plan_text(
         content = value if isinstance(value, str) else raw_value
     if content == target.text:
         return WritePlan({}, None)
+    _refuse_remote(root, segments, dotted, [target])  # ``place`` refused it already (checkpoint 1)
     files = {target: content}
 
     def reads_back(new: Node) -> bool:
         return isinstance(new, TextInclude) and new.target.text == content
 
-    return WritePlan(files, _verify(root, segments, dotted, files, reads_back))
+    return WritePlan(files, _verify(root, segments, dotted, files, reads_back, context))
 
 
 # --- Rendering ----------------------------------------------------------------------------------
@@ -375,6 +476,15 @@ def _concrete(collection: Node, role: str) -> None:
 
 
 def _scalar_edits(placement: ReplaceScalar, dotted: str, value: Value) -> list[TextEdit]:
+    """Edits replacing an existing scalar by ``value``, its ``!literal`` tag included (R-8).
+
+    The tag rule (S-11, S-12): an untagged scalar gets the tag when ``value`` is a
+    ``LiteralStr``; a tagged one keeps it for any string but an ``IncludeStr`` and loses it
+    otherwise. In-place renderers get a plain ``str`` and the tag is changed by ``_retag``;
+    ``collections.replace_value_edits`` (kind changes, empty values, block scalars that cannot
+    hold the value) renders the value itself, tagging a ``LiteralStr`` and dropping the old tag,
+    so a value that keeps the tag is passed to it as a ``LiteralStr``.
+    """
     node = placement.node
     file = node.origin.file
     text = file.text
@@ -382,10 +492,28 @@ def _scalar_edits(placement: ReplaceScalar, dotted: str, value: Value) -> list[T
     start, end = node.origin.start, node.origin.end
     is_block = node.style in ("literal", "folded")
     kind_change = isinstance(value, dict | list) or start == end
+    keeps_tag = node.literal is not None and isinstance(value, str)
+    keeps_tag = keeps_tag and not isinstance(value, IncludeStr)
     if kind_change or (is_block and not (isinstance(value, str) and can_block(value))):
+        new_value = LiteralStr(value) if keeps_tag and isinstance(value, str) else value
         return replace_value_edits(
-            file, placement.parent, placement.slot, node, value, step, path=dotted
+            file, placement.parent, placement.slot, node, new_value, step, path=dotted
         )
+    edits = _content_edits(placement, dotted, str(value) if isinstance(value, str) else value)
+    if node.literal is None and isinstance(value, LiteralStr):
+        return _retag(text, edits, node, add=True)
+    if node.literal is not None and not keeps_tag:
+        return _retag(text, edits, node, add=False)
+    return edits
+
+
+def _content_edits(placement: ReplaceScalar, dotted: str, value: Value) -> list[TextEdit]:
+    """Replace a non-empty scalar by the scalar ``value`` in place (no marker, no tag)."""
+    node = placement.node
+    text = node.origin.file.text
+    step = detect_indent(text)
+    start, end = node.origin.start, node.origin.end
+    is_block = node.style in ("literal", "folded")
     parent_indent = entry_column(text, placement.parent)
     newline = detect_newline(text)
     if is_block:
@@ -411,6 +539,65 @@ def _scalar_edits(placement: ReplaceScalar, dotted: str, value: Value) -> list[T
     return [_replace_span(text, start, end, rendered)]
 
 
+def _retag(text: str, edits: list[TextEdit], node: ScalarNode, *, add: bool) -> list[TextEdit]:
+    """``edits`` plus inserting (``add``) or removing ``node``'s ``!literal`` tag, as one edit.
+
+    The content edits never change a byte before ``node.origin.start`` (they rewrite the
+    scalar's line keeping what precedes it, or the lines after it), and the tag lies at or
+    before that index. So the tag is changed in the edited text, on its line, by
+    ``comments.replace_in_line``, which keeps that line's end-of-line comment in its column
+    (FR-020): a separate zero-width insertion inside a rewritten line would overlap it. The
+    result is returned as the one smallest edit of the original text.
+
+    - Insert: ``LITERAL_PREFIX`` at the content start (before a block indicator, a quote or the
+      plain text).
+    - Remove: the ``!literal`` token and the blanks after it on its line; an anchor written after
+      it stays. A tag ending its line also takes the blanks before it, and a line left blank is
+      deleted, so no trailing blanks remain.
+    """
+    start = node.origin.start
+    edited = apply_edits(text, edits)
+    assert edited[:start] == text[:start], "content edits start at the scalar"
+    if add:
+        cut_start, cut_end, insert = start, start, LITERAL_PREFIX
+    else:
+        assert node.literal is not None
+        cut_start = node.literal.start
+        cut_end = cut_start + len(LITERAL_TAG)
+        while edited[cut_end : cut_end + 1] in (" ", "\t"):
+            cut_end += 1
+        insert = ""
+    line_start = edited.rfind("\n", 0, cut_start) + 1
+    line_end = edited.find("\n", cut_end)
+    line_end = len(edited) if line_end < 0 else line_end
+    if line_end > line_start and edited[line_end - 1] == "\r":
+        line_end -= 1
+    line = edited[line_start:line_end]
+    col_start, col_end = cut_start - line_start, cut_end - line_start
+    if not add and col_end == len(line):  # the tag ends its line: no trailing blanks
+        col_start = len(line[:col_start].rstrip(" \t"))
+        if col_start == 0:  # nothing else on the line: delete it with its line break
+            after = edited.find("\n", line_end)
+            line_end = len(edited) if after < 0 else after + 1
+            return _smallest(text, edited[:line_start] + edited[line_end:])
+    new_line = replace_in_line(line, col_start, col_end, insert)
+    return _smallest(text, edited[:line_start] + new_line + edited[line_end:])
+
+
+def _smallest(text: str, new_text: str) -> list[TextEdit]:
+    """The one smallest edit turning ``text`` into ``new_text`` (none if they are equal)."""
+    if new_text == text:
+        return []
+    limit = min(len(text), len(new_text))
+    prefix = 0
+    while prefix < limit and text[prefix] == new_text[prefix]:
+        prefix += 1
+    suffix = 0
+    while suffix < limit - prefix and text[-1 - suffix] == new_text[-1 - suffix]:
+        suffix += 1
+    return [TextEdit(prefix, len(text) - suffix, new_text[prefix : len(new_text) - suffix])]
+
+
 def _replace_span(text: str, start: int, end: int, new_text: str) -> TextEdit:
     """Replace ``text[start:end]``; the comment on the line where the span ends keeps its column.
 
@@ -432,17 +619,27 @@ def _replace_span(text: str, start: int, end: int, new_text: str) -> TextEdit:
 def _matches(node: Node, value: Value) -> bool:
     """Whether ``node`` holds ``value`` as written: deep, type-aware, key order ignored.
 
-    An include node holds the include string it was written as (``file:...``), so writing that
-    string again is recognised as unchanged. Aliases are compared through (``unwrap``): an
-    alias holds the value it resolves to.
+    Includes and literals are told apart by VALUE's markers (``includes.mark_literals``,
+    research R-9):
+
+    - an include node (``file:...`` or a URL) matches only an ``IncludeStr`` equal to the include
+      string it was written as, so ``set --include`` of that string again is unchanged, while
+      ``set b file:p.md`` on the include ``b: file:p.md`` writes ``b: !literal file:p.md`` (S-13);
+    - a scalar matches a string with the same text unless it is an ``IncludeStr``: a
+      ``LiteralStr`` matches a ``!literal`` scalar and a plain one (a literal by the schema)
+      alike, and ``set --include b file:x`` on ``b: !literal file:x`` writes the include.
+
+    Aliases are compared through (``unwrap``): an alias holds the value it resolves to.
     """
     node = _through_aliases(node)
     assert not isinstance(node, AliasNode)  # ``_through_aliases`` follows every alias
     if isinstance(node, ScalarNode):
-        return not isinstance(value, dict | list) and same(node.value, value)
+        if isinstance(value, dict | list | IncludeStr):
+            return False
+        return same(node.value, str(value) if isinstance(value, str) else value)
     if isinstance(node, YamlInclude | TextInclude):
         written = _include_string(node)
-        return isinstance(value, str) and written is not None and written == value
+        return isinstance(value, IncludeStr) and written is not None and written == value
     if isinstance(node, MappingNode):
         if not isinstance(value, dict) or len(value) != len(node.entries):
             return False
@@ -478,6 +675,7 @@ def _verify(
     dotted: str,
     files: Mapping[SourceFile, str],
     reads_back: Callable[[Node], bool],
+    context: SetContext | None,
     *,
     expand_alias: bool = False,
 ) -> Node:
@@ -485,21 +683,26 @@ def _verify(
 
     ``expand_alias`` allows the aliases on the route to PATH to have become copies (R-8 rule 2).
     A value at PATH that was anchored (and not reached through an alias) must keep its anchor
-    name (C5).
+    name (C5). Order: the reload, then read-back, anchors and everything outside PATH (any
+    failure there is a renderer bug: the generic refusal), and only then the schema (S-9).
 
     Returns:
         The re-loaded tree.
 
     Raises:
-        WriteRefused: If the new texts do not load, the value at PATH does not read back or lost
-            its anchor, or anything outside PATH differs.
+        WriteRefused: If the new texts do not load (the load error's message, e.g. a new include
+            target that is missing or cannot be fetched, S-12), the value at PATH does not read
+            back or lost its anchor, anything outside PATH differs, or the result does not match
+            the schema (naming the schema file and the failing path, S-9).
     """
-    config_file = root.origin.file.path
-    overrides: dict[Path, str] = {file.path: text for file, text in files.items()}
+    overrides: dict[Location, str] = {file.path: text for file, text in files.items()}
     try:
-        new_root = load(config_file, overrides=overrides)
+        new_root = _reload(root, overrides, context)
+    except LoadError as err:
+        raise WriteRefused(f"{dotted}: {err.message}; no file changed") from err
+    try:
         found = walk(new_root, segments)
-    except (LoadError, PathError):
+    except PathError:
         _refuse(dotted)
     if found.remaining or not reads_back(found.nodes[-1]):
         _refuse(dotted)
@@ -509,7 +712,35 @@ def _verify(
         _refuse(dotted)
     if not _same_outside(root, new_root, [], segments, expand_alias=expand_alias):
         _refuse(dotted)
+    schema = None if context is None else context.schema
+    if schema is not None:
+        failure = violation(new_root, schema)
+        if failure is not None:
+            raise WriteRefused(
+                f"{dotted}: the change would not match schema {schema.path} at {failure.path}:"
+                f" {failure.message}; no file changed"
+            )
     return new_root
+
+
+def _reload(root: Node, overrides: Mapping[Location, str], context: SetContext | None) -> Node:
+    """Load the configuration in memory with ``overrides`` in place of their sources' texts.
+
+    With a context: from the theatre's root file, with its schema deciding literals and its
+    shared ``fetched`` texts (R-10), not validated here (``_verify`` tells a violation, exit 3,
+    from a load error). Without one: from ``root``'s file, with no schema and a fresh fetch.
+
+    Raises:
+        LoadError: If the texts do not load (unparsable text, a missing include target, a fetch
+            failure, an include cycle).
+    """
+    if context is not None:
+        return load(
+            context.theatre.config_file, overrides, schema=context.schema, fetched=context.fetched
+        )
+    config_file = root.origin.file.path
+    assert isinstance(config_file, Path)  # the root file is always local
+    return load(config_file, overrides)
 
 
 def _target_anchor(root: Node, segments: list[str]) -> Anchor | None:
@@ -738,5 +969,5 @@ def _gains_override(old: Node, new: MergedMapping) -> bool:
     )
 
 
-def _ref_path(node: MergedMapping) -> Path | None:
+def _ref_path(node: MergedMapping) -> Location | None:
     return None if node.ref is None else node.ref.target.path

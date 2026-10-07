@@ -77,12 +77,27 @@ R-4, R-6). "Reached through an alias" is decided here and nowhere else:
   returned and the applier's no-op check (research R-8) writes nothing.
 - An include reference is never inside an anchored node (C3, enforced by the loader), so no
   include reference is reachable only through an alias; ``_peel`` does not descend aliases.
+
+Remote content is read-only (step 7; spec S-4, S-5; research R-7). One message builder,
+``remote_refusal``, names the outermost remote include on the route: the first one met from the
+root, whose include string is written in a local file. It is used at two checkpoints:
+
+1. Here, in ``place``, right after the D-6 ``$ref`` refusal and ``walk``, and **before** the alias
+   decision: an existing PATH whose value comes from remote content (a scalar or collection in a
+   remote file, a remote YAML or text include, a merged view with a remote side) is refused, so a
+   value reached through an alias inside remote content reports the include line to change, not
+   ``--expand-alias``. A new key is not refused here: S-5 makes it a local override.
+2. In ``apply.apply_set``, on the files a plan would actually write (list appends and keys inside
+   items of remote lists, ``--in-include`` into remote content, ``--expand-alias`` copies).
+
+``fileio.write_files`` refuses any remote ``SourceFile`` as the last net.
 """
 
 from collections.abc import Iterator
 from dataclasses import dataclass
 
 from troupe.errors import PathError, WriteRefused
+from troupe.location import Location
 from troupe.merge import MERGE_KEY, REF_KEY
 from troupe.paths import Walk, is_index, unwrap, walk
 from troupe.tree import (
@@ -217,12 +232,16 @@ def place(
         expand_alias: ``set --expand-alias``: a route through a written alias gives
             ``ExpandAlias`` instead of a refusal (R-6). Merge keys are refused either way.
 
+    Refusal order: the D-6 ``$ref`` refusal, ``walk``'s path errors, the remote rule (an
+    existing value from remote content, S-4), the alias rule, then every other rule.
+
     Raises:
-        WriteRefused: If PATH has a ``$ref`` segment (D-6), is reached through an alias without
-            ``expand_alias`` or through a merge key ``<<`` (R-6), names a mapping holding ``<<``
-            or would create a key ``<<`` (A-0), the whole value at PATH comes from a YAML
-            include, or PATH names a mapping both an include and an override define (D-10);
-            exit 3.
+        WriteRefused: If PATH has a ``$ref`` segment (D-6), names an existing value that comes
+            from remote content (S-4, message from ``remote_refusal``), is reached through an
+            alias without ``expand_alias`` or through a merge key ``<<`` (R-6), names a mapping
+            holding ``<<`` or would create a key ``<<`` (A-0), the whole value at PATH comes
+            from a YAML include, or PATH names a mapping both an include and an override define
+            (D-10); exit 3.
         PathError: If PATH runs through a scalar, null or text include, uses a non-index segment
             on a list, uses an index larger than the list's length, or needs a missing segment
             that cannot be created (exit 5).
@@ -232,6 +251,10 @@ def place(
             f"{dotted}: '{REF_KEY}' is not a setting; it names an include (no file changed)"
         )
     found = walk(root, segments)
+    if not found.remaining:
+        remote = _remote_location(found.nodes[-1])
+        if remote is not None:  # checkpoint 1 (R-7): before the alias rule
+            raise remote_refusal(found, dotted, remote)
     consumed = segments[: len(found.nodes) - 1]
     through = _route_aliases(found, consumed)
     if through is not None:
@@ -285,6 +308,63 @@ def place(
         # inside the override mappings that already exist there.
         return _on_side(request, include.holder, _dotted(segments[:depth]), route, keys)
     return _convert(root, include, route + keys)
+
+
+def remote_include_on_route(found: Walk) -> YamlInclude | TextInclude | None:
+    """The first include with a remote target on the route ``found.nodes``, from the root.
+
+    Include chains and both sides of merged views are looked through (``_peel``); the ``ref`` of
+    a merged view counts as its include. Being the first, it is the outermost remote include, the
+    one whose include string is written in a local file (S-4).
+    """
+    for node in found.nodes:
+        for part in _peel(node):
+            include = part.ref if isinstance(part, MergedMapping) else part
+            if isinstance(include, YamlInclude | TextInclude) and include.target.remote:
+                # Nested remote includes lie inside this one, so its own line is local (S-4).
+                assert not include.origin.file.remote
+                return include
+    return None
+
+
+def remote_refusal(found: Walk, dotted: str, written: Location) -> WriteRefused:
+    """The refusal for a ``set`` that would change remote content ``written`` (S-4, R-7).
+
+    The message quotes the outermost remote include on the route exactly as written
+    (``origin.source``, quotes included; for the mapping form the ``$ref`` value) with its local
+    file and line. Should no remote include be on the route (the root file is always local, so
+    this cannot happen) the message names ``written`` instead.
+    """
+    include = remote_include_on_route(found)
+    if include is None:  # pragma: no cover - remote content is only reached through an include
+        return WriteRefused(
+            f"{dotted}: the change would write remote content {written}; no file changed"
+        )
+    origin = include.origin
+    line = origin.file.text.count("\n", 0, origin.start) + 1
+    return WriteRefused(
+        f"{dotted}: value comes from remote include {origin.source} ({origin.file.path} line"
+        f" {line}); troupe does not change remote content — change that include line instead;"
+        " no file changed"
+    )
+
+
+def _remote_location(node: Node) -> Location | None:
+    """Where the existing value ``node`` (as found) comes from, if that is remote content.
+
+    Its own file (an alias: the ``*name`` token's file), the target of an include, or a side of a
+    merged view (the ``$ref`` include or an included base). A local override's value is local.
+    """
+    if isinstance(node, YamlInclude | TextInclude) and node.target.remote:
+        return node.target.path
+    if isinstance(node, MergedMapping):
+        for part in _peel(node):
+            if not isinstance(part, MergedMapping) and part.origin.file.remote:
+                return part.origin.file.path
+            if isinstance(part, YamlInclude) and part.target.remote:
+                return part.target.path
+    file = node.origin.file
+    return file.path if file.remote else None
 
 
 def concrete_parent(root: Node, node: Node) -> tuple[Collection, str | int] | None:

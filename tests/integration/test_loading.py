@@ -8,6 +8,7 @@ import pytest
 from conftest import MakeTheatre
 from troupe.errors import LoadError
 from troupe.loader import load, read_source
+from troupe.location import Location
 from troupe.paths import lookup, unwrap
 from troupe.theatre import locate
 from troupe.tree import (
@@ -23,6 +24,11 @@ from troupe.tree import (
 
 def _load(make_theatre: MakeTheatre, files: dict[str, str | bytes]) -> Node:
     return load(locate(make_theatre(files)).config_file)
+
+
+def _local(location: Location) -> Path:
+    assert isinstance(location, Path)  # these fixtures are local files
+    return location
 
 
 def _at(root: Node, dotted: str) -> Node:
@@ -52,7 +58,7 @@ def _origins(node: Node) -> Iterator[Origin]:
 
 
 def _sources(root: Node) -> list[tuple[str, str]]:
-    return [(o.file.path.name, o.file.text[o.start : o.end]) for o in _origins(root)]
+    return [(_local(o.file.path).name, o.file.text[o.start : o.end]) for o in _origins(root)]
 
 
 NESTED = (
@@ -180,7 +186,7 @@ def test_yaml_include_embeds_target_whose_nodes_belong_to_target_file(
     assert include.origin.file.text[include.origin.start : include.origin.end] == (
         "file:agents.yaml"
     )
-    assert include.target.path.name == "agents.yaml"
+    assert _local(include.target.path).name == "agents.yaml"
     lead = _scalar(root, "agents.lead")
     assert lead.value == "ada"
     assert lead.origin.file is include.target
@@ -217,7 +223,7 @@ def test_nested_include_is_relative_to_including_files_directory(
     role = _scalar(root, "team.members.0.role")
 
     assert role.value == "lead"
-    assert role.origin.file.path.parts[-3:] == ("teams", "members", "ada.yml")
+    assert _local(role.origin.file.path).parts[-3:] == ("teams", "members", "ada.yml")
 
 
 def test_yaml_include_of_empty_file_is_empty_mapping(make_theatre: MakeTheatre) -> None:
@@ -255,7 +261,7 @@ def test_text_include_is_exact_text_with_crlf_and_no_trailing_newline(
 
     assert isinstance(prompt, TextInclude)
     assert prompt.target.text == "line 1\r\nline 2"
-    assert prompt.target.path.name == "prompt.md"
+    assert _local(prompt.target.path).name == "prompt.md"
 
 
 def test_include_suffix_match_is_case_sensitive(make_theatre: MakeTheatre) -> None:

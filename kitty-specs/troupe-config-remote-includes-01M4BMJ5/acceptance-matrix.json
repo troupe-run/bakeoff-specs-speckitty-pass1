@@ -1,0 +1,129 @@
+{
+  "mission_slug": "troupe-config-remote-includes-01M4BMJ5",
+  "mission_number": "",
+  "mission_type": "software-dev",
+  "overall_verdict": "pass",
+  "criteria": [
+    {
+      "criterion_id": "FR-001",
+      "description": "Verify FR-001 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_remote_read.py::test_get_reads_a_value_from_a_remote_yaml_include, test_get_of_a_remote_text_include_prints_the_body_exactly, test_ref_form_overrides_win_and_sources_name_url_and_local_file; tests/unit/test_loader_remote.py \u2014 full suite 2674 passed, 0 skipped, on lane-j (all WP01-WP10 code) + mypy --strict, ruff check, ruff format --check clean; each WP independently reviewed (reviewer-renata)",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator)",
+      "verified_at": "2026-10-07T23:49:22.244577+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-002",
+      "description": "Verify FR-002 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_remote_read.py::test_file_include_inside_remote_yaml_is_fetched_from_the_same_server, test_url_cycle_exits_4; tests/integration/test_remote_acceptance.py::test_s1_file_include_in_remote_content_is_fetched_relative_to_the_url_and_is_read_only \u2014 full suite 2674 passed, 0 skipped, on lane-j (all WP01-WP10 code) + mypy --strict, ruff check, ruff format --check clean; each WP independently reviewed (reviewer-renata)",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator)",
+      "verified_at": "2026-10-07T23:49:25.721088+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-003",
+      "description": "Verify FR-003 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_remote_read.py::test_failed_fetch_exits_4_naming_url_and_local_file, test_every_command_that_loads_fails_with_exit_4_when_a_fetch_fails, test_https_include_with_an_untrusted_certificate_exits_4; tests/unit/test_remote_fetch.py (deadline: hang, trickle, connect, DNS) \u2014 full suite 2674 passed, 0 skipped, on lane-j (all WP01-WP10 code) + mypy --strict, ruff check, ruff format --check clean; each WP independently reviewed (reviewer-renata)",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator)",
+      "verified_at": "2026-10-07T23:49:29.236884+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-004",
+      "description": "Verify FR-004 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_remote_readonly.py (US2-1..4, expand-alias, in-include, block-scalar and multi-line nested regressions); tests/integration/test_remote_acceptance.py::test_nfr001_every_refused_remote_write_sends_only_gets_and_changes_nothing \u2014 full suite 2674 passed, 0 skipped, on lane-j (all WP01-WP10 code) + mypy --strict, ruff check, ruff format --check clean; each WP independently reviewed (reviewer-renata)",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator)",
+      "verified_at": "2026-10-07T23:49:32.814482+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-005",
+      "description": "Verify FR-005 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_remote_readonly.py::test_new_key_under_scalar_remote_include_becomes_a_local_override, test_new_key_under_mapping_form_remote_include_is_added_beside_overrides, test_local_override_of_remote_include_changes_only_that_line \u2014 full suite 2674 passed, 0 skipped, on lane-j (all WP01-WP10 code) + mypy --strict, ruff check, ruff format --check clean; each WP independently reviewed (reviewer-renata)",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator)",
+      "verified_at": "2026-10-07T23:49:36.444240+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-006",
+      "description": "Verify FR-006 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_remote_read.py::test_upstream_change_is_recorded_as_a_file_lineage_set_event, test_ref_form_overrides_win_and_sources_name_url_and_local_file; tests/integration/test_watch_schema.py; tests/integration/test_remote_acceptance.py history/lineage tests \u2014 full suite 2674 passed, 0 skipped, on lane-j (all WP01-WP10 code) + mypy --strict, ruff check, ruff format --check clean; each WP independently reviewed (reviewer-renata)",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator)",
+      "verified_at": "2026-10-07T23:49:40.175936+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-007",
+      "description": "Verify FR-007 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_literals.py::test_schema_uri_setting_is_a_literal_and_is_not_fetched, test_uri_through_additional_properties_and_items_is_literal, test_uri_only_through_ref_allof_or_pattern_properties_is_an_include; tests/unit/test_schema.py (uri_at) \u2014 full suite 2674 passed, 0 skipped, on lane-j (all WP01-WP10 code) + mypy --strict, ruff check, ruff format --check clean; each WP independently reviewed (reviewer-renata)",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator)",
+      "verified_at": "2026-10-07T23:49:43.765884+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-008",
+      "description": "Verify FR-008 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_literals.py::test_literal_tagged_strings_show_without_the_tag, test_literal_on_a_mapping_list_or_ref_and_other_tags_exit_4_naming_the_file; tests/unit/test_yamlcore.py, tests/unit/test_loader_literals.py \u2014 full suite 2674 passed, 0 skipped, on lane-j (all WP01-WP10 code) + mypy --strict, ruff check, ruff format --check clean; each WP independently reviewed (reviewer-renata)",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator)",
+      "verified_at": "2026-10-07T23:49:47.290228+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-009",
+      "description": "Verify FR-009 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_schema_validation.py (configuration not matching schema exit 4, invalid schema files exit 4, format not asserted, no schema unchanged); tests/unit/test_schema.py \u2014 full suite 2674 passed, 0 skipped, on lane-j (all WP01-WP10 code) + mypy --strict, ruff check, ruff format --check clean; each WP independently reviewed (reviewer-renata)",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator)",
+      "verified_at": "2026-10-07T23:49:50.800040+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-010",
+      "description": "Verify FR-010 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_set_schema.py::test_set_that_would_violate_the_schema_exits_3_naming_path_and_schema; tests/integration/test_set_include_remote.py::test_include_of_a_url_whose_content_fails_the_schema_exits_3 \u2014 full suite 2674 passed, 0 skipped, on lane-j (all WP01-WP10 code) + mypy --strict, ruff check, ruff format --check clean; each WP independently reviewed (reviewer-renata)",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator)",
+      "verified_at": "2026-10-07T23:49:54.286043+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-011",
+      "description": "Verify FR-011 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_set_literal.py (US6-1,4,5,8, flow and append, quoting); tests/integration/test_set_schema.py::test_replacing_a_scalar_adds_keeps_or_drops_the_literal_tag; tests/unit/test_literal_rendering.py \u2014 full suite 2674 passed, 0 skipped, on lane-j (all WP01-WP10 code) + mypy --strict, ruff check, ruff format --check clean; each WP independently reviewed (reviewer-renata)",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator)",
+      "verified_at": "2026-10-07T23:49:57.742970+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    },
+    {
+      "criterion_id": "FR-012",
+      "description": "Verify FR-012 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/test_set_literal.py::test_file_value_is_written_as_literal_and_with_include_becomes_an_include, test_include_on_uri_path_exits_3, test_include_of_a_missing_url_exits_3_and_changes_nothing, test_include_flag_on_other_subcommands_exits_2; tests/integration/test_set_include_remote.py \u2014 full suite 2674 passed, 0 skipped, on lane-j (all WP01-WP10 code) + mypy --strict, ruff check, ruff format --check clean; each WP independently reviewed (reviewer-renata)",
+      "pass_fail": "pass",
+      "verified_by": "claude (orchestrator)",
+      "verified_at": "2026-10-07T23:50:01.231333+00:00",
+      "notes": "TODO: replace with a real acceptance criterion"
+    }
+  ],
+  "negative_invariants": []
+}

@@ -3,19 +3,25 @@
 Plain helpers (``run_cli``, ``snapshot``, ``all_files``, ``history_events``, ``recorded_within``,
 ``core``, ``stored_records``) and the ``WatchProcess`` context manager are importable with
 ``from conftest import ...``; ``make_theatre`` is a fixture because it needs ``tmp_path``.
+``remote`` and ``https_remote`` are fixtures yielding a running ``remote_server.RemoteServer``
+(plain http, and https with a throwaway self-signed certificate) that is closed afterwards.
 
 Child processes never inherit ``TROUPE_THEATRE`` or ``TROUPE_ACTOR`` from the developer's shell,
-so a value set there cannot change what a test observes.
+so a value set there cannot change what a test observes. They always get
+``NO_PROXY``/``no_proxy`` = ``127.0.0.1,localhost`` so they reach the local test server even
+when the developer's shell configures an HTTP proxy.
 """
 
 import json
 import os
+import shutil
 import signal
+import ssl
 import subprocess
 import sys
 import threading
 import time
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Callable, Iterable, Iterator, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from types import TracebackType
@@ -23,6 +29,7 @@ from typing import IO, Final, Self
 
 import pytest
 
+from remote_server import RemoteServer
 from troupe.history import HistoryRecord, HistoryStore
 
 type MakeTheatre = Callable[[dict[str, str | bytes]], Path]
@@ -30,6 +37,9 @@ type MakeTheatre = Callable[[dict[str, str | bytes]], Path]
 HISTORY_PREFIX = ".troupe/history.sqlite"
 # Variables a child process never inherits from the developer's environment.
 HERMETIC_UNSET: Final = ("TROUPE_THEATRE", "TROUPE_ACTOR")
+# The test server listens on 127.0.0.1; a child must reach it directly, never via a proxy that
+# the developer's shell (or a CI container) configured with HTTP_PROXY/HTTPS_PROXY.
+LOCAL_NO_PROXY: Final = "127.0.0.1,localhost"
 # The five step-1 keys of a ``history`` line.
 CORE_KEYS: Final = ("seq", "op", "path", "old", "new")
 
@@ -52,7 +62,8 @@ def run_cli(
     """Run ``python -m troupe *args`` and capture output without newline translation.
 
     ``TROUPE_THEATRE`` and ``TROUPE_ACTOR`` are always removed from the inherited environment, as
-    is every variable named in ``unset``; ``env`` entries are then added on top.
+    is every variable named in ``unset``; ``NO_PROXY``/``no_proxy`` are set to bypass any proxy
+    for the local test server; ``env`` entries are then added on top (so a test can override).
     """
     completed = subprocess.run(
         [sys.executable, "-m", "troupe", *args],
@@ -71,7 +82,9 @@ def run_cli(
 
 def _child_env(env: dict[str, str] | None, unset: Iterable[str] = ()) -> dict[str, str]:
     removed = {*HERMETIC_UNSET, *unset}
-    return {k: v for k, v in os.environ.items() if k not in removed} | (env or {})
+    inherited = {k: v for k, v in os.environ.items() if k not in removed}
+    no_proxy = {"NO_PROXY": LOCAL_NO_PROXY, "no_proxy": LOCAL_NO_PROXY}
+    return inherited | no_proxy | (env or {})
 
 
 def all_files(theatre: Path) -> set[str]:
@@ -252,3 +265,42 @@ def make_theatre(tmp_path: Path) -> MakeTheatre:
         return theatre
 
     return build
+
+
+@pytest.fixture
+def remote() -> Iterator[RemoteServer]:
+    """Yield a running plain-http ``RemoteServer`` on 127.0.0.1; it is closed afterwards."""
+    server = RemoteServer()
+    try:
+        yield server
+    finally:
+        server.close()
+
+
+@pytest.fixture
+def https_remote(tmp_path: Path) -> Iterator[RemoteServer]:
+    """Yield an https ``RemoteServer`` whose certificate is self-signed, hence not trusted.
+
+    The certificate is made with the ``openssl`` CLI; without it the test is skipped with a
+    visible reason rather than silently passing (TROUPE-006).
+    """
+    if shutil.which("openssl") is None:
+        pytest.skip(
+            "openssl is not installed; cannot create a self-signed certificate for the TLS "
+            "verification test"
+        )
+    key, cert = tmp_path / "server.key", tmp_path / "server.crt"
+    self_signed = ["-x509", "-newkey", "rsa:2048", "-nodes", "-days", "1", "-subj", "/CN=127.0.0.1"]
+    san = ["-addext", "subjectAltName=IP:127.0.0.1"]
+    subprocess.run(
+        ["openssl", "req", *self_signed, *san, "-keyout", str(key), "-out", str(cert)],
+        check=True,
+        capture_output=True,
+    )
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    context.load_cert_chain(cert, key)
+    server = RemoteServer(tls=context)
+    try:
+        yield server
+    finally:
+        server.close()

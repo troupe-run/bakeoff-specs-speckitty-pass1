@@ -4,6 +4,7 @@ import socket
 import threading
 import time
 from collections.abc import Iterator
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -12,7 +13,7 @@ from conftest import LOCAL_NO_PROXY
 from remote_server import RemoteServer, Request, Route
 from troupe.errors import FetchError, LoadError
 from troupe.location import Url
-from troupe.remote import fetch
+from troupe.remote import MAX_BODY_BYTES, fetch
 
 
 @pytest.fixture(autouse=True)
@@ -80,6 +81,80 @@ def test_fetch_refuses_a_redirect_to_another_scheme(remote: RemoteServer, target
     err = fetch_error(url)
 
     assert err.message == f"cannot fetch {url}: redirect to {target} refused (only http and https)"
+
+
+def test_fetch_follows_an_http_redirect_to_https(
+    remote: RemoteServer,
+    https_remote: RemoteServer,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Trust the fixture's self-signed certificate (same tmp_path) so only the redirect rule decides.
+    monkeypatch.setenv("SSL_CERT_FILE", str(tmp_path / "server.crt"))
+    target = https_remote.serve("/team.yaml", "secure: true\n")
+    start = remote.serve("/team.yaml", "", status=301, Location=target)
+
+    assert fetch(Url(start)) == "secure: true\n"
+
+
+def test_fetch_refuses_a_redirect_from_https_to_http(
+    remote: RemoteServer,
+    https_remote: RemoteServer,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("SSL_CERT_FILE", str(tmp_path / "server.crt"))
+    target = remote.serve("/team.yaml", "plain: true\n")
+    start = https_remote.serve("/team.yaml", "", status=302, Location=target)
+
+    err = fetch_error(start)
+
+    assert err.message == (
+        f"cannot fetch {start}: redirect to {target} refused (https may not redirect to http)"
+    )
+    assert remote.requests() == []  # the downgraded URL is never contacted
+
+
+def test_fetch_follows_an_https_redirect_to_https(
+    https_remote: RemoteServer, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("SSL_CERT_FILE", str(tmp_path / "server.crt"))
+    target = https_remote.serve("/new.yaml", "moved: true\n")
+    start = https_remote.serve("/old.yaml", "", status=308, Location=target)
+
+    assert fetch(Url(start)) == "moved: true\n"
+
+
+def test_fetch_accepts_a_body_of_exactly_the_limit(remote: RemoteServer) -> None:
+    url = remote.serve("/big.txt", b"x" * MAX_BODY_BYTES)
+
+    assert len(fetch(Url(url))) == MAX_BODY_BYTES
+
+
+def test_fetch_refuses_a_body_whose_declared_length_exceeds_the_limit(
+    remote: RemoteServer,
+) -> None:
+    url = remote.serve("/huge.txt", b"x" * (MAX_BODY_BYTES + 1))
+
+    assert fetch_error(url).message == (
+        f"cannot fetch {url}: larger than 1 MiB, the limit for a remote include"
+    )
+
+
+def test_fetch_refuses_an_unsized_body_once_reading_passes_the_limit(
+    remote: RemoteServer,
+) -> None:
+    url = remote.route("/stream.txt", Route(body=b"x" * (MAX_BODY_BYTES + 1), behaviour="unsized"))
+
+    assert fetch_error(url).message == (
+        f"cannot fetch {url}: larger than 1 MiB, the limit for a remote include"
+    )
+
+
+def test_fetch_reads_an_unsized_body_within_the_limit(remote: RemoteServer) -> None:
+    url = remote.route("/small.txt", Route(body=b"a: 1\n", behaviour="unsized"))
+
+    assert fetch(Url(url)) == "a: 1\n"
 
 
 def test_fetch_of_a_redirect_without_location_is_a_fetch_error(remote: RemoteServer) -> None:

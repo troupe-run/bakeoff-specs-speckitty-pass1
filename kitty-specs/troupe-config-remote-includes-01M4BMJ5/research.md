@@ -17,6 +17,8 @@ Phase 0 of [plan.md](plan.md). Each entry gives the **decision**, the **rational
   - **Request**: a `GET` with no credentials and no cookies. TLS uses `ssl.create_default_context()`, so certificates and host names are verified.
   - **Redirects**: a redirect handler that follows only `http`/`https` targets. A redirect to any other scheme is a failure.
   - **Timeout**: one **total deadline of 10 s** (`FETCH_TIMEOUT_SECONDS`). The body is read in chunks, and the socket timeout is set to whatever time remains, so a slowly trickling server cannot exceed 10 s (NFR-004).
+  - **Redirect downgrade** (added after delivery, S-15): a redirect from `https` to `http` is refused.
+  - **Size** (added after delivery, S-14): at most 1 MiB per body, checked against `Content-Length` and while reading.
   - **Status**: anything other than 2xx is a failure.
   - **Body**: decoded as strict UTF-8 without newline translation. A leading BOM is handled exactly as `read_source` handles it for local files.
 
@@ -187,10 +189,10 @@ A single-reviewer challenge pass was done during planning. A multi-agent squad w
 
 | # | Challenge | Disposition |
 |---|---|---|
-| A-1 | A remote server could return a huge body and exhaust memory. | **deferred_with_rationale**: there are no performance targets (TROUPE-004), and the spec sets no size limit, so inventing one would be a new requirement. Recorded under Risks. |
+| A-1 | A remote server could return a huge body and exhaust memory. | **changed** (after delivery): the product owner ruled a limit out of contract and the agent's choice; 1 MiB per body, a failed fetch beyond it (S-14, bead 1j5.3). |
 | A-2 | Redirects could reach `file://` URLs and read local files. | **accepted**: the R-2 redirect handler refuses every non-http(s) scheme (S-2). |
 | A-3 | A `file:` include in remote content could escape to local disk. | **accepted**: S-1/R-3 resolve it against the URL, so it never becomes a local path. |
 | A-4 | `jsonschema` might fetch remote `$ref`s. | **accepted**: there is an empty `Registry` and every `$ref`/`$dynamicRef` must start with `#` (R-6). |
 | A-5 | A source build of `rpds-py` runs arbitrary build code. | **changed**: `no-build-package` added (supply-chain review). |
-| A-6 | `http://` sends shared configuration in clear text. | **deferred_with_rationale**: the contract explicitly allows `http://`, and the spec assumption is that no warning is printed. |
+| A-6 | `http://` sends shared configuration in clear text. | **changed** (after delivery, bead 1j5.4): `http://` stays allowed with no warning (S-16, contract), but an `https` include may no longer be redirected to `http` (S-15). |
 | A-7 | A remote write could happen through a route nobody listed. | **accepted**: R-7 checkpoint 2 inspects the actual planned files, and `write_files` asserts local paths. |

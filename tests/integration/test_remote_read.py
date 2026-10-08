@@ -112,6 +112,10 @@ FAILURES = {
         Route(status=302, headers={"Location": "ftp://127.0.0.1/team.yaml"}),
         "redirect to ftp://127.0.0.1/team.yaml refused (only http and https)",
     ),
+    "body-over-1-MiB": (  # S-14
+        Route(body=b"#" * (1024 * 1024 + 1)),
+        "larger than 1 MiB, the limit for a remote include",
+    ),
 }
 
 

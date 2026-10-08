@@ -28,7 +28,7 @@ troupe config set [--reason TEXT] [--in-include] [--expand-alias] [--include] PA
 
 | Case | Message shape |
 |---|---|
-| Failed fetch | `cannot fetch <url> (included from <local or remote including location>, at <path>): <reason>` where the reason is `HTTP 404 Not Found`, `timed out after 10 s`, `redirect to <url> refused (only http and https)`, `not valid UTF-8 at byte N`, or a network or TLS error |
+| Failed fetch | `cannot fetch <url> (included from <local or remote including location>, at <path>): <reason>` where the reason is `HTTP 404 Not Found`, `timed out after 10 s`, `redirect to <url> refused (only http and https)`, `redirect to <url> refused (https may not redirect to http)` (S-15), `larger than 1 MiB, the limit for a remote include` (S-14), `not valid UTF-8 at byte N`, or a network or TLS error |
 | URL cycle | `include cycle at <path>: <loc> -> <loc> -> <loc>` |
 | Remote refusal | `<PATH>: value comes from remote include <include string as written> (<local file> line N); troupe does not change remote content — change that include line instead; no file changed` |
 | Schema file | `cannot load schema <schema file>: <reason>` (not JSON or not UTF-8; `$schema` is not 2020-12; fails the meta-schema; non-fragment `$ref`) |
@@ -40,7 +40,7 @@ troupe config set [--reason TEXT] [--in-include] [--expand-alias] [--include] PA
 
 ## Agent choices
 
-Spec S-1 to S-13 (see [spec.md](../spec.md)). They are recorded there and are not amendments to this contract.
+Spec S-1 to S-16 (see [spec.md](../spec.md)). They are recorded there and are not amendments to this contract.
 
 ## Examples
 

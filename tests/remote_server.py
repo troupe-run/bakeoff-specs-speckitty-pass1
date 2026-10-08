@@ -10,6 +10,8 @@ Behaviours beyond a normal response:
 - ``hang``: accept the request and send nothing for 30 s (ended early by ``close()``).
 - ``trickle``: send ``200`` with a large ``Content-Length``, then one body byte per second until
   the client goes away or the server is closed.
+- ``unsized``: send the body without ``Content-Length`` and end it by closing the connection
+  (HTTP/1.0), so the client can only learn the size by reading (spec S-14).
 """
 
 import ssl
@@ -30,7 +32,7 @@ class Route:
     status: int = 200
     body: bytes = b""
     headers: dict[str, str] = field(default_factory=dict)  # e.g. {"Location": "..."}
-    behaviour: Literal["normal", "hang", "trickle"] = "normal"
+    behaviour: Literal["normal", "hang", "trickle", "unsized"] = "normal"
     reason: str | None = None  # status-line reason phrase; None = the standard one, "" = none
 
 
@@ -76,11 +78,13 @@ class _Handler(BaseHTTPRequestHandler):
         for name, value in route.headers.items():
             self.send_header(name, value)
         has_body = route.status not in (204, 304) and self.command != "HEAD"
-        if route.status not in (204, 304):
+        if route.status not in (204, 304) and route.behaviour != "unsized":
             self.send_header("Content-Length", str(len(route.body)))
         self.end_headers()
         if has_body:
             self.wfile.write(route.body)
+        if route.behaviour == "unsized":
+            self.close_connection = True
 
     def _trickle(self, stop: threading.Event) -> None:
         self.send_response(200)

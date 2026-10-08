@@ -8,13 +8,16 @@ text. The rules, each enforced here and nowhere else:
   does by default.
 - **TLS**: ``ssl.create_default_context()``, so certificates and host names are verified.
   Verification is never disabled.
-- **Redirects**: followed only to ``http``/``https`` targets; any other scheme is refused.
-  urllib's cap on the number of redirects stays in force.
+- **Redirects**: followed only to ``http``/``https`` targets; any other scheme is refused, and
+  so is a redirect from ``https`` to ``http`` (spec S-15). urllib's cap on the number of
+  redirects stays in force.
 - **Deadline**: one total deadline of ``FETCH_TIMEOUT_SECONDS`` for the whole fetch, redirects
   and proxies included (NFR-004): it covers the DNS lookup, every connect attempt, the TLS
   handshake, sending the request, and reading the status line, headers and body. See
   ``_Deadline`` for how each step is bounded.
 - **Status**: any 2xx is success (a 204 yields ``""``); everything else is a failure.
+- **Size**: at most ``MAX_BODY_BYTES`` (1 MiB) per body, checked against ``Content-Length``
+  and again while reading (spec S-14).
 - **Body**: strict UTF-8, no newline translation, and a leading BOM stays in the text, exactly as
   ``loader.read_source`` treats local files. A ``charset`` in ``Content-Type`` is ignored: S-2
   says the body must be UTF-8.
@@ -43,6 +46,11 @@ FETCH_TIMEOUT_SECONDS: Final = 10.0
 _CHUNK: Final = 65536
 _ALLOWED_SCHEMES: Final = frozenset({"http", "https"})
 _TIMED_OUT: Final = f"timed out after {FETCH_TIMEOUT_SECONDS:g} s"
+# Largest body accepted for one remote include (spec S-14). Configurations are small (under
+# 1,000 leaves in under 50 files), so 1 MiB is far above any real include; anything larger is
+# refused as a failed fetch rather than read into memory.
+MAX_BODY_BYTES: Final = 1024 * 1024
+_TOO_LARGE: Final = "larger than 1 MiB, the limit for a remote include"
 
 
 def fetch(url: Url) -> str:
@@ -50,7 +58,8 @@ def fetch(url: Url) -> str:
 
     Raises:
         FetchError: For a network or TLS error, a timeout, a non-2xx status, a redirect to a
-            scheme other than http/https, or a body that is not valid UTF-8. The message is
+            scheme other than http/https or from https to http, a body larger than
+            ``MAX_BODY_BYTES``, or a body that is not valid UTF-8. The message is
             ``cannot fetch <url>: <reason>``.
     """
     deadline = _Deadline(FETCH_TIMEOUT_SECONDS)
@@ -81,8 +90,16 @@ def _get(url: Url, deadline: "_Deadline") -> bytes:
     request = urllib.request.Request(url.text, method="GET")
     opener = _opener(url, deadline)
     with opener.open(request, timeout=deadline.remaining()) as response:
+        declared = response.headers.get("Content-Length")
+        if declared is not None and declared.strip().isdigit() and int(declared) > MAX_BODY_BYTES:
+            raise FetchError(url.text, _TOO_LARGE)
         chunks: list[bytes] = []
+        size = 0
+        # The declared length is never trusted: the limit holds while reading (spec S-14).
         while chunk := response.read(_CHUNK):
+            size += len(chunk)
+            if size > MAX_BODY_BYTES:
+                raise FetchError(url.text, _TOO_LARGE)
             chunks.append(chunk)
     return b"".join(chunks)
 
@@ -351,6 +368,11 @@ class _HTTPSHandler(urllib.request.HTTPSHandler):
 class _RedirectHandler(urllib.request.HTTPRedirectHandler):
     """Follow redirects only to http/https; refuse every other scheme with a ``FetchError``.
 
+    A redirect from https to http is refused too (spec S-15): the owner asked for an encrypted
+    source, and following the downgrade would silently drop that. http to https and
+    same-scheme redirects are followed. Every hop is checked, so https -> http -> http is
+    refused at its first hop.
+
     The check sits in ``http_error_30x`` rather than ``redirect_request`` because urllib
     rejects ``file:`` and similar targets before ``redirect_request`` is called, with an
     ``HTTPError`` that would read like a status failure; ``ftp:`` it would even follow.
@@ -371,10 +393,16 @@ class _RedirectHandler(urllib.request.HTTPRedirectHandler):
         target = headers.get("location") or headers.get("uri")
         if target is not None:
             newurl = urljoin(req.full_url, target)
-            if urlsplit(newurl).scheme not in _ALLOWED_SCHEMES:
+            scheme = urlsplit(newurl).scheme
+            if scheme not in _ALLOWED_SCHEMES:
                 fp.close()
                 raise FetchError(
                     str(self._url), f"redirect to {newurl} refused (only http and https)"
+                )
+            if scheme == "http" and urlsplit(req.full_url).scheme == "https":
+                fp.close()
+                raise FetchError(
+                    str(self._url), f"redirect to {newurl} refused (https may not redirect to http)"
                 )
         return super().http_error_302(req, fp, code, msg, headers)
 

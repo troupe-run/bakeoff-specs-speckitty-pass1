@@ -66,6 +66,7 @@ def _file(node: Node | None) -> str:
     """The theatre-relative file a node's bytes live in."""
     assert node is not None
     path = node.origin.file.path
+    assert isinstance(path, Path)  # these fixtures are local files
     return path.relative_to(_state_dir(path)).as_posix()
 
 

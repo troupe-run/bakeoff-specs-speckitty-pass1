@@ -1,11 +1,12 @@
 """Command-line parsing and dispatch for ``troupe config`` (FR-001, FR-006, FR-008).
 
 Commands: ``get PATH``, ``show [PATH] [--sources]``,
-``set PATH VALUE [--reason TEXT] [--in-include] [--expand-alias]``, ``history [PATH]`` and
-``watch``. ``--in-include`` (FR-011, D-9) and ``--expand-alias`` (spec C10, FR-008; research
-R-10) exist only on ``set``, anywhere among its options and combinable with each other and with
-``--reason``: given to any other command, argparse reports an unrecognised argument, a
-``UsageError`` (exit 2) like any other bad option.
+``set PATH VALUE [--reason TEXT] [--in-include] [--expand-alias] [--include]``,
+``history [PATH]`` and ``watch``. ``--in-include`` (FR-011, D-9), ``--expand-alias`` (spec C10,
+FR-008; research R-10) and ``--include`` (step 7, S-12; research R-12) exist only on ``set``,
+anywhere among its options and combinable with each other and with ``--reason``: given to any
+other command, argparse reports an unrecognised argument, a ``UsageError`` (exit 2) like any
+other bad option.
 
 ``TROUPE_ACTOR`` is resolved once, here, right after the arguments are parsed and before the
 theatre is located (FR-003, spec DM 01M436TPQDWVSZQYFD6D5343DC). An invalid value is a
@@ -98,6 +99,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--expand-alias",
         action="store_true",
         help="give an aliased value on PATH its own copy before setting it",
+    )
+    set_.add_argument(
+        "--include",
+        action="store_true",
+        help="write include-looking strings in VALUE as includes instead of !literal strings",
     )
     history = commands.add_parser("history", help="print recorded changes as JSON Lines")
     history.add_argument("path", metavar="PATH", nargs="?", default=None)

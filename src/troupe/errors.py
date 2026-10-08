@@ -41,3 +41,18 @@ class PathError(TroupeError):
     """A configuration path was not found or names the wrong kind of node."""
 
     exit_code = 5
+
+
+class FetchError(LoadError):
+    """A remote include could not be fetched; the message names the URL (TROUPE-003).
+
+    ``url`` and ``reason`` are kept separately so the loader can re-raise with the including
+    file and the configuration path added: ``cannot fetch {url} (included from ..., at ...):
+    {reason}`` (contracts/cli.md). ``url`` is a plain ``str`` so this module stays free of
+    ``troupe`` imports.
+    """
+
+    def __init__(self, url: str, reason: str) -> None:
+        super().__init__(f"cannot fetch {url}: {reason}")
+        self.url = url
+        self.reason = reason

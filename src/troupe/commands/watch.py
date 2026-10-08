@@ -9,9 +9,17 @@ The baseline is built from the texts the session's load actually read, so an edi
 after that load (even before the line is printed) differs from it and is seen by the first poll:
 that is what makes the line a promise (NFR-002).
 
+The schema file ``troupe.schema.json`` is baselined too (absent maps to ``None``): it decides
+which strings are literals and what is valid, so editing, adding or removing it is a change that
+triggers a reconcile (spec S-6, research R-11).
+
+Remote content is never polled (spec S-6): URLs are not in the baseline, and remote includes are
+fetched again only when a reconcile runs, i.e. when a local watched file or the schema changes.
+
 While the configuration cannot be loaded, ``watch`` keeps running, records nothing, retries on
 every tick (a stale baseline could not see, say, a missing include target being created) and
-reports each distinct message once (D-1, research R-05).
+reports each distinct message once (D-1, research R-05). A failing remote include is therefore
+fetched again on each retry, each fetch bounded by its 10-second deadline (spec S-6).
 """
 
 import signal
@@ -22,6 +30,7 @@ from typing import Final
 
 from troupe.errors import LoadError
 from troupe.reconcile import watched_files
+from troupe.schema import SCHEMA_FILE_NAME
 from troupe.session import open_session
 from troupe.theatre import ROOT_FILE_NAMES, Theatre
 
@@ -96,13 +105,20 @@ def _reconcile_and_snapshot(theatre: Theatre) -> Baseline:
     The watched files map to their loaded bytes. Both root candidates are keyed as ``locate``
     checks them: the located one maps to its loaded bytes (also when it is a symlink), the other
     to ``None``, since ``locate`` has just found it absent.
+
+    The schema file decides what is a literal and what is valid, so editing it is a change to
+    watch (S-6). It maps to its bytes read *before* the session's load (``None`` when absent):
+    an edit landing after that read differs from the baseline whether or not the load saw it,
+    so it is never missed; at worst it causes one extra, idempotent reconcile.
     """
+    schema_bytes = _read(theatre.state_dir / SCHEMA_FILE_NAME)
     with open_session(theatre, reconcile=True) as session:
         baseline: Baseline = dict(watched_files(session.tree))
         located = session.theatre.config_file
         for name in ROOT_FILE_NAMES:
             candidate = session.theatre.state_dir / name
             baseline[candidate] = baseline[located.resolve()] if candidate == located else None
+        baseline[session.theatre.state_dir / SCHEMA_FILE_NAME] = schema_bytes
         return baseline
 
 

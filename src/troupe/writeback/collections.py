@@ -63,6 +63,15 @@ Anchors and aliases (step 6; spec C5, research R-9):
   new block, ``x: &m [a, b]``, ``d: &d 5``). An anchor elsewhere (``defaults:`` with ``&d``
   alone on the next line) would have to move, so the replacement is refused (``WriteRefused``,
   exit 3). Scalars replaced in place and flow values keep it anyway: their spans exclude it.
+
+``!literal`` (spec S-10, S-11; research R-8):
+
+- New string values are rendered only by ``scalars.render_scalar`` and
+  ``blocks.render_new_multiline``, which write ``!literal `` before an ``includes.LiteralStr``;
+  keys go through ``render_string`` and are never tagged.
+- Kind-changing replacement of a tagged scalar by a collection removes the tag token and the
+  blanks after it on its line (``!literal`` on a collection is refused on load); an anchor
+  written before or after the tag stays (C5), and a line holding nothing but the tag is deleted.
 - The indentation step and the open-end check parse with anchors and aliases allowed, so files
   using them are measured like any other; an alias gives no indentation information.
 """
@@ -101,7 +110,7 @@ from troupe.writeback.blocks import (
 from troupe.writeback.comments import find_comment_start, replace_in_line
 from troupe.writeback.fileio import detect_newline
 from troupe.writeback.scalars import QuoteStyle, choose_style, render_scalar, render_string
-from troupe.yamlcore import RawAlias, RawMapping, RawNode, RawSequence
+from troupe.yamlcore import LITERAL_TAG, RawAlias, RawMapping, RawNode, RawSequence
 
 type Value = Scalar | dict[str, Value] | list[Value]
 """A value to write: same shape as ``troupe.values.Value`` (a parsed VALUE argument)."""
@@ -778,7 +787,7 @@ def replace_value_edits(
     its bytes up to and including its end-of-line comment (FR-016, FR-020); the old value is
     removed (its inline text, block scalar body or entry lines; comment lines after the last old
     entry stay); a non-empty new collection is written below in block style, anything else on
-    the key's line.
+    the key's line. A ``!literal`` tag on ``old`` is removed with it, keeping its anchor.
 
     Args:
         file: The file containing ``parent``.
@@ -823,9 +832,47 @@ def replace_value_edits(
         seq_indent=seq_indent,
     )
     inline_text, below = out.lines[0], _Lines(out.lines[1:], out.tail)
-    return _anchor_line_edits(text, anchor, removed, inline_text) + _below_edits(
-        file, anchor, removed, below, path
-    )
+    tag = _tag_cut(text, old)
+    on_head_line = tag is not None and _line_start(text, tag[0]) == anchor.line_start
+    edits = _anchor_line_edits(text, anchor, removed, inline_text, tag if on_head_line else None)
+    edits += _below_edits(file, anchor, removed, below, path)
+    if tag is not None and not on_head_line and not _covers(removed.lines, tag[0]):
+        edits += _remove_tag_on_own_line(text, tag)
+    return edits
+
+
+def _tag_cut(text: str, old: Node) -> tuple[int, int] | None:
+    """The ``!literal`` token on ``old`` plus the spaces and tabs right after it, or ``None``.
+
+    Stops before a comment or line break, and never reaches past the tag's span
+    (``ScalarNode.literal``), so an anchor after it is kept.
+    """
+    if not isinstance(old, ScalarNode) or old.literal is None:
+        return None
+    start = old.literal.start
+    end = start + len(LITERAL_TAG)
+    while end < old.literal.end and text[end] in " \t":
+        end += 1
+    return start, end
+
+
+def _covers(lines: tuple[int, int] | None, pos: int) -> bool:
+    return lines is not None and lines[0] <= pos < lines[1]
+
+
+def _remove_tag_on_own_line(text: str, tag: tuple[int, int]) -> list[TextEdit]:
+    """Remove a tag written on a line between the key's line and the value's first line.
+
+    The whole line goes if nothing else is on it; else only the tag, the comment keeping its
+    column (FR-020).
+    """
+    start = _line_start(text, tag[0])
+    end = _content_line_end(text, start)
+    line = text[start:end]
+    cut_start, cut_end = tag[0] - start, tag[1] - start
+    if not (line[:cut_start] + line[cut_end:]).strip(" \t"):
+        return [TextEdit(start, _next_line(text, start), "")]
+    return _minimal_edit(text, start, end, replace_in_line(line, cut_start, cut_end, ""))
 
 
 def _is_block_collection(node: Node) -> TypeGuard[Collection]:
@@ -916,12 +963,18 @@ def _old_value(file: SourceFile, anchor: _Anchor, old: Node, path: str) -> _OldV
 
 
 def _anchor_line_edits(
-    text: str, anchor: _Anchor, removed: _OldValue, inline_text: str
+    text: str,
+    anchor: _Anchor,
+    removed: _OldValue,
+    inline_text: str,
+    tag: tuple[int, int] | None = None,
 ) -> list[TextEdit]:
     """Rewrite the anchor line: remove the old inline value, write ``inline_text`` after the head.
 
     ``inline_text`` is ``""`` when the new value goes on the lines below; then the line keeps
     its bytes up to and including its comment, losing only the old value and the spaces before.
+    ``tag`` (``_tag_cut``, on this line) is removed too: after the head it is cut with the old
+    value; before it (``!literal &a``) only the tag goes and the anchor's bytes stay.
     """
     start = anchor.line_start
     end = _content_line_end(text, start)
@@ -932,11 +985,19 @@ def _anchor_line_edits(
         cut_end = removed.inline[1] - start
         if not has_comment and not inline_text:
             cut_end = len(line)
-    elif inline_text:
+    elif inline_text or tag is not None:
         cut_end = head if has_comment else len(line)
     else:
         return []
-    return _minimal_edit(text, start, end, replace_in_line(line, head, cut_end, inline_text))
+    cut_start, kept = head, ""
+    if tag is not None:
+        tag_start, tag_end = tag[0] - start, tag[1] - start
+        if tag_start < head:
+            cut_start, kept = tag_start, line[tag_end:head]
+        else:
+            cut_end = max(cut_end, tag_end)
+    new_line = replace_in_line(line, cut_start, cut_end, kept + inline_text)
+    return _minimal_edit(text, start, end, new_line)
 
 
 def _below_edits(
@@ -991,6 +1052,9 @@ def _replace_in_flow(
 ) -> list[TextEdit]:
     rendered = render_flow_value(new_value)
     start, end = old.origin.start, old.origin.end
+    tag = _tag_cut(text, old)
+    if tag is not None:  # drop the tag; keep what stands between it and the value (an anchor)
+        return _rewrite_span(text, tag[0], end, text[tag[1] : start] + rendered)
     if start != end:
         return _rewrite_span(text, start, end, rendered)
     if not isinstance(parent, MappingNode) or not isinstance(index_or_key, str):

@@ -61,6 +61,7 @@ def test_walk_through_yaml_include_continues_at_its_root(root: Node) -> None:
     assert isinstance(result.nodes[1], YamlInclude)
     leaf = result.nodes[-1]
     assert isinstance(leaf, ScalarNode)
+    assert isinstance(leaf.origin.file.path, Path)  # a local file
     assert (leaf.value, leaf.origin.file.path.name) == ("ada", "agents.yaml")
 
 

@@ -6,6 +6,8 @@ from pathlib import Path
 
 import pytest
 
+from troupe.errors import WriteRefused
+from troupe.location import Url
 from troupe.tree import SourceFile
 from troupe.writeback import TextEdit, apply_edits
 from troupe.writeback.fileio import atomic_write, detect_newline, to_crlf, uses_crlf, write_files
@@ -136,6 +138,31 @@ def test_write_files_writes_only_files_whose_text_changed(tmp_path: Path) -> Non
 
     assert changed_path.read_bytes() == b"a: 3\n"
     assert same_path.stat().st_mtime_ns == 1_000_000_000
+
+
+def test_write_files_refuses_remote_content_before_writing_any_file(tmp_path: Path) -> None:
+    local_path = tmp_path / "local.yml"
+    local_path.write_bytes(b"a: 1\n")
+    local = SourceFile(path=local_path, text="a: 1\n")
+    remote = SourceFile(path=Url("https://cfg.example.com/team.yaml"), text="b: 2\n")
+
+    with pytest.raises(WriteRefused) as caught:
+        write_files({local: "a: 3\n", remote: "b: 3\n"})  # the local file comes first
+
+    assert caught.value.exit_code == 3
+    assert caught.value.message == (
+        "cannot write https://cfg.example.com/team.yaml: it is remote content, which troupe never"
+        " changes; no file changed"
+    )
+    assert local_path.read_bytes() == b"a: 1\n"
+    assert _temp_residue(tmp_path) == []
+
+
+def test_write_files_refuses_unchanged_remote_content_too(tmp_path: Path) -> None:
+    remote = SourceFile(path=Url("https://cfg.example.com/team.yaml"), text="b: 2\n")
+
+    with pytest.raises(WriteRefused):
+        write_files({remote: "b: 2\n"})
 
 
 def test_apply_edits_splices_replacements_and_insertions_given_in_any_order() -> None:

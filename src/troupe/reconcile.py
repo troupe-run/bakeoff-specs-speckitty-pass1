@@ -9,7 +9,12 @@ Each reconcile is its own change: it builds one ``file_lineage()`` (unknown acto
 for all the events it records. That covers the reconcile before a command's own work and each
 reconcile ``watch`` performs (FR-005, FR-010, FR-011). It never sees the CLI actor.
 
-This module also names the files a load read (``watched_files``), which ``watch`` observes.
+Leaves from remote content are leaves like any other (spec S-6): an upstream change seen by a
+reconcile's load is recorded with this same file lineage. Remote content is fetched by that load;
+reconcile itself never contacts a server.
+
+This module also names the local files a load read (``watched_files``), which ``watch``
+observes; remote content is not among them (S-6).
 """
 
 from pathlib import Path
@@ -56,6 +61,8 @@ def watched_files(tree: Node) -> dict[Path, bytes]:
     ``SourceFile.text`` is strict-UTF-8-decoded without newline translation, so encoding it back
     gives exactly the bytes that were read. Keyed by the resolved path: ``SourceFile`` compares
     by identity.
+    Remote content is not watched (spec S-6): a remote ``SourceFile`` is skipped both as a
+    node's file and as an include target. It is fetched again on the next reconcile's load.
     """
     files: dict[Path, bytes] = {}
     _collect(tree, files)
@@ -63,7 +70,8 @@ def watched_files(tree: Node) -> dict[Path, bytes]:
 
 
 def _add(file: SourceFile, files: dict[Path, bytes]) -> None:
-    files.setdefault(file.path, file.text.encode("utf-8"))
+    if isinstance(file.path, Path):  # remote content is not watched (S-6)
+        files.setdefault(file.path, file.text.encode("utf-8"))
 
 
 def _collect(node: Node, files: dict[Path, bytes]) -> None:

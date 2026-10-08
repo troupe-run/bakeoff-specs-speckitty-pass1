@@ -3,7 +3,8 @@
 The tree is rebuilt from the files on disk by ``troupe.loader.load`` for every command. Each node
 carries an ``Origin``: the ``SourceFile`` that contains its bytes and the code-point span
 ``file.text[start:end]`` it was parsed from. A node reached through a YAML include belongs to the
-included file. This module is stdlib-only so that every other module can depend on it.
+included file. This module imports only the stdlib and the dependency-free
+``troupe.location``, so that every other module can depend on it.
 
 Anchors, aliases and merge keys (spec A-0, C1; research R-3, R-4):
 
@@ -19,8 +20,9 @@ Anchors, aliases and merge keys (spec A-0, C1; research R-3, R-4):
 """
 
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Literal
+
+from troupe.location import Location, Url
 
 Scalar = str | int | float | bool | None
 ScalarStyle = Literal["plain", "single", "double", "literal", "folded"]
@@ -28,16 +30,24 @@ ScalarStyle = Literal["plain", "single", "double", "literal", "folded"]
 
 @dataclass(eq=False)
 class SourceFile:
-    """One file read from disk (identity semantics: one object per resolved path per load).
+    """One source read by a load: a file on disk or fetched remote content (research R-1).
+
+    Identity semantics: one object per location per load.
 
     Attributes:
-        path: Absolute, resolved path.
+        path: Where the source lives: an absolute, resolved ``Path`` for a file on disk, or a
+            ``Url`` for remote content, which troupe never writes (spec S-4).
         text: Strict UTF-8 decoded text with original newlines; a leading BOM stays as U+FEFF, so
             parser indices and ``text`` agree character for character (research R-14).
     """
 
-    path: Path
+    path: Location
     text: str
+
+    @property
+    def remote(self) -> bool:
+        """Whether this is remote content (read-only; never watched or written)."""
+        return isinstance(self.path, Url)
 
 
 @dataclass(frozen=True)
@@ -75,12 +85,18 @@ class Anchor:
 
 @dataclass
 class ScalarNode:
-    """A scalar; ``value`` is resolved per the YAML 1.2 core schema (plain) or a string."""
+    """A scalar; ``value`` is resolved per the YAML 1.2 core schema (plain) or a string.
+
+    ``literal`` is the span of a ``!literal`` tag written on it (the tag token and the blanks
+    after it, up to ``origin.start``), else ``None``; ``value`` is then always the scalar's text
+    as a ``str`` (spec S-10; research R-5). Writers keep or drop the tag by this span (R-8).
+    """
 
     origin: Origin
     value: Scalar
     style: ScalarStyle
     anchor: Anchor | None = field(default=None, kw_only=True)
+    literal: Origin | None = field(default=None, kw_only=True)
 
 
 @dataclass

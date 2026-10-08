@@ -33,6 +33,7 @@ from typing import Final
 
 from ruamel.yaml import YAML
 
+from troupe.location import Location, Url
 from troupe.paths import unwrap
 from troupe.tree import (
     AliasNode,
@@ -65,12 +66,12 @@ class Line:
 
     Attributes:
         text: The line without its line break.
-        source: The file of the scalar this line holds (a one-line scalar or a literal-block
-            header), else ``None`` (research D-7).
+        source: The file or URL of the scalar this line holds (a one-line scalar or a
+            literal-block header), else ``None`` (research D-7, R-11).
     """
 
     text: str
-    source: Path | None = None
+    source: Location | None = None
 
 
 def render(node: Node) -> list[Line]:
@@ -96,12 +97,15 @@ def to_text(lines: list[Line], sources_root: Path | None) -> str:
     return "".join(_line_text(line, sources_root) + "\n" for line in lines)
 
 
-def source_label(path: Path, theatre_dir: Path) -> str:
+def source_label(path: Location, theatre_dir: Path) -> str:
     """Return ``path`` relative to ``theatre_dir`` with ``/`` separators (research D-6).
 
     A file outside the theatre directory gives a ``../`` path. Both arguments must already be
-    resolved absolute paths; nothing is resolved here (no filesystem access).
+    resolved absolute paths; nothing is resolved here (no filesystem access). Remote content is
+    labelled with its resolved URL, verbatim (spec S-6).
     """
+    if isinstance(path, Url):
+        return path.text
     return PurePath(os.path.relpath(path, theatre_dir)).as_posix()
 
 

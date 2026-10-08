@@ -503,23 +503,48 @@ def test_change_that_would_alter_another_path_is_refused_by_verification(
     assert _history(theatre) == imported
 
 
-def test_value_naming_a_missing_include_target_is_refused(make_theatre: MakeTheatre) -> None:
-    theatre = make_theatre({"troupe.yml": "a: 1\n"})
-
-    result = _set_fails(theatre, "b", "file:missing.md", 3, "b")
-
-    assert "byte-surgically" in result.err
-
-
-def test_value_naming_an_existing_text_file_becomes_an_include(
+def test_include_flag_naming_a_missing_target_is_refused_naming_the_target(
     make_theatre: MakeTheatre,
 ) -> None:
+    # S-12 (was step 1's generic refusal): the message names the missing include target.
+    theatre = make_theatre({"troupe.yml": "a: 1\n"})
+    before = snapshot(theatre)
+
+    result = run_cli(
+        "config", "set", "--include", "b", "file:missing.md", "--theatre", str(theatre)
+    )
+
+    missing = (theatre / ".troupe" / "missing.md").resolve()
+    assert (result.code, result.out) == (3, "")
+    assert result.err.startswith("troupe: b: ") and result.err.count("\n") == 1
+    assert f"include target not found: {missing}" in result.err
+    assert result.err.endswith("; no file changed\n")
+    assert snapshot(theatre) == before
+
+
+def test_include_flag_with_a_value_naming_an_existing_text_file_writes_an_include(
+    make_theatre: MakeTheatre,
+) -> None:
+    # The step-1 behaviour, now asked for with ``--include`` (S-12, S-13).
+    theatre = make_theatre({"troupe.yml": "a: 1\n", "p.md": "hello\n"})
+
+    result = run_cli("config", "set", "--include", "b", "file:p.md", "--theatre", str(theatre))
+
+    assert (result.code, result.out, result.err) == (0, "", "")
+    assert snapshot(theatre) == _bytes({"troupe.yml": "a: 1\nb: file:p.md\n", "p.md": "hello\n"})
+    assert _get(theatre, "b") == "hello\n"
+
+
+def test_value_naming_an_existing_text_file_is_written_as_a_literal_string(
+    make_theatre: MakeTheatre,
+) -> None:
+    # S-13: without ``--include`` an include-looking VALUE is written tagged ``!literal``.
     theatre = make_theatre({"troupe.yml": "a: 1\n", "p.md": "hello\n"})
 
     _set_ok(
         theatre,
         "b",
         "file:p.md",
-        {"troupe.yml": "a: 1\nb: file:p.md\n", "p.md": "hello\n"},
-        "hello\n",
+        {"troupe.yml": "a: 1\nb: !literal file:p.md\n", "p.md": "hello\n"},
+        "file:p.md\n",
     )

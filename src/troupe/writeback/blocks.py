@@ -54,9 +54,10 @@ from dataclasses import dataclass
 from typing import Literal
 
 from troupe.errors import WriteRefused
+from troupe.includes import LiteralStr
 from troupe.writeback import TextEdit
 from troupe.writeback.comments import find_comment_start, replace_in_line
-from troupe.writeback.scalars import Context, can_single, render_string
+from troupe.writeback.scalars import LITERAL_PREFIX, Context, can_single, render_string
 
 Chomp = Literal["strip", "clip", "keep"]
 Indicator = Literal["|", ">"]
@@ -184,12 +185,16 @@ def render_new_multiline(
         ``(header, body_lines)``: in block context the literal header to write after ``key: ``
         (or ``- ``) and the body lines (without line breaks) to write below it, each followed by
         the file's newline; in flow context a double-quoted scalar and no body lines. The caller
-        checks ``can_block`` first for block context.
+        checks ``can_block`` first for block context. For an ``includes.LiteralStr`` the header
+        (``!literal |-``) or the double-quoted scalar starts with ``scalars.LITERAL_PREFIX``
+        (spec S-11, S-13); the body lines are the same.
     """
+    prefix = LITERAL_PREFIX if isinstance(value, LiteralStr) else ""
     if context == "flow":
-        return render_string(value, "double"), []
+        return prefix + render_string(value, "double"), []
     chomp = _preferred_chomp(value)
-    return literal_header(value, chomp, indent_step), literal_lines(value, content_indent)
+    header = literal_header(value, chomp, indent_step)
+    return prefix + header, literal_lines(value, content_indent)
 
 
 def check_block_end(text: str, pos: int, content_indent: int, chomp: Chomp, path: str) -> None:
@@ -234,6 +239,9 @@ def replace_with_multiline(
     Block context: a literal block whose content is indented ``parent_indent + indent_step``;
     the end-of-line comment after the scalar keeps its column (FR-020). Flow context: a
     double-quoted scalar. The caller checks ``can_block`` first for block context.
+
+    A replacement path: ``LiteralStr`` never reaches here, and no tag is written; tags of
+    replaced values are the caller's separate edit (WP08).
 
     Args:
         text: The file text.
@@ -342,7 +350,11 @@ def parse_block(
 def replace_block(
     block: BlockScalar, text: str, new_value: str, newline: str, path: str
 ) -> list[TextEdit]:
-    """Replace an existing block scalar's value, literal or folded (FR-017, FR-018)."""
+    """Replace an existing block scalar's value, literal or folded (FR-017, FR-018).
+
+    A replacement path: ``LiteralStr`` never reaches here, and the header's tag (if any) is not
+    touched; tags of replaced values are the caller's separate edit (WP08).
+    """
     if block.indicator == ">":
         return replace_folded(block, text, new_value, newline, path)
     return replace_literal(block, text, new_value, newline, path)

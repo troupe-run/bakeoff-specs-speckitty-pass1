@@ -15,6 +15,10 @@ Contract and choices:
   Keys and one-line plain/single/double scalars keep their written text; other scalars use the
   step-1 rules (multi-line strings become literal blocks, ``blocks.render_new_multiline``).
   Empty collections are ``{}``/``[]``. Flow collections are written in block style.
+- Tags are copied, anchors are not (spec S-10, C8): a scalar tagged ``!literal`` is copied with
+  ``scalars.LITERAL_PREFIX`` in front of its written text (an empty one as the bare tag), or as
+  a new ``LiteralStr`` through the step-1 rules; untagged, a copy of ``!literal https://x``
+  would read as a remote include.
 - C7: aliases inside the copy stay aliases (``*name``).
 - A-0/FR-007: merge keys are never written, so a copy that would contain a ``<<`` entry (at any
   depth, not looking inside inner aliases, which stay aliases) is refused (``WriteRefused``).
@@ -34,6 +38,7 @@ from dataclasses import dataclass, field
 from typing import NoReturn
 
 from troupe.errors import WriteRefused
+from troupe.includes import LiteralStr
 from troupe.merge import is_merge_entry
 from troupe.paths import unwrap
 from troupe.tree import (
@@ -59,7 +64,7 @@ from troupe.writeback.blocks import (
 )
 from troupe.writeback.comments import find_comment_start
 from troupe.writeback.fileio import detect_newline
-from troupe.writeback.scalars import choose_style, render_scalar, render_string
+from troupe.writeback.scalars import LITERAL_PREFIX, choose_style, render_scalar, render_string
 
 COMMENT = "  # expanded from *{name} by troupe"
 """The end-of-line comment written on the expanded alias's key or dash line (contract)."""
@@ -266,19 +271,26 @@ class _Copy:
             self.scalar(out, head, node, parent_col + self.step)
 
     def scalar(self, out: _Out, head: str, node: ScalarNode, content_indent: int) -> None:
-        """Write a scalar after ``head``: its written text if one line, else step-1 rules."""
+        """Write a scalar after ``head``: its written text if one line, else step-1 rules.
+
+        A ``!literal`` tag is copied (S-10): before the written text, or by rendering the value
+        as a ``LiteralStr``.
+        """
         source = node.origin.source
+        tagged = node.literal is not None
+        value = LiteralStr(node.value) if tagged and isinstance(node.value, str) else node.value
         if node.origin.start == node.origin.end:
-            out.add(head)  # a null written as nothing stays nothing
+            # A null written as nothing stays nothing; a tagged empty string keeps its bare tag.
+            out.add(f"{head} {LITERAL_PREFIX.rstrip()}" if tagged else head)
         elif node.style in _WRITTEN_FORMS and "\n" not in source:
-            out.add(f"{head} {source}")
-        elif isinstance(node.value, str) and "\n" in node.value and can_block(node.value):
-            header, body = render_new_multiline(node.value, "block", content_indent, self.step)
+            out.add(f"{head} {LITERAL_PREFIX if tagged else ''}{source}")
+        elif isinstance(value, str) and "\n" in value and can_block(value):
+            header, body = render_new_multiline(value, "block", content_indent, self.step)
             out.add(f"{head} {header}")
             out.lines.extend(body)
-            out.tail = (content_indent, choose_chomp("clip", node.value))
+            out.tail = (content_indent, choose_chomp("clip", value))
         else:
-            out.add(f"{head} {render_scalar(node.value, None, 'block')}")
+            out.add(f"{head} {render_scalar(value, None, 'block')}")
 
     def mapping(self, out: _Out, node: MappingNode, indent: int) -> None:
         for entry in node.entries:

@@ -28,6 +28,16 @@ Order (plan "Engineering Alignment"; research R-04, R-12, R-17):
    (FR-004, FR-008, FR-009), separate from any import or reconcile change of step 2 (FR-010).
    A no-op, refused or failed set records nothing, so its reason is not kept (FR-014).
 
+``--include`` (step 7, S-12, S-13) is passed through to ``apply_set``: include-looking strings
+in VALUE are written untagged, as includes, instead of ``!literal``; a new include that cannot be
+read or fetched, or one on a path the schema marks ``format: uri``, is refused (exit 3).
+
+Remote includes and the schema (step 7; research R-7, R-10): ``apply_set`` gets the session's
+theatre, schema and fetched remote texts (``SetContext``), so its in-memory reloads read the
+same snapshot of remote content without fetching a URL twice, and a result that would not match
+the schema is refused (exit 3, S-9) before anything is written. Remote content is never written
+(S-4): ``apply_set`` refuses it, and ``write_files`` refuses it once more.
+
 Steps 3-5 run inside the session, under the theatre lock, so the write-back and its events
 are one unit that no reconcile can observe half-done (FR-015).
 
@@ -43,7 +53,7 @@ from troupe.paths import parse_path
 from troupe.session import open_session
 from troupe.theatre import Theatre
 from troupe.values import parse_value
-from troupe.writeback.apply import apply_set
+from troupe.writeback.apply import SetContext, apply_set
 from troupe.writeback.fileio import write_files
 
 
@@ -52,7 +62,8 @@ def run(theatre: Theatre, args: argparse.Namespace, actor: Actor) -> str:
 
     The set's own events are attributed to ``actor``, via ``cli``, with ``args.reason``.
     ``args.in_include`` selects the included file for a new key (``set --in-include``);
-    ``args.expand_alias`` expands the aliases on PATH before setting (``set --expand-alias``).
+    ``args.expand_alias`` expands the aliases on PATH before setting (``set --expand-alias``);
+    ``args.include`` writes include-looking strings in VALUE as includes (``set --include``).
 
     Raises:
         UsageError: If PATH has an empty segment or VALUE is not one YAML flow node (exit 2).
@@ -65,6 +76,7 @@ def run(theatre: Theatre, args: argparse.Namespace, actor: Actor) -> str:
     reason: str | None = args.reason
     in_include: bool = args.in_include
     expand_alias: bool = args.expand_alias
+    include: bool = args.include
     segments = parse_path(path)
     value = parse_value(raw_value)
     with open_session(theatre, reconcile=True) as session:
@@ -76,6 +88,8 @@ def run(theatre: Theatre, args: argparse.Namespace, actor: Actor) -> str:
             raw_value,
             in_include=in_include,
             expand_alias=expand_alias,
+            include=include,
+            context=SetContext(session.theatre, session.schema, session.fetched),
         )
         if plan.tree is None:
             return ""

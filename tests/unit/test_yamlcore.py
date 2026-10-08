@@ -16,6 +16,7 @@ from troupe.yamlcore import (
     RawNode,
     RawScalar,
     RawSequence,
+    RawTag,
     compose,
     resolve_plain,
 )
@@ -466,4 +467,229 @@ def test_spans_without_anchors_are_unchanged(text: str, allow_anchors: bool) -> 
     composed = compose(text, "f.yaml", allow_anchors=allow_anchors)
 
     assert composed is not None
+    assert _raw_spans(composed) == _ruamel_spans(expected)
+
+
+# --- !literal on scalars (allow_anchors=True; spec S-10, research R-4) ----------------------------
+
+
+def _tagged(text: str, key: str = "a") -> RawScalar:
+    scalar = _value(text, key)
+    assert isinstance(scalar, RawScalar)
+    assert scalar.tag is not None
+    return scalar
+
+
+def _tag_text(text: str, scalar: RawScalar) -> str:
+    assert scalar.tag is not None
+    return text[scalar.tag.start : scalar.tag.end]
+
+
+def test_literal_tag_on_plain_scalar_spans_tag_and_content_starts_after_it() -> None:
+    text = "a: !literal file:x.md\n"
+
+    scalar = _tagged(text)
+
+    assert scalar.tag == RawTag(start=3, end=text.index("f"))
+    assert _tag_text(text, scalar) == "!literal "
+    assert (scalar.start, scalar.end) == (text.index("f"), text.index("\n"))
+    assert (scalar.text, scalar.style) == ("file:x.md", "plain")
+
+
+def _same_span_as_without_tag(value: str, tag: str = "!literal ") -> RawScalar:
+    plain = _value(f"a: {value}\n", "a")
+    tagged = _tagged(f"a: {tag}{value}\n")
+
+    assert (tagged.start, tagged.end) == (plain.start + len(tag), plain.end + len(tag))
+    assert tagged.tag == RawTag(start=3, end=3 + len(tag))
+    return tagged
+
+
+@pytest.mark.parametrize(("value", "style"), [("'it''s'", "single"), ('"x\\ty"', "double")])
+def test_literal_tag_on_quoted_scalars(value: str, style: str) -> None:
+    scalar = _same_span_as_without_tag(value)
+
+    assert scalar.style == style
+
+
+@pytest.mark.parametrize(
+    ("value", "indicator"), [("|\n  line\n", "|"), (">-\n  folded\n", ">"), ("|+\n  k\n\n", "|")]
+)
+def test_literal_tag_on_block_literal_and_folded_scalars(value: str, indicator: str) -> None:
+    text = f"a: !literal {value}"
+
+    scalar = _same_span_as_without_tag(value)
+
+    assert text[scalar.start] == indicator
+
+
+def test_literal_tag_with_two_spaces_before_content() -> None:
+    scalar = _same_span_as_without_tag("x", tag="!literal  ")
+
+    assert scalar.text == "x"
+
+
+def test_literal_tag_then_comment_and_content_on_the_next_line() -> None:
+    text = "a: !literal # c\n  v\n"
+
+    scalar = _tagged(text)
+
+    assert _tag_text(text, scalar) == "!literal # c\n  "
+    assert text[scalar.start : scalar.end] == "v"
+
+
+@pytest.mark.parametrize(
+    ("text", "tag_text"),
+    [
+        ("a: &x !literal y\n", "!literal "),
+        ("a: !literal &x y\n", "!literal "),
+        ("a: &x  !literal\n  y\n", "!literal\n  "),
+        ("a: !literal # c\n  &x y\n", "!literal # c\n  "),
+        ("a: &x # c\n  !literal y\n", "!literal "),
+    ],
+)
+def test_literal_tag_and_anchor_in_either_order_give_the_same_content_start(
+    text: str, tag_text: str
+) -> None:
+    scalar = _tagged(text)
+
+    assert scalar.anchor is not None
+    assert text[scalar.anchor.start : scalar.anchor.end] == "&x"
+    assert _tag_text(text, scalar) == tag_text
+    assert (scalar.start, scalar.end) == (text.index("y"), text.index("y") + 1)
+
+
+def test_tag_then_anchor_span_stops_at_the_anchor_so_dropping_it_keeps_the_anchor() -> None:
+    text = "a: !literal &x y\n"
+
+    scalar = _tagged(text)
+
+    assert scalar.tag is not None
+    assert text[: scalar.tag.start] + text[scalar.tag.end :] == "a: &x y\n"
+
+
+@pytest.mark.parametrize(
+    ("text", "tag_text"),
+    [
+        ("- a: 1\n- !literal &x y\n", "!literal "),
+        ("[!literal &x y, b]\n", "!literal "),
+        ("{k: !literal &x y}\n", "!literal "),
+        ('"!literal #": !literal\n  &x y\n', "!literal\n  "),
+        ("a: !literal # !literalx\n  &x y\n", "!literal # !literalx\n  "),
+    ],
+)
+def test_tag_before_anchor_is_found_in_every_context(text: str, tag_text: str) -> None:
+    scalar = next(s for s in _scalars(_allowed(text)) if s.text == "y")
+
+    assert scalar.anchor is not None
+    assert _tag_text(text, scalar) == tag_text
+    assert text[scalar.anchor.start : scalar.anchor.end] == "&x"
+    assert text[scalar.start : scalar.end] == "y"
+
+
+@pytest.mark.parametrize(
+    ("text", "tag_end"),
+    [
+        ("a: !literal\nb: 1\n", 11),
+        ("a: !literal", 11),
+        ("[!literal ]\n", 9),
+        ("[!literal , b]\n", 9),
+    ],
+)
+def test_empty_literal_tagged_value_has_empty_span_after_the_tag(text: str, tag_end: int) -> None:
+    root = _allowed(text)
+    empty = root.pairs[0][1] if isinstance(root, RawMapping) else root
+    if isinstance(empty, RawSequence):
+        empty = empty.items[0]
+
+    assert isinstance(empty, RawScalar)
+    assert empty.tag == RawTag(start=tag_end - len("!literal"), end=tag_end)
+    assert (empty.text, empty.start, empty.end) == ("", tag_end, tag_end)
+
+
+def test_empty_literal_tagged_value_followed_by_an_anchor_ends_after_the_anchor() -> None:
+    text = "a: !literal &x\nb: 1\n"
+
+    empty = _tagged(text)
+
+    assert empty.anchor is not None
+    assert empty.tag == RawTag(start=3, end=empty.anchor.start)
+    assert (empty.text, empty.start, empty.end) == ("", empty.anchor.end, empty.anchor.end)
+
+
+@pytest.mark.parametrize(
+    ("text", "content"),
+    [("{u: !literal https://x}\n", "https://x"), ("[!literal a, b]\n", "a")],
+)
+def test_literal_tag_inside_flow_mapping_and_sequence(text: str, content: str) -> None:
+    root = _allowed(text)
+    scalar = next(s for s in _scalars(root) if s.tag is not None)
+
+    assert text[scalar.start : scalar.end] == content
+    assert _tag_text(text, scalar) == "!literal "
+
+
+@pytest.mark.parametrize(
+    "text",
+    ["a: 1\nb: !literal {c: 1}\n", "a: 1\nb: !literal\n  c: 1\n", "a: 1\nb: &x !literal {c: 1}\n"],
+)
+def test_literal_tag_on_mapping_is_refused_naming_the_line(text: str) -> None:
+    with pytest.raises(
+        LoadError, match=r"^cannot parse f\.yaml: !literal applies only to scalars at line 2$"
+    ):
+        compose(text, "f.yaml", allow_anchors=True)
+
+
+@pytest.mark.parametrize("text", ["a: 1\nb: !literal [1]\n", "a: 1\nb: !literal\n  - 1\n"])
+def test_literal_tag_on_sequence_is_refused_naming_the_line(text: str) -> None:
+    with pytest.raises(
+        LoadError, match=r"^cannot parse f\.yaml: !literal applies only to scalars at line 2$"
+    ):
+        compose(text, "f.yaml", allow_anchors=True)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "a: !literal x\nb: !t x\n",
+        "a: !literal x\nb: !!str x\n",
+        "a: !literal x\nb: !<tag:x> x\n",
+        "a: !literal x\nb: !<!literal> x\n",
+        "a: !literal x\nb: !literal, x\n",
+        "%TAG !e! !\n---\na: !literal x\nb: !e!literal x\n",
+    ],
+)
+def test_other_tags_are_still_refused_with_the_old_message(text: str) -> None:
+    line = text.count("\n", 0, text.index("b:")) + 1
+    with pytest.raises(
+        LoadError, match=rf"^cannot parse f\.yaml: tags are not supported at line {line}$"
+    ):
+        compose(text, "f.yaml", allow_anchors=True)
+
+
+def test_first_tag_refusal_in_document_order_wins() -> None:
+    with pytest.raises(
+        LoadError, match=r"^cannot parse f\.yaml: !literal applies only to scalars at line 1$"
+    ):
+        compose("a: !literal [1]\nb: !t x\n", "f.yaml", allow_anchors=True)
+
+
+@pytest.mark.parametrize("text", ["!literal x", "[!literal x]", "{a: !literal [1]}"])
+def test_value_mode_still_refuses_literal_tag_with_the_old_message(text: str) -> None:
+    with pytest.raises(
+        LoadError, match=r"^cannot parse VALUE: anchors and tags are not supported at line 1$"
+    ):
+        compose(text, "VALUE")
+
+
+@pytest.mark.parametrize(
+    "text", ["a: plain\n", "a: 'q'\n", 'a: "d"\n', "a: |\n  l\n", "a: >\n  f\n", "a:\n", "[x, ]\n"]
+)
+def test_untagged_scalars_have_unchanged_spans(text: str) -> None:
+    expected = YAML(typ="safe", pure=True).compose(text)
+
+    composed = compose(text, "f.yaml", allow_anchors=True)
+
+    assert composed is not None
+    assert all(s.tag is None for s in _scalars(composed))
     assert _raw_spans(composed) == _ruamel_spans(expected)
